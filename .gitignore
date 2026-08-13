@@ -1,0 +1,23 @@
+# VOICEVOX の成果物（scripts/setup_voicevox.py で取得する。約 175MB）
+/voicevox_core/
+/.voicevox_downloader/
+
+# Python
+/.venv/
+__pycache__/
+*.py[cod]
+
+# Node
+node_modules/
+
+# 環境ごとの Claude Code 設定
+.claude/settings.local.json
+
+# 移行前の Node.js 構成（不要になったら削除してよい）
+/.migration-backup/
+
+.DS_Store
+*~
+
+# llama.cpp のバイナリと GGUF モデル（scripts/setup_llama.py で取得する。約 1.6GB）
+/llama/

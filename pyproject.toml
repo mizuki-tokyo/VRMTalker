@@ -1,0 +1,49 @@
+[project]
+name = "vrmtalker"
+version = "0.1.0"
+description = "VRM 3D モデルによる音声対話のテンプレートプロジェクト"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115",
+    "httpx>=0.28.1",
+    "uvicorn[standard]>=0.32",
+    "voicevox-core",
+]
+
+# 対応プラットフォームを明示する。
+# voicevox-core はプラットフォーム別 wheel しか無いため、これが無いと
+# 「どの環境でも解決できる組み合わせ」が存在せず uv sync が失敗する。
+[tool.uv]
+environments = [
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "sys_platform == 'win32'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "sys_platform == 'linux' and platform_machine == 'aarch64'",
+]
+
+# VOICEVOX CORE の Python バインディングは PyPI では配布されておらず、
+# GitHub Releases のプラットフォーム別 wheel を直接指定する。
+[tool.uv.sources]
+voicevox-core = [
+    { url = "https://github.com/VOICEVOX/voicevox_core/releases/download/0.16.4/voicevox_core-0.16.4-cp310-abi3-macosx_11_0_arm64.whl", marker = "sys_platform == 'darwin' and platform_machine == 'arm64'" },
+    { url = "https://github.com/VOICEVOX/voicevox_core/releases/download/0.16.4/voicevox_core-0.16.4-cp310-abi3-macosx_10_12_x86_64.whl", marker = "sys_platform == 'darwin' and platform_machine == 'x86_64'" },
+    { url = "https://github.com/VOICEVOX/voicevox_core/releases/download/0.16.4/voicevox_core-0.16.4-cp310-abi3-win_amd64.whl", marker = "sys_platform == 'win32'" },
+    { url = "https://github.com/VOICEVOX/voicevox_core/releases/download/0.16.4/voicevox_core-0.16.4-cp310-abi3-manylinux_2_34_x86_64.whl", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+    { url = "https://github.com/VOICEVOX/voicevox_core/releases/download/0.16.4/voicevox_core-0.16.4-cp310-abi3-manylinux_2_34_aarch64.whl", marker = "sys_platform == 'linux' and platform_machine == 'aarch64'" },
+]
+
+[dependency-groups]
+dev = []
+
+# Python のソースは src/ 配下に置く（main.py だけはエントリポイントとしてルートに残す）。
+# src/ をそのままパッケージルートとして venv に入れることで、main.py から
+# `import tts` / `from llm import ...` のように書ける。
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+sources = ["src"]
+only-include = ["src"]

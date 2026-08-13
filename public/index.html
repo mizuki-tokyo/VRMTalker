@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <style>
+      @font-face { font-family: "LINESeedJP_Bd"; src: url("fonts/LINESeedJP_Bd_min.woff2") format("woff2"); }
+      @font-face { font-family: "LINESeedJP_Eb"; src: url("fonts/LINESeedJP_Eb_min.woff2") format("woff2"); }
+      @font-face { font-family: "LINESeedJP_Rg"; src: url("fonts/LINESeedJP_Rg_min.woff2") format("woff2"); }
+      @font-face { font-family: "LINESeedJP_Th"; src: url("fonts/LINESeedJP_Th_min.woff2") format("woff2"); }
+    </style>
+    <style>
+      /*
+        ポップ＆ミニマル。
+        彩度の高い平面色・大きな角丸・影は falt なオフセット（ぼかし無し）で
+        「シールを貼ったような」軽さを出す。装飾は足さない。
+
+        寸法は clamp() で画面幅に追従させ、JavaScript では拡大しない。
+      */
+      :root {
+          --pop-blue:    #4b6bfb;
+          --pop-pink:    #ff5f8d;
+          --pop-yellow:  #ffd93d;
+          --pop-ink:     #23244a;
+          --pop-surface: #ffffff;
+
+          /* フラットな影（ぼかさずに真下へずらす） */
+          --pop-shadow:  0 4px 0 rgba(35, 36, 74, 0.18);
+
+          --ui-gap:         clamp(12px, 2.4vw, 22px);
+          --ui-button-size: clamp(48px, 8vw, 68px);
+          --ui-font:        clamp(12px, 2.4vw, 15px);
+          --ui-radius:      18px;
+
+          /* 画面端の余白（iPhone のノッチ等） */
+          --safe-bottom: env(safe-area-inset-bottom, 0px);
+          --safe-top:    env(safe-area-inset-top, 0px);
+          --safe-left:   env(safe-area-inset-left, 0px);
+          --safe-right:  env(safe-area-inset-right, 0px);
+      }
+
+      html {
+          width: 100%;
+          height: 100%;
+      }
+      body {
+          width: 100%;
+          height: 100%;
+          margin: 0;
+          background: skyblue;
+          font-family: LINESeedJP_Rg;
+          color: var(--pop-ink);
+          /* 端末の拡大縮小に文字サイズを引きずられないようにする */
+          -webkit-text-size-adjust: 100%;
+          overscroll-behavior: none;
+      }
+      #screen {
+          width: 100%;
+          height: 100%;
+          position: fixed;
+          transform: scale(1.0);
+          /* background: transparent; */
+          pointer-events: none;
+          /* for background image */
+          background-size: cover;
+          background-repeat: no-repeat;
+          background-position: center;
+      }
+      settings-panel:not(:defined) {
+          visibility: hidden;
+      }
+      three-world {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          /* #screen の pointer-events:none を打ち消す（OrbitControls に必要） */
+          pointer-events: auto;
+      }
+      chat-flow {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          /* 画面下部のボタンや認識結果と重ならないよう、下端を空ける。
+             実際の値は main.js の layout() がボタンの実寸から設定する */
+          bottom: var(--chat-flow-bottom, 60px);
+          /* 手動でスクロールできるよう、#screen の pointer-events:none を打ち消す */
+          pointer-events: auto;
+      }
+      /*
+        画面下部の操作列。左にマイク、右に設定。
+        大きさは --ui-button-size（clamp）が決めるので、JS では拡大しない
+      */
+      speech-recognition {
+          position: absolute;
+          left: calc(var(--ui-gap) + var(--safe-left));
+          bottom: calc(var(--ui-gap) + var(--safe-bottom));
+          /* 大きさは要素側が --ui-button-size を読むので、ここでの指定は不要 */
+          pointer-events: auto;
+      }
+      settings-panel {
+          position: absolute;
+          right: calc(var(--ui-gap) + var(--safe-right));
+          bottom: calc(var(--ui-gap) + var(--safe-bottom));
+          pointer-events: auto;
+      }
+
+      /* 認識結果はボタンの間に収める。幅が足りなければ折り返す */
+      #speech-recognition-result {
+          position: absolute;
+          left: calc(var(--ui-gap) * 2 + var(--ui-button-size) + var(--safe-left));
+          right: calc(var(--ui-gap) * 2 + var(--ui-button-size) + var(--safe-right));
+          bottom: calc(var(--ui-gap) + var(--safe-bottom));
+          min-height: var(--ui-button-size);
+          display: flex;
+          align-items: center;
+          font-size: var(--ui-font);
+          font-weight: 700;
+          color: var(--pop-ink);
+          text-shadow: 0 1px 0 #FFF, 0 -1px 0 #FFF, 1px 0 0 #FFF, -1px 0 0 #FFF;
+          opacity: 1;
+          /*
+            消えるときだけ徐々に透明にする。
+            この時間は main.js が transitionDuration から読み取るので、
+            変更はここだけで済む。opacity 以外の transition を足す場合は
+            main.js の読み取り方も見直すこと
+          */
+          transition: opacity 0.5s ease;
+      }
+      #speech-recognition-result.fade-out {
+          opacity: 0;
+      }
+
+      /*
+        設定ウインドウの中身（light DOM なのでここで整える）。
+        range の thumb は擬似要素のため ::slotted() では届かない
+      */
+      settings-panel label {
+          font-size: var(--ui-font);
+          font-weight: 700;
+      }
+      #zoom-slider {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 100%;
+          height: 8px;
+          margin: 8px 0 0;
+          border-radius: 999px;
+          background: #e8eaf6;
+          outline: none;
+      }
+      #zoom-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 22px;
+          height: 22px;
+          border: none;
+          border-radius: 50%;
+          background: var(--pop-blue);
+          box-shadow: var(--pop-shadow);
+          cursor: pointer;
+      }
+      #zoom-slider::-moz-range-thumb {
+          width: 22px;
+          height: 22px;
+          border: none;
+          border-radius: 50%;
+          background: var(--pop-blue);
+          cursor: pointer;
+      }
+      #speaker-select {
+          width: 100%;
+          margin-top: 6px;
+          padding: 8px 10px;
+          border: none;
+          border-radius: 12px;
+          background: #eef1ff;
+          color: var(--pop-ink);
+          font: inherit;
+          font-size: var(--ui-font);
+          cursor: pointer;
+      }
+      #clear-history {
+          width: 100%;
+          padding: 10px 12px;
+          border: none;
+          border-radius: 999px;
+          background: var(--pop-pink);
+          color: #fff;
+          font: inherit;
+          font-size: var(--ui-font);
+          font-weight: 700;
+          box-shadow: var(--pop-shadow);
+          cursor: pointer;
+      }
+      #clear-history:active {
+          transform: translateY(2px);
+          box-shadow: 0 2px 0 rgba(35, 36, 74, 0.18);
+      }
+
+      /* 設定ウインドウ内の区切り */
+      .settings-section {
+          padding-top: 12px;
+          border-top: 2px dashed #e3e6f5;
+      }
+      .settings-heading {
+          margin: 0 0 10px;
+          font-size: 0.85em;
+          font-weight: 800;
+          opacity: 0.6;
+      }
+      .settings-section color-picker {
+          display: block;
+          margin-bottom: 10px;
+      }
+      .settings-section color-picker:last-child {
+          margin-bottom: 0;
+      }
+      .settings-meta {
+          margin: 0;
+          padding: 8px 12px;
+          border-radius: 12px;
+          background: #eef1ff;
+          font-size: var(--ui-font);
+          font-weight: 700;
+          word-break: break-word;
+      }
+
+      /* 設定の保存・破棄。場所を取らないよう 1 行に並べる */
+      .settings-actions {
+          display: flex;
+          gap: 8px;
+      }
+      .chip {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          min-width: 0;
+          padding: 8px 10px;
+          border: none;
+          border-radius: 999px;
+          background: var(--pop-blue);
+          color: #fff;
+          font: inherit;
+          font-size: calc(var(--ui-font) * 0.92);
+          font-weight: 700;
+          white-space: nowrap;
+          box-shadow: var(--pop-shadow);
+          cursor: pointer;
+      }
+      .chip-danger {
+          background: var(--pop-pink);
+      }
+      .chip:active {
+          transform: translateY(2px);
+          box-shadow: 0 2px 0 rgba(35, 36, 74, 0.18);
+      }
+      .chip-icon {
+          flex: none;
+          width: 16px;
+          height: 16px;
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 2;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+      }
+      /* 実行後は一時的にチェックへ差し替える */
+      .chip .icon-done {
+          display: none;
+      }
+      .chip[data-done] .icon-default {
+          display: none;
+      }
+      .chip[data-done] .icon-done {
+          display: block;
+      }
+      /*
+        VOICEVOX の利用規約でクレジット表記が必須。
+        最初の吹き出しが右上に出るため、左上へ置いて重ならないようにする
+      */
+      #credit {
+          position: absolute;
+          left: calc(var(--ui-gap) + var(--safe-left));
+          top: calc(var(--ui-gap) + var(--safe-top));
+          padding: 4px 10px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.75);
+          color: var(--pop-ink);
+          font-size: clamp(10px, 2vw, 12px);
+          font-weight: 700;
+          pointer-events: none;
+      }
+      progress-bar {
+          width: 80%;
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translateX(-50%) translateY(-50%);
+      }
+    </style>
+    <!--<style>
+      /*
+      #meta {
+          position: absolute;
+          top: 0;
+          left: 0;
+          color: dimgray;
+          background: transparent;
+          pointer-events: none;
+      }
+      #thumbnail {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 100px;
+          height: 100px;
+          pointer-events: none;
+      }*/
+    </style>-->
+
+    <!--
+      three.js / three-vrm の参照先はここだけで管理する。
+      各 js からは "three" / "three/addons/..." / "@pixiv/three-vrm" で参照すること。
+      importmap は、どの module script よりも先に記述する必要がある。
+    -->
+    <script type="importmap">
+      {
+          "imports": {
+              "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+              "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+              "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3/lib/three-vrm.module.min.js",
+              "@pixiv/three-vrm-animation": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm-animation@3.4.2/lib/three-vrm-animation.module.min.js"
+          }
+      }
+    </script>
+
+    <script src="./js/split-sentence.js"></script>
+    <script src="./js/speech-synthesizer.js"></script>
+    <script src="./js/chat-client.js"></script>
+    <script src="./js/progress-bar-element.js"></script>
+
+    <script type="module" src="./js/speech-recognition-element.js"></script>
+    <script type="module" src="./js/three-world-element.js"></script>
+    <script type="module" src="./js/chat-flow-element.js"></script>
+    <script type="module" src="./js/chat-bubble-element.js"></script>
+    <script type="module" src="./js/vrm-avatar-element.js"></script>
+    <script type="module" src="./js/settings-panel-element.js"></script>
+    <script type="module" src="./js/color-picker-element.js"></script>
+
+  </head>
+
+  <body>
+    <div id="screen" style="background-image:url('./img/flat_room04.png')">
+      <three-world>
+        <vrm-avatar src="./models/VRM1_Constraint_Twist_Sample.vrm"
+                    position="0, 0, 0"
+                    idle="./animations/standard_idle.vrma"
+                    motions="./fbx/Hand Raising.fbx"
+                    light-intensity="1.2"
+                    shadow="0.3"></vrm-avatar>
+      </three-world>
+      <chat-flow></chat-flow>
+      <speech-recognition></speech-recognition>
+      <span id="speech-recognition-result"></span>
+      <span id="credit">VOICEVOX:四国めたん</span>
+
+      <!-- 設定ウインドウ。中身は slot なので自由に差し替えてよい -->
+      <settings-panel label="設定">
+        <label>キャラクタの大きさ
+          <input id="zoom-slider" type="range" min="0" max="100" value="50">
+        </label>
+        <label>話者
+          <select id="speaker-select"></select>
+        </label>
+
+        <div class="settings-section">
+          <p class="settings-heading">吹き出しの色</p>
+          <color-picker id="left-fill"  label="キャラクタ / 背景"></color-picker>
+          <color-picker id="left-text"  label="キャラクタ / 文字"></color-picker>
+          <color-picker id="right-fill" label="あなた / 背景"></color-picker>
+          <color-picker id="right-text" label="あなた / 文字"></color-picker>
+        </div>
+
+        <div class="settings-section">
+          <p class="settings-heading">モデル</p>
+          <p id="model-name" class="settings-meta">読み込み中…</p>
+        </div>
+
+        <!--
+          アイコンは Lucide (ISC License) https://lucide.dev
+          save / trash-2 / check
+        -->
+        <div class="settings-actions">
+          <button id="save-settings" class="chip" type="button"
+                  title="現在の設定をこの端末に保存する">
+            <svg class="chip-icon icon-default" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
+              <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/>
+              <path d="M7 3v4a1 1 0 0 0 1 1h7"/>
+            </svg>
+            <svg class="chip-icon icon-done" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 6 9 17l-5-5"/>
+            </svg>
+            <span class="chip-label">保存</span>
+          </button>
+
+          <button id="reset-settings" class="chip chip-danger" type="button"
+                  title="保存した設定を消して初期値に戻す">
+            <svg class="chip-icon icon-default" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 11v6"/>
+              <path d="M14 11v6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+              <path d="M3 6h18"/>
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            <svg class="chip-icon icon-done" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 6 9 17l-5-5"/>
+            </svg>
+            <span class="chip-label">破棄</span>
+          </button>
+        </div>
+
+        <button id="clear-history" type="button">会話履歴をクリア</button>
+      </settings-panel>
+    </div>
+  </body>
+
+  <!--
+  <script type="module">
+    setScreenScale(1);
+    document.querySelector("speech-recognition").setInputLevel(0);
+  </script>
+  -->
+
+  <script type="module" src="./js/main.js"></script>
+</html>
