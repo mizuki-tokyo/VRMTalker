@@ -12,7 +12,9 @@ const VolumeMeter = (() => {
         startAudio: async (context) => {
             if (! audioSourceNode) {
                 audioContext = context;
-                await audioContext.audioWorklet.addModule("./js/volume-meter-processor.js");
+                // addModule() のパスはドキュメント基準。この階層からの相対パスではない
+                await audioContext.audioWorklet.addModule(
+                    "./js/speech-recognizer/volume-meter-processor.js");
                 const mediaStream = await navigator.mediaDevices.getUserMedia({audio: true});
                 audioSourceNode = audioContext.createMediaStreamSource(mediaStream);
             }

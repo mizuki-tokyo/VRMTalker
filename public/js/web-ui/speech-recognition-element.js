@@ -1,5 +1,5 @@
 
-import SpeechRecognizer from "./speech-recognizer.js";
+import SpeechRecognizer from "../speech-recognizer.js";
 
 /**
  * <speech-recognition> : 音声認識を開始するマイクボタン。

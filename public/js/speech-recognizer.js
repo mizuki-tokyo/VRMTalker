@@ -1,5 +1,5 @@
-import VolumeMeter from "./volume-meter.js";
-//import VolumeMeter from "./volume-meter-worklet.js";
+import VolumeMeter from "./speech-recognizer/volume-meter.js";
+//import VolumeMeter from "./speech-recognizer/volume-meter-worklet.js";
 
 let isChrome = false;
 let isSafari = false;

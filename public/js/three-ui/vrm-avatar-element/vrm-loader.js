@@ -28,7 +28,6 @@ const VrmLoader = (() => {
                     
                     // calling these functions greatly improves the performance
                     VRMUtils.removeUnnecessaryVertices(gltf.scene);
-                    VRMUtils.removeUnnecessaryJoints(gltf.scene);
 		    VRMUtils.combineSkeletons(gltf.scene);
 		    VRMUtils.combineMorphs(vrm);
 
