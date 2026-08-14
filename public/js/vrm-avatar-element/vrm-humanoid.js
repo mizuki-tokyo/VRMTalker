@@ -10,6 +10,8 @@ import ActionManager from "./action-manager.js"
 import VRMSmoothLookAt from './vrm-smooth-lookat.js';
 import AudioPlayer from "./audio-player.js";
 
+import registFaceExpression from "./vrm-expression-editor.js";
+
 //const FADE_TIME = 0.2;
 const FADE_TIME = 0.5;
 
@@ -332,65 +334,16 @@ class VrmHumanoid {
         expressionManager.update();
     }
 
-    // test
-    // setBlendShape(shape, value) {
-    //     if (this._currentVrm) {
-    //         this._currentVrm.expressionManager.setValue(shape, value);
-    //         this._currentVrm.expressionManager.update();
-    //     }
-    // }
 
-    _createFaceExpressionMorphTargetBind(targetName, targetWeight) {
-        let vrm = this._currentVrm;
-
-        // MorphTargetBind.primitives に登録するのは Face グループの SkinnedMesh
-        const primitives = [...vrm.scene.getObjectByName("Face").children];
-
-        // Faceグループの SkinnedMesh#morphTagetDictionary から、目的の morphTargetIndex を得る
-        // Faceグループには Face_(merged) などのSkinnedMesh が登録されている
-        const morphTargetDictionary = vrm.scene.getObjectByName("Face").children[0].morphTargetDictionary;
-
-        return new VRMExpressionMorphTargetBind({
-            primitives,
-            index: morphTargetDictionary[targetName],
-            weight: targetWeight,
-        });
-    }
-
-    _registCustomExpressionMorphTargetBindList(expressionName, expressionMorphTargetBindList) {
-        // 表情の参考絵
-        // http://fantom1x.blog130.fc2.com/blog-entry-445.html
-
-        let vrm = this._currentVrm;
-
-        const expression = new VRMExpression(expressionName);
-        vrm.scene.add(expression);
-
-        for (const expressionMorphTargetBind of expressionMorphTargetBindList) {
-            expression.addBind(expressionMorphTargetBind);
-        }
-
-        // Expression を登録する(customExpressionMapに追加される)
-        vrm.expressionManager.registerExpression(expression);
-    }
-
-    createCustomExpressionMorphTargetBind() {
-        this._registCustomExpressionMorphTargetBindList("Emotion_Joy", [
-            this._createFaceExpressionMorphTargetBind("Face_Blendshape.Fcl_EYE_Joy", 0.9),
-            this._createFaceExpressionMorphTargetBind("Face_Blendshape.Fcl_BRW_Joy", 0.9)
-        ]);
-        this._registCustomExpressionMorphTargetBindList("Emotion_Surprised", [
-            this._createFaceExpressionMorphTargetBind("Face_Blendshape.Fcl_EYE_Surprised", 0.9),
-            this._createFaceExpressionMorphTargetBind("Face_Blendshape.Fcl_BRW_Surprised", 0.9)
-        ]);
-        this._registCustomExpressionMorphTargetBindList("Emotion_Angry", [
-            this._createFaceExpressionMorphTargetBind("Face_Blendshape.Fcl_EYE_Angry", 0.9),
-            this._createFaceExpressionMorphTargetBind("Face_Blendshape.Fcl_BRW_Angry", 0.9)
-        ]);
-        this._registCustomExpressionMorphTargetBindList("Emotion_Sorrow", [
-            this._createFaceExpressionMorphTargetBind("Face_Blendshape.Fcl_EYE_Sorrow", 0.9),
-            this._createFaceExpressionMorphTargetBind("Face_Blendshape.Fcl_BRW_Sorrow", 0.9)
-        ]);
+    /**
+     * 使い方の例
+     * createCustomExpressionMorphTargetBind("Emotion_Joy", {
+     *      "Face_Blendshape.Fcl_EYE_Joy": 0.9,
+     *      "Face_Blendshape.Fcl_BRW_Joy": 0.9
+     * });
+     */
+    createCustomExpressionMorphTargetBind(name, morphMap) {
+        registFaceExpression(this._currentVrm, name, morphMap);
     }
 
     setFaceExpression(name, value) {
@@ -399,12 +352,6 @@ class VrmHumanoid {
             this._currentVrm.expressionManager.update();
         }
     }
-
-    // Three-VRMで組み合わせて表情を登録する(Custom Expression)
-    // https://qiita.com/nobrin/items/9085fed1ef5b8b508290
-
-    // Three-VRMで顔パーツの表情パラメータを直接指定する
-    // https://qiita.com/nobrin/items/01b530f1cf58ac325f74?utm_source=chatgpt.com
 }
 
 export default VrmHumanoid;

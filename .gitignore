@@ -19,5 +19,9 @@ node_modules/
 .DS_Store
 *~
 
+# Emacs の自動保存・ロックファイル
+\#*\#
+.\#*
+
 # llama.cpp のバイナリと GGUF モデル（scripts/setup_llama.py で取得する。約 1.6GB）
 /llama/

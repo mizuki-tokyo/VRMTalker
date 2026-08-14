@@ -3,6 +3,8 @@ import "./three-world-element.js";
 import VrmLoader from "./vrm-avatar-element/vrm-loader.js";
 import VrmHumanoid from "./vrm-avatar-element/vrm-humanoid.js";
 import clampExpressionMorphs from "./vrm-avatar-element/morph-clamp.js";
+import createMouthMaskedExpressions from "./vrm-avatar-element/mouth-morph-mask.js";
+import resolveExpressionName from "./vrm-avatar-element/expression-name.js";
 
 /**
  * <vrm-avatar> : VRM モデルを <three-world> に配置するカスタム要素。
@@ -31,6 +33,13 @@ import clampExpressionMorphs from "./vrm-avatar-element/morph-clamp.js";
  *   clamp-morphs    : 表情モーフの合計値の上限。既定 1.0。"off" で無効化する。
  *                     複数の表情が同じモーフを使うと合計が 1.0 を超え、
  *                     頂点が意図しない位置まで動くのを防ぐ
+ *   mask-mouth-expressions
+ *                   : happy などの感情表情から口のモーフを取り除いた版を作り、
+ *                     setExpression() / tweenExpression() ではそちらを使う。
+ *                     既定で有効。"off" で無効化する。
+ *                     感情表情が口を動かすモデルで、その表情のままリップシンクすると
+ *                     口の形が崩れるのを防ぐ。口に触れていない表情や、口の形を
+ *                     モーフで作っていないモデルでは何もしない
  *
  * イベント
  *   progress : 読み込み中。event.detail.value に 0-100
@@ -64,6 +73,9 @@ export default class VrmAvatarElement extends HTMLElement {
     _lookAtInitialized = false;
     _shadowPlane = null;
     _restoreMorphClamp = null;
+
+    // 元の表情名 → 口のモーフを取り除いた版の表情名
+    _maskedExpressions = new Map();
 
     _ready = null;
     _resolveReady = null;
@@ -137,9 +149,33 @@ export default class VrmAvatarElement extends HTMLElement {
         return this._humanoid.setSound(resource);
     }
 
+    /**
+     * 表情名を、このモデルで実際に使える名前へ解決する。
+     *
+     * 口マスク版があればそちらを、無い表情なら代替表情を返す。
+     * VRM 0.0 / 1.0 のプリセット名の違いは three-vrm が読み込み時に吸収するので、
+     * 呼び出し側は VRM 1.0 の名前（happy / angry / sad / relaxed / surprised）
+     * だけを書けばよい。
+     *
+     * @param {string} name
+     * @returns {string|null} 使える表情が無ければ null
+     */
+    resolveExpression(name) {
+        return resolveExpressionName(
+            this._humanoid?.vrm?.expressionManager, name, this._maskedExpressions);
+    }
+
     /** 表情を即座に設定する。 */
     setExpression(name, value) {
-        this._humanoid?.setFaceExpression(name, value);
+        if (! this._humanoid) {
+            return;
+        }
+        const resolved = this.resolveExpression(name);
+        if (! resolved) {
+            console.warn(`<vrm-avatar>: 表情 "${name}" がモデルにありません。`);
+            return;
+        }
+        this._humanoid.setFaceExpression(resolved, value);
     }
 
     /**
@@ -160,21 +196,24 @@ export default class VrmAvatarElement extends HTMLElement {
         await this._ready;
 
         const expressionManager = this._humanoid.vrm.expressionManager;
-        if (! expressionManager.getExpression(name)) {
+        // 解決は一度だけ行い、以降は同じ名前を使う。
+        // 途中で名前が変わると、値の読み出しと書き込みがずれてしまう
+        const resolved = this.resolveExpression(name);
+        if (! resolved) {
             console.warn(`<vrm-avatar>: 表情 "${name}" がモデルにありません。`);
             return;
         }
 
         return this._world.tween({
             // 現在値から始める。前の変化を中断した場合も途中の値から続く
-            from: () => expressionManager.getValue(name) ?? 0,
+            from: () => expressionManager.getValue(resolved) ?? 0,
             to: value,
             duration,
             easing,
             // 同じ表情を二重に動かさないための識別子
-            key: `expression:${name}`,
+            key: `expression:${resolved}`,
             onUpdate: (weight) => {
-                this._humanoid?.setFaceExpression(name, weight);
+                this._humanoid?.setFaceExpression(resolved, weight);
             }
         });
     }
@@ -228,6 +267,7 @@ export default class VrmAvatarElement extends HTMLElement {
         this._removeShadowPlane();
         this._restoreMorphClamp?.();
         this._restoreMorphClamp = null;
+        this._maskedExpressions = new Map();
         this._humanoid?.dispose();
         this._humanoid = null;
         this._lookAtInitialized = false;
@@ -257,8 +297,8 @@ export default class VrmAvatarElement extends HTMLElement {
                 return;
             }
 
-            this._createCustomExpressions(humanoid);
-            // 独自表情を登録した後に掛ける（対象モーフを集めるため）
+            this._setupMouthMask(humanoid);
+            // 表情をすべて登録した後に掛ける（対象モーフを集めるため）
             this._setupMorphClamp(humanoid);
             await this._loadMotions(humanoid);
 
@@ -293,13 +333,24 @@ export default class VrmAvatarElement extends HTMLElement {
         }
     }
 
-    _createCustomExpressions(humanoid) {
-        // Emotion_Joy などの独自表情は、モデルが特定の BlendShape を
-        // 持っていることを前提としている。持たないモデルでも動くようにしておく。
+
+    /**
+     * 感情表情から口のモーフを取り除いた版を作る。
+     *
+     * リップシンク中もその表情を出せるようにするため。作られた表情は
+     * setExpression() / tweenExpression() が自動で使う（resolveExpression() 参照）。
+     */
+    _setupMouthMask(humanoid) {
+        const attribute = this.getAttribute("mask-mouth-expressions");
+        if (attribute === "off" || attribute === "none") {
+            return;
+        }
         try {
-            humanoid.createCustomExpressionMorphTargetBind();
+            this._maskedExpressions = createMouthMaskedExpressions(humanoid.vrm);
         } catch (error) {
-            console.warn("<vrm-avatar>: このモデルには独自表情を登録できませんでした。", error);
+            // 表情が作れなくても元の表情でそのまま動く
+            console.warn("<vrm-avatar>: 口マスク版の表情を作成できませんでした。", error);
+            this._maskedExpressions = new Map();
         }
     }
 

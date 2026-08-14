@@ -1,0 +1,138 @@
+
+
+class VRMExtra {
+    /**
+     * Expression が使用している Mesh を取得する
+     *
+     * @param {VRMExpression} expression
+     * @returns {THREE.Mesh[]}
+     */
+    static getMeshesFromExpression(expression) {
+        if (!expression) {
+            return [];
+        }
+
+        const meshes = new Set();
+        for (const bind of expression.binds) {
+            // MorphTargetBind には
+            // index と primitives が存在する
+            if (typeof bind.index !== "number" || !Array.isArray(bind.primitives)) {
+                continue;
+            }
+            for (const mesh of bind.primitives) {
+                meshes.add(mesh);
+            }
+        }
+        return [...meshes];
+    }
+
+
+    /**
+     * Mesh が持っている MorphTarget の一覧を取得する
+     *
+     * @param {THREE.Mesh} mesh
+     * @returns {{
+     *   name: string,
+     *   index: number
+     * }[]}
+     */
+    static getMorphTargetsFromMesh(mesh) {
+        if (!mesh || !mesh.morphTargetDictionary) {
+            return [];
+        }
+
+        return Object.entries(mesh.morphTargetDictionary)
+            .map(([name, index]) => ({
+                name,
+                index,
+            }))
+            .sort((a, b) => a.index - b.index);
+    }
+
+
+    /**
+     * Expression が実際に使用している MorphTarget を取得する
+     *
+     * @param {VRMExpression} expression
+     * @returns {{
+     *   mesh: THREE.Mesh,
+     *   meshName: string,
+     *   index: number,
+     *   name: string|null,
+     *   weight: number
+     * }[]}
+     */
+    static getMorphTargetsFromExpression(expression) {
+        if (!expression) {
+            return [];
+        }
+
+        const result = [];
+
+        for (const bind of expression.binds) {
+
+            if (
+                typeof bind.index !== "number" ||
+                    !Array.isArray(bind.primitives)
+            ) {
+                continue;
+            }
+
+            for (const mesh of bind.primitives) {
+
+                let name = null;
+
+                if (mesh.morphTargetDictionary) {
+                    for (const [morphName, index] of Object.entries(
+                        mesh.morphTargetDictionary
+                    )) {
+                        if (index === bind.index) {
+                            name = morphName;
+                            break;
+                        }
+                    }
+                }
+
+                result.push({
+                    mesh,
+                    meshName: mesh.name,
+                    index: bind.index,
+                    name,
+                    weight: bind.weight,
+                });
+            }
+        }
+
+        return result;
+    }
+
+
+
+
+    static listAllMouthMorphTarget(vrm) {
+        for (let expressionName of vrm.expressionManager.mouthExpressionNames) {
+            const expression = vrm.expressionManager.getExpression(expressionName);
+            //const meshes = VRMExtra.getMeshesFromExpression(expression);
+            // for (const mesh of meshes) {
+            //     console.log("Mesh:", mesh.name);
+            //     const morphTargets = VRMExtra.getMorphTargetsFromMesh(mesh);
+            //     for (const morphTarget of morphTargets) {
+            //         console.log(
+            //             `  ${morphTarget.index}: ${morphTarget.name}`
+            //         );
+            //     }
+            // }
+
+            console.log(`----- expression: ${expression.name} (${expression.expressionName})`);
+            console.log(VRMExtra.getMorphTargetsFromExpression(expression));
+        }
+        {
+            const expression = vrm.expressionManager.getExpression("happy");
+            console.log(`----- expression: ${expression.name} (${expression.expressionName})`);
+            console.log(VRMExtra.getMorphTargetsFromExpression(expression));
+        }
+    }
+}
+
+
+export default VRMExtra;
