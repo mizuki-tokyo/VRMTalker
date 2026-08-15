@@ -1,134 +1,62 @@
-import VolumeMeter from "./speech-recognizer/volume-meter.js";
-//import VolumeMeter from "./speech-recognizer/volume-meter-worklet.js";
-
-let isChrome = false;
-let isSafari = false;
-(() => {
-    const agent = window.navigator.userAgent.toLowerCase()
-    if (agent.indexOf("chrome") != -1) {
-        isChrome = true;
-    } else if (agent.indexOf("safari") != -1) {
-        isSafari = true;
-    }
-})();
-
-
-const SpeechRecognition = window.SpeechRecognition || webkitSpeechRecognition;
-//const SpeechGrammarList = window.SpeechGrammarList || webkitSpeechGrammarList;
-const SpeechRecognitionEvent = window.SpeechRecognitionEvent || webkitSpeechRecognitionEvent;
-
+/**
+ * 音声認識の抽象クラス。
+ *
+ * <speech-recognition> 要素にはこのクラスを継承したオブジェクトを注入する。
+ * 認識方式を差し替えたいときは、このクラスを継承した実装を作って main.js で
+ * 注入するものを変えればよい。要素側はこのファイルを import しないので、
+ * 実装を増やしても UI には手を入れなくて済む。
+ *
+ *   class MyRecognizer extends SpeechRecognizer {
+ *       start() { ... 認識を始め、結果が出たら this.onresult(text, isFinal) を呼ぶ ... }
+ *       stop()  { ... }
+ *   }
+ *
+ *   // main.js
+ *   document.querySelector("speech-recognition").recognizer = new MyRecognizer();
+ *
+ * 実装が満たすべき約束
+ *   - start() を呼ばれたら認識を始める
+ *   - 確定前の結果も onresult(text, false) で流してよい
+ *   - 確定したら onresult(text, true) を必ず一度呼ぶ
+ *   - 入力レベルを取れるなら onvolumechange(0-100) で流す。取れなければ呼ばなくてよい
+ *   - 認識が終わったら onvolumechange(0) を呼んでレベル表示を消す
+ */
 
 class SpeechRecognizer {
 
-    // Callback handler
-    onsoundstart;
-    onsoundsend;
-    onvolumechange = (volume) => {console.log(volume)};
-    onnomatch = (event) => {};
-    onerror = (event) => {};
+    /**
+     * 認識結果。確定前は isFinal = false で何度も呼ばれる。
+     * @type {(text: string, isFinal: boolean) => void}
+     */
     onresult = (text, isFinal) => {};
 
-    _recognition = null;
-    _context = null;
+    /**
+     * 入力レベル。0-100。
+     * @type {(level: number) => void}
+     */
+    onvolumechange = (level) => {};
 
-    _setup() {
-        this._recognition.onstart = (e) => {
-        };
-        this._recognition.onend = (e) => {
-        };
-        this._recognition.onaudiostart = (e) => {
-            console.log("onaudiostart");
+    /** @type {(event: object) => void} */
+    onerror = (event) => {};
 
-            VolumeMeter.onvolumechange = this.onvolumechange;
-            VolumeMeter.startAudio(this._context);
-        };
-        this._recognition.onaudioend = (e) => {
-            console.log("onaudioend");
+    /** 認識はできたが結果を確定できなかったとき。 @type {(event: object) => void} */
+    onnomatch = (event) => {};
 
-            VolumeMeter.stopAudio();
-            if (this.onvolumechange) {
-                setTimeout(() => {
-                    this.onvolumechange(0);
-                }, 0);
-            }
-        };
-        this._recognition.onspeechstart = (e) => {
-            console.log("speechstart");
-        };
-        this._recognition.onspeechend = (e) => {
-            console.log("speechend");
-        };
-        this._recognition.onsoundstart = (e) => {
-            console.log("認識中");
-        };
-        this._recognition.onnomatch = (e) => {
-            console.log("もう一度試してください");
-            this.onnomatch(e);
-        };
-        this._recognition.onerror = (e) => {
-            switch (e.error) {
-            case "no-speech":
-                break;
-            case "audio-capture":
-                break;
-            case "not-allowed":
-                break;
-            default:
-            }
-            this.onerror(e);
-            console.log("error");
-        };
-        this._recognition.onsoundend = (e) => {
-            console.log("停止中");
-        };
-        this._recognition.onresult = (event) => {
-            let transcript;
-            const results = event.results;
-            for (let i = event.resultIndex; i < results.length; i++) {
-                if (results[i].isFinal === true) {
-                    transcript = results[i][0].transcript;
-                    this.onresult(transcript, true);
-                    console.log(transcript);
-                    document.querySelector("#speech-recognition-result").innerText = transcript;
-                    
-                    setTimeout(() => {
-                        this._recognition.stop();
-                        console.log("---------------stop called");
-                        if (isSafari === true) {
-                            this._recognition.onaudioend();
-                        }
-                    }, 0);
-                } else {
-                    transcript = results[i][0].transcript;
-                    this.onresult(transcript, false);
-                    document.querySelector("#speech-recognition-result").innerText = transcript;
-                    console.log(transcript);
-                }
-            }
+    constructor() {
+        if (new.target === SpeechRecognizer) {
+            throw new Error(
+                "SpeechRecognizer は抽象クラスです。継承した実装を生成してください。");
         }
     }
 
-    constructor(lang="ja-JP") {
-        this._recognition = new SpeechRecognition(); 
-        this._recognition.lang = lang;
-        this._recognition.interimResults = true; // 途中結果を返す
-        // safari では、SpeechRecognition#continuous を false にすると、
-        // 連続音声認識モードになるため、true にして
-        // SpeechRecognition#stop() で制御する
-        this._recognition.continuous = true;
-
-        this._setup();
+    /** 認識を開始する。 */
+    start() {
+        throw new Error(`${this.constructor.name}: start() が実装されていません。`);
     }
 
-    start() { 
-        if (! this._context) {
-            this._context = new AudioContext();
-        }
-        this._recognition.start(); 
-    }
-
-    stop() { 
-        this._recognition.stop(); 
+    /** 認識を停止する。 */
+    stop() {
+        throw new Error(`${this.constructor.name}: stop() が実装されていません。`);
     }
 }
 

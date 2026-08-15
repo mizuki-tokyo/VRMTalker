@@ -1,4 +1,6 @@
 
+import WebSpeechRecognizer from "./web-speech-recognizer.js";
+
 // モデルの読み込みと <three-world> への配置は <vrm-avatar> が行う（index.html を参照）
 const avatar = document.querySelector("vrm-avatar");
 
@@ -339,6 +341,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 音声認識イベントハンドラを登録
     const speechRecognitionElement = document.querySelector("speech-recognition");
+
+    // 使用する音声認識の実装を注入する。
+    // 別の認識方式に変えるときは、SpeechRecognizer を継承した実装を作って
+    // ここで注入するものを差し替える（js/speech-recognizer.js 参照）
+    try {
+        speechRecognitionElement.recognizer = new WebSpeechRecognizer();
+    } catch (error) {
+        // 未対応ブラウザ。ボタン以外の機能はそのまま使える
+        console.warn(error);
+    }
 
     // 音声認識の信頼度が閾値以下の時（基本的には発生しない）
     speechRecognitionElement.onnomatch = (event) => {

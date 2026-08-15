@@ -1,10 +1,16 @@
 
-import SpeechRecognizer from "../speech-recognizer.js";
-
 /**
  * <speech-recognition> : 音声認識を開始するマイクボタン。
  *
  * ボタンの周囲のリングは入力レベル（音量）を表す。
+ *
+ * 認識そのものは行わない。使う前に recognizer を注入すること（main.js が行う）。
+ *
+ *   element.recognizer = new WebSpeechRecognizer();
+ *
+ * 注入するオブジェクトは start() / stop() を持ち、onresult(text, isFinal) と
+ * onvolumechange(0-100) を呼ぶこと（js/speech-recognizer.js 参照）。
+ * この要素は認識方式を知らないので、実装を増やしてもここは変わらない。
  *
  * 大きさは CSS で決める。SVG の viewBox を固定してあるため、
  * どの大きさでもリングの太さと比率は変わらない。
@@ -133,7 +139,8 @@ export default class SpeechRecognitionElement extends HTMLElement {
     _buttonElement = null;
     _circleElement = null;
 
-    _recognizer = new SpeechRecognizer();
+    // 音声認識の実装。使う前に外から注入する
+    _recognizer = null;
 
     constructor() {
         super();
@@ -179,23 +186,40 @@ export default class SpeechRecognitionElement extends HTMLElement {
         }
     }
 
-    _onClick = () => {
-        this._recognizer.onvolumechange = (value) => {
+    /**
+     * 音声認識の実装を設定する。
+     * @param {object} recognizer start() / stop() を持ち、onresult と
+     *                            onvolumechange を呼ぶオブジェクト
+     */
+    set recognizer(recognizer) {
+        this._recognizer = recognizer || null;
+        if (this._recognizer) {
+            this._bindRecognizer(this._recognizer);
+        }
+    }
+
+    get recognizer() {
+        return this._recognizer;
+    }
+
+    /** 注入された実装の通知を、この要素の表示と外向きのコールバックへつなぐ。 */
+    _bindRecognizer(recognizer) {
+        recognizer.onvolumechange = (value) => {
             this.setInputLevel(value);
         };
-        this._recognizer.onerror = (e) => {
+        recognizer.onerror = (event) => {
             this.setInputLevel(0);
             setTimeout(() => {
-                this.onerror(e);
+                this.onerror(event);
             }, 0);
         };
-        this._recognizer.onnomatch = (e) => {
+        recognizer.onnomatch = (event) => {
             this.setInputLevel(0);
             setTimeout(() => {
-                this.onnomatch(e);
+                this.onnomatch(event);
             }, 0);
         };
-        this._recognizer.onresult = (text, isFinal) => {
+        recognizer.onresult = (text, isFinal) => {
             if (isFinal) {
                 this.setInputLevel(0);
                 setTimeout(() => {
@@ -203,6 +227,15 @@ export default class SpeechRecognitionElement extends HTMLElement {
                 }, 0);
             }
         };
+    }
+
+    _onClick = () => {
+        if (! this._recognizer) {
+            console.warn("<speech-recognition>: recognizer が設定されていません。"
+                         + "element.recognizer = new WebSpeechRecognizer(); のように"
+                         + "音声認識の実装を注入してください。");
+            return;
+        }
         this._recognizer.start();
     };
 
