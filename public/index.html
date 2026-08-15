@@ -339,22 +339,10 @@
       }
     </script>
 
-    <!-- 音声対話のコア -->
-    <script src="./js/split-sentence.js"></script>
-    <script src="./js/speech-synthesizer.js"></script>
-    <script src="./js/chat-client.js"></script>
-
-    <!-- 画面部品 -->
-    <script src="./js/web-ui/progress-bar-element.js"></script>
-    <script type="module" src="./js/web-ui/speech-recognition-element.js"></script>
-    <script type="module" src="./js/web-ui/chat-flow-element.js"></script>
-    <script type="module" src="./js/web-ui/chat-bubble-element.js"></script>
-    <script type="module" src="./js/web-ui/settings-panel-element.js"></script>
-    <script type="module" src="./js/web-ui/color-picker-element.js"></script>
-
-    <!-- 3D 表示 -->
-    <script type="module" src="./js/three-ui/three-world-element.js"></script>
-    <script type="module" src="./js/three-ui/vrm-avatar-element.js"></script>
+    <!--
+      js の読み込みは main.js の import が行う（末尾の script を参照）。
+      どのモジュールを使っているかは main.js の先頭を見れば分かる。
+    -->
 
   </head>
 
@@ -433,13 +421,6 @@
       </settings-panel>
     </div>
   </body>
-
-  <!--
-  <script type="module">
-    setScreenScale(1);
-    document.querySelector("speech-recognition").setInputLevel(0);
-  </script>
-  -->
 
   <script type="module" src="./js/main.js"></script>
 </html>

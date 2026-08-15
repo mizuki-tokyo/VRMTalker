@@ -254,3 +254,5 @@ class ChatBubbleElement extends HTMLElement {
 
 // カスタム要素を登録
 customElements.define('chat-bubble', ChatBubbleElement);
+
+export default ChatBubbleElement;

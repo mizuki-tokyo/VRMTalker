@@ -137,3 +137,5 @@ class ChatFlowElement extends HTMLElement {
 
 // カスタム要素を登録
 customElements.define('chat-flow', ChatFlowElement);
+
+export default ChatFlowElement;

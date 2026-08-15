@@ -4,6 +4,9 @@
  * 応答は Server-Sent Events で少しずつ届く。文が完成した時点で順に返すことで、
  * 生成の完了を待たずに音声合成へ回せる（最初の発話までの待ち時間が短くなる）。
  */
+
+import splitSentence from "./split-sentence.js";
+
 // モデルが稀に出力する特殊トークン。そのまま読み上げさせないため取り除く
 // 例: <|tool_call_start|>[voice_read()]<|tool_call_end|>
 const SPECIAL_TOKEN_PATTERN = /<\|[^|]*\|>/g;
@@ -126,3 +129,5 @@ class ChatClient {
         this._history = this._history.slice(-this._maxHistory * 2);
     }
 }
+
+export default ChatClient;

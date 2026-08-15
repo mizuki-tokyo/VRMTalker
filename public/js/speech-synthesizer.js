@@ -54,3 +54,5 @@ class SpeechSynthesizer {
         return response.arrayBuffer();
     }
 }
+
+export default SpeechSynthesizer;

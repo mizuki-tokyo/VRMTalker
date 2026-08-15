@@ -71,3 +71,5 @@ class ProgressBarElement extends HTMLElement {
 }
 
 window.customElements.define("progress-bar", ProgressBarElement);
+
+export default ProgressBarElement;

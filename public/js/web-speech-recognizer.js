@@ -16,12 +16,6 @@ import VolumeMeter from "./speech-recognizer/volume-meter.js";
 // 裸の webkitSpeechRecognition と書くと ReferenceError になってしまう
 const SpeechRecognitionApi = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-// Safari は認識停止時に audioend が発火しないため、手動で補う必要がある
-const isSafari = (() => {
-    const agent = window.navigator.userAgent.toLowerCase();
-    return agent.indexOf("safari") !== -1 && agent.indexOf("chrome") === -1;
-})();
-
 
 class WebSpeechRecognizer extends SpeechRecognizer {
 
@@ -95,13 +89,7 @@ class WebSpeechRecognizer extends SpeechRecognizer {
                 this.onresult(transcript, isFinal);
 
                 if (isFinal) {
-                    setTimeout(() => {
-                        this._recognition.stop();
-                        if (isSafari) {
-                            // Safari は stop() しても audioend が来ないので自分で呼ぶ
-                            this._recognition.onaudioend();
-                        }
-                    }, 0);
+                    setTimeout(() => this._recognition.stop(), 0);
                 }
             }
         };

@@ -1,5 +1,20 @@
 
+// 音声対話のコア
+import ChatClient from "./chat-client.js";
+import SpeechSynthesizer from "./speech-synthesizer.js";
 import WebSpeechRecognizer from "./web-speech-recognizer.js";
+
+// 画面部品。読み込むだけでカスタム要素として登録される
+import "./web-ui/chat-bubble-element.js";
+import "./web-ui/chat-flow-element.js";
+import "./web-ui/color-picker-element.js";
+import "./web-ui/progress-bar-element.js";
+import "./web-ui/settings-panel-element.js";
+import "./web-ui/speech-recognition-element.js";
+
+// 3D 表示
+import "./three-ui/three-world-element.js";
+import "./three-ui/vrm-avatar-element.js";
 
 // モデルの読み込みと <three-world> への配置は <vrm-avatar> が行う（index.html を参照）
 const avatar = document.querySelector("vrm-avatar");

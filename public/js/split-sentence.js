@@ -36,3 +36,5 @@ const splitSentence = (text) => {
     }
     return result;
 };
+
+export default splitSentence;
