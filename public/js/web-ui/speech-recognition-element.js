@@ -5,12 +5,20 @@
  * ボタンの周囲のリングは入力レベル（音量）を表す。
  *
  * 認識そのものは行わない。使う前に recognizer を注入すること（main.js が行う）。
+ * 注入されるまでボタンは押せない。
  *
  *   element.recognizer = new WebSpeechRecognizer();
  *
- * 注入するオブジェクトは start() / stop() を持ち、onresult(text, isFinal) と
- * onvolumechange(0-100) を呼ぶこと（js/speech-recognizer.js 参照）。
+ * 注入するオブジェクトは start() / stop() を持ち、volumechange / result /
+ * error / nomatch のイベントを発火すること（js/speech-recognizer.js 参照）。
  * この要素は認識方式を知らないので、実装を増やしてもここは変わらない。
+ *
+ * 認識結果は recognizer が直接返す。この要素は中継しない。
+ *
+ *   recognizer.onresult = (event) => console.log(event.detail.text);
+ *
+ * 購読には addEventListener を使うので、呼び出し側が onresult などに代入しても
+ * 互いを潰さない。
  *
  * 大きさは CSS で決める。SVG の viewBox を固定してあるため、
  * どの大きさでもリングの太さと比率は変わらない。
@@ -92,6 +100,14 @@ STYLE_SHEET.replaceSync(`
       outline: 3px solid var(--level-color);
       outline-offset: 2px;
   }
+  /* recognizer が注入されるまでの状態。:hover より後に書いて打ち消す */
+  .button:disabled {
+      cursor: default;
+      opacity: 0.4;
+      filter: grayscale(1);
+      box-shadow: none;
+      transform: none;
+  }
 
   .icon {
       width: 60%;
@@ -131,16 +147,14 @@ const HTML = `
 
 export default class SpeechRecognitionElement extends HTMLElement {
 
-    // callback
-    onnomatch = (event) => {};
-    onerror = (event) => {};
-    onresult = (text) => {};
-
     _buttonElement = null;
     _circleElement = null;
 
     // 音声認識の実装。使う前に外から注入する
     _recognizer = null;
+
+    // 注入した recognizer に登録したリスナー。差し替え時に外すため保持する
+    _listeners = null;
 
     constructor() {
         super();
@@ -155,15 +169,24 @@ export default class SpeechRecognitionElement extends HTMLElement {
         // 消灯状態から始める
         this._circleElement.style.strokeDasharray = RING_CIRCUMFERENCE;
         this._circleElement.style.strokeDashoffset = RING_CIRCUMFERENCE;
+
+        // recognizer が注入されるまでは押せない
+        this._updateAvailability();
     }
 
     connectedCallback() {
         this._applyAttributes();
         this._buttonElement.addEventListener("click", this._onClick);
+
+        // DOM 内を移動した場合、外した購読をここで張り直す
+        if (this._recognizer && ! this._listeners) {
+            this._bindRecognizer(this._recognizer);
+        }
     }
 
     disconnectedCallback() {
         this._buttonElement.removeEventListener("click", this._onClick);
+        this._unbindRecognizer();
     }
 
     /**
@@ -187,53 +210,60 @@ export default class SpeechRecognitionElement extends HTMLElement {
     }
 
     /**
-     * 音声認識の実装を設定する。
-     * @param {object} recognizer start() / stop() を持ち、onresult と
-     *                            onvolumechange を呼ぶオブジェクト
+     * 音声認識の実装を設定する。null を渡すと解除する。
+     * @param {EventTarget} recognizer start() / stop() を持ち、volumechange などの
+     *                                 イベントを発火するオブジェクト
      */
     set recognizer(recognizer) {
+        this._unbindRecognizer();
         this._recognizer = recognizer || null;
         if (this._recognizer) {
             this._bindRecognizer(this._recognizer);
         }
+        this._updateAvailability();
     }
 
     get recognizer() {
         return this._recognizer;
     }
 
-    /** 注入された実装の通知を、この要素の表示と外向きのコールバックへつなぐ。 */
+    /**
+     * 注入された実装の通知を、この要素の表示につなぐ。
+     *
+     * 代入ではなく addEventListener で購読する。代入にすると、呼び出し側が
+     * 設定した onvolumechange などを上書きしてしまう
+     */
     _bindRecognizer(recognizer) {
-        recognizer.onvolumechange = (value) => {
-            this.setInputLevel(value);
+        const reset = () => this.setInputLevel(0);
+        this._listeners = {
+            volumechange: (event) => this.setInputLevel(event.detail.level),
+            result: reset,
+            error: reset,
+            nomatch: reset
         };
-        recognizer.onerror = (event) => {
-            this.setInputLevel(0);
-            setTimeout(() => {
-                this.onerror(event);
-            }, 0);
-        };
-        recognizer.onnomatch = (event) => {
-            this.setInputLevel(0);
-            setTimeout(() => {
-                this.onnomatch(event);
-            }, 0);
-        };
-        recognizer.onresult = (text, isFinal) => {
-            if (isFinal) {
-                this.setInputLevel(0);
-                setTimeout(() => {
-                    this.onresult(text);
-                }, 0);
-            }
-        };
+        for (const [type, listener] of Object.entries(this._listeners)) {
+            recognizer.addEventListener(type, listener);
+        }
+    }
+
+    _unbindRecognizer() {
+        if (! this._recognizer || ! this._listeners) {
+            return;
+        }
+        for (const [type, listener] of Object.entries(this._listeners)) {
+            this._recognizer.removeEventListener(type, listener);
+        }
+        this._listeners = null;
+    }
+
+    /** recognizer が無いうちは押しても何も起きないので、押せないようにする。 */
+    _updateAvailability() {
+        this._buttonElement.disabled = ! this._recognizer;
     }
 
     _onClick = () => {
+        // disabled のボタンはクリックされないが、念のため
         if (! this._recognizer) {
-            console.warn("<speech-recognition>: recognizer が設定されていません。"
-                         + "element.recognizer = new WebSpeechRecognizer(); のように"
-                         + "音声認識の実装を注入してください。");
             return;
         }
         this._recognizer.start();

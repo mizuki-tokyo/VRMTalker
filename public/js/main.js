@@ -330,6 +330,18 @@ document.addEventListener('DOMContentLoaded', function() {
     let recognizedGeneration = 0;
 
     /**
+     * 認識中の文字を画面下部に出す。確定していないので吹き出しにはしない。
+     *
+     * 前の認識結果を消している途中なら、世代を進めてその処理を打ち切る
+     * （消去が走って、表示し始めた今回の文字を消してしまわないように）
+     */
+    const showInterimText = (text) => {
+        ++recognizedGeneration;
+        resultElement.classList.remove("fade-out");
+        resultElement.textContent = text;
+    };
+
+    /**
      * 認識結果を画面下部にしばらく表示し、徐々に消してから吹き出しへ移す。
      * @returns {Promise<void>} 吹き出しを出し終えた時点で解決する
      */
@@ -354,29 +366,11 @@ document.addEventListener('DOMContentLoaded', function() {
         chatFlow.appendMessage(text, "right");
     };
 
-    // 音声認識イベントハンドラを登録
     const speechRecognitionElement = document.querySelector("speech-recognition");
 
-    // 使用する音声認識の実装を注入する。
-    // 別の認識方式に変えるときは、SpeechRecognizer を継承した実装を作って
-    // ここで注入するものを差し替える（js/speech-recognizer.js 参照）
-    try {
-        speechRecognitionElement.recognizer = new WebSpeechRecognizer();
-    } catch (error) {
-        // 未対応ブラウザ。ボタン以外の機能はそのまま使える
-        console.warn(error);
-    }
-
-    // 音声認識の信頼度が閾値以下の時（基本的には発生しない）
-    speechRecognitionElement.onnomatch = (event) => {
-        
-    };
-    // 音声認識に失敗した時
-    speechRecognitionElement.onerror = (event) => {
-        
-    };
     // 音声認識に成功した時
-    speechRecognitionElement.onresult = async (text) => {
+    const onRecognized = async (event) => {
+        const text = event.detail.text;
 
         // 発話と並行してモーションと表情を動かす。完了を待ちたい場合は await を付ける
         avatar.playMotion("Hand Raising").catch((error) => console.warn(error));
@@ -410,6 +404,35 @@ document.addEventListener('DOMContentLoaded', function() {
         // 発話が終わったら表情を戻す
         await avatar.tweenExpression("happy", 0, 0.5);
     };
+
+    // 使用する音声認識の実装を選ぶ。別の認識方式に変えるときは、
+    // SpeechRecognizer を継承した実装を作ってここを差し替える
+    // （js/speech-recognizer.js 参照）
+    if (WebSpeechRecognizer.isSupported()) {
+        const recognizer = new WebSpeechRecognizer();
+
+        // 認識中の文字を画面下部に流す
+        recognizer.oninterimresult = (event) => {
+            showInterimText(event.detail.text);
+        };
+        // 認識結果が確定した
+        recognizer.onresult = onRecognized;
+        // 認識に失敗した
+        recognizer.onerror = (event) => {
+
+        };
+        // 認識の信頼度が閾値以下だった（基本的には発生しない）
+        recognizer.onnomatch = (event) => {
+
+        };
+
+        // 配線し終えてから要素へ渡す。渡すまでマイクボタンは押せない
+        speechRecognitionElement.recognizer = recognizer;
+
+    } else {
+        console.warn("このブラウザは Web Speech API に対応していないため、"
+                     + "音声入力を使えません。");
+    }
 
     speechRecognitionElement.setInputLevel(0);
 });

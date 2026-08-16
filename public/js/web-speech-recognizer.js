@@ -60,37 +60,35 @@ class WebSpeechRecognizer extends SpeechRecognizer {
 
     _setup() {
         this._recognition.onaudiostart = (e) => {
-            // ハンドラを直接渡さず包んでおく。呼び出し側が後から
-            // onvolumechange を差し替えても、常に最新のものが呼ばれる
-            VolumeMeter.onvolumechange = (level) => this.onvolumechange(level);
+            VolumeMeter.onvolumechange = (level) => this._emit("volumechange", {level});
             VolumeMeter.startAudio(this._context);
         };
 
         this._recognition.onaudioend = (e) => {
             VolumeMeter.stopAudio();
             // レベル表示を消す。認識の後始末が終わってから通知する
-            setTimeout(() => this.onvolumechange(0), 0);
+            setTimeout(() => this._emit("volumechange", {level: 0}), 0);
         };
 
         this._recognition.onnomatch = (e) => {
-            this.onnomatch(e);
+            this._emit("nomatch");
         };
 
         this._recognition.onerror = (e) => {
-            this.onerror(e);
+            this._emit("error", {code: e.error, message: e.message || e.error});
         };
 
         this._recognition.onresult = (event) => {
             const results = event.results;
             for (let i = event.resultIndex; i < results.length; i++) {
-                const transcript = results[i][0].transcript;
-                const isFinal = (results[i].isFinal === true);
+                const text = results[i][0].transcript;
 
-                this.onresult(transcript, isFinal);
-
-                if (isFinal) {
-                    setTimeout(() => this._recognition.stop(), 0);
+                if (results[i].isFinal !== true) {
+                    this._emit("interimresult", {text});
+                    continue;
                 }
+                this._emit("result", {text});
+                setTimeout(() => this._recognition.stop(), 0);
             }
         };
     }
