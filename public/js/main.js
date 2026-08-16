@@ -380,7 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 発話と並行してモーションと表情を動かす。完了を待ちたい場合は await を付ける
         avatar.playMotion("Hand Raising").catch((error) => console.warn(error));
-        avatar.tweenExpression("Emotion_Joy", 1.0, 0.3);
+        avatar.tweenExpression("happy", 1.0, 0.3);
 
         // 認識結果の表示 → フェードアウト → 右側の吹き出し。
         // ここで待たずに進めて、表示している間に応答の生成を走らせる
@@ -408,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // 発話が終わったら表情を戻す
-        await avatar.tweenExpression("Emotion_Joy", 0, 0.5);
+        await avatar.tweenExpression("happy", 0, 0.5);
     };
 
     speechRecognitionElement.setInputLevel(0);
