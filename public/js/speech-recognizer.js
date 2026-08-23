@@ -2,7 +2,7 @@
  * 音声認識の抽象クラス。
  *
  * 認識結果は EventTarget のイベントとして通知する。認識方式を差し替えたいときは
- * このクラスを継承した実装を作り、main.js で生成するものを変えればよい。
+ * このクラスを継承した実装を作り、app.js で生成するものを変えればよい。
  * <speech-recognition> 要素はこのファイルを import しないので、実装を増やしても
  * UI には手を入れなくて済む。
  *
@@ -11,7 +11,7 @@
  *       stop()  { ... }
  *   }
  *
- *   // main.js
+ *   // app.js
  *   const recognizer = new MyRecognizer();
  *   recognizer.onresult = (event) => console.log(event.detail.text);
  *   document.querySelector("speech-recognition").recognizer = recognizer;

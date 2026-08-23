@@ -4,7 +4,7 @@
  *
  * ボタンの周囲のリングは入力レベル（音量）を表す。
  *
- * 認識そのものは行わない。使う前に recognizer を注入すること（main.js が行う）。
+ * 認識そのものは行わない。使う前に recognizer を注入すること（app.js が行う）。
  * 注入されるまでボタンは押せない。
  *
  *   element.recognizer = new WebSpeechRecognizer();

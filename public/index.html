@@ -84,7 +84,7 @@
           left: 0;
           right: 0;
           /* 画面下部のボタンや認識結果と重ならないよう、下端を空ける。
-             実際の値は main.js の layout() がボタンの実寸から設定する */
+             実際の値は app.js の layout() がボタンの実寸から設定する */
           bottom: var(--chat-flow-bottom, 60px);
           /* 手動でスクロールできるよう、#screen の pointer-events:none を打ち消す */
           pointer-events: auto;
@@ -123,9 +123,9 @@
           opacity: 1;
           /*
             消えるときだけ徐々に透明にする。
-            この時間は main.js が transitionDuration から読み取るので、
+            この時間は app.js が transitionDuration から読み取るので、
             変更はここだけで済む。opacity 以外の transition を足す場合は
-            main.js の読み取り方も見直すこと
+            app.js の読み取り方も見直すこと
           */
           transition: opacity 0.5s ease;
       }
@@ -218,16 +218,6 @@
       .settings-section color-picker:last-child {
           margin-bottom: 0;
       }
-      .settings-meta {
-          margin: 0;
-          padding: 8px 12px;
-          border-radius: 12px;
-          background: #eef1ff;
-          font-size: var(--ui-font);
-          font-weight: 700;
-          word-break: break-word;
-      }
-
       /* キャラクタの名前と性格。見た目は話者の select に合わせる */
       #character-name,
       #character-profile {
@@ -372,8 +362,8 @@
     </script>
 
     <!--
-      js の読み込みは main.js の import が行う（末尾の script を参照）。
-      どのモジュールを使っているかは main.js の先頭を見れば分かる。
+      js の読み込みは app.js の import が行う（末尾の script を参照）。
+      どのモジュールを使っているかは app.js の先頭を見れば分かる。
     -->
 
   </head>
@@ -461,5 +451,5 @@
     </div>
   </body>
 
-  <script type="module" src="./js/main.js"></script>
+  <script type="module" src="./js/app.js"></script>
 </html>
