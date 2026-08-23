@@ -228,6 +228,38 @@
           word-break: break-word;
       }
 
+      /* キャラクタの名前と性格。見た目は話者の select に合わせる */
+      #character-name,
+      #character-profile {
+          display: block;
+          box-sizing: border-box;
+          width: 100%;
+          margin-top: 6px;
+          padding: 8px 10px;
+          border: none;
+          border-radius: 12px;
+          background: #eef1ff;
+          color: var(--pop-ink);
+          font: inherit;
+          font-size: var(--ui-font);
+          font-weight: 400;
+      }
+      #character-profile {
+          resize: vertical;
+          min-height: 4.5em;
+          line-height: 1.5;
+      }
+      #character-name::placeholder,
+      #character-profile::placeholder {
+          color: var(--pop-ink);
+          opacity: 0.4;
+      }
+      #character-name:focus-visible,
+      #character-profile:focus-visible {
+          outline: 3px solid var(--pop-blue);
+          outline-offset: 1px;
+      }
+
       /* 設定の保存・破棄。場所を取らないよう 1 行に並べる */
       .settings-actions {
           display: flex;
@@ -379,8 +411,15 @@
         </div>
 
         <div class="settings-section">
-          <p class="settings-heading">モデル</p>
-          <p id="model-name" class="settings-meta">読み込み中…</p>
+          <p class="settings-heading">キャラクタ</p>
+          <label>名前
+            <input id="character-name" type="text" maxlength="50"
+                   placeholder="読み込み中…" autocomplete="off">
+          </label>
+          <label>性格・設定
+            <textarea id="character-profile" rows="4" maxlength="2000"
+                      placeholder="例: 元気な高校生。お菓子作りが趣味。"></textarea>
+          </label>
         </div>
 
         <!--

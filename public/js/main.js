@@ -250,6 +250,48 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     //----------------------------------
+    // キャラクタの名前と性格
+    //
+    // 名前の既定値は VRM のモデル名。値ではなく placeholder に入れるので、
+    // 空欄＝既定、と区別できる（「破棄」で空に戻せば既定に戻る）
+    //----------------------------------
+    const characterNameInput = document.querySelector("#character-name");
+    const characterProfileInput = document.querySelector("#character-profile");
+
+    let modelName = "";
+
+    /** 入力内容を chatClient へ渡す。空欄ならモデル名を名前に使う */
+    const applyPersona = () => {
+        chatClient.persona = {
+            name: characterNameInput.value.trim() || modelName,
+            profile: characterProfileInput.value.trim()
+        };
+    };
+
+    // 入力のたびではなく、確定したときに反映する
+    characterNameInput.addEventListener("change", applyPersona);
+    characterProfileInput.addEventListener("change", applyPersona);
+
+    characterNameInput.value = storedSettings?.persona?.name ?? "";
+    characterProfileInput.value = storedSettings?.persona?.profile ?? "";
+
+    avatar.ready
+        .then(() => {
+            const meta = avatar.humanoid.getMeta();
+            // VRM 1.0 は name、VRM 0.x は title
+            modelName = meta?.name || meta?.title || "";
+            characterNameInput.placeholder = modelName || "（名称なし）";
+            // モデル名が確定してから渡す（名前が空欄のときの既定になるため）
+            applyPersona();
+        })
+        .catch(() => {
+            characterNameInput.placeholder = "読み込めませんでした";
+        });
+
+    // モデルの読み込みを待たずに、保存済みの設定は先に反映しておく
+    applyPersona();
+
+    //----------------------------------
     // 設定の保存 / 破棄
     //----------------------------------
     const saveButton = document.querySelector("#save-settings");
@@ -269,7 +311,12 @@ document.addEventListener('DOMContentLoaded', function() {
             zoom: Number(zoomSlider.value),
             styleId: speechSynthesizer.styleId,
             colors: Object.fromEntries(bubbleColorSettings.map((setting) =>
-                [setting.id, document.querySelector(`#${setting.id}`).value]))
+                [setting.id, document.querySelector(`#${setting.id}`).value])),
+            // 入力欄の値をそのまま保存する。名前が空欄なら「モデル名を使う」の意味
+            persona: {
+                name: characterNameInput.value.trim(),
+                profile: characterProfileInput.value.trim()
+            }
         };
         try {
             localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -296,23 +343,14 @@ document.addEventListener('DOMContentLoaded', function() {
         zoomSlider.value = defaultZoomValue;
         applyZoom();
 
+        // 空欄に戻す。名前は placeholder のモデル名が既定として使われる
+        characterNameInput.value = "";
+        characterProfileInput.value = "";
+        applyPersona();
+
+        // 会話履歴には元の性格での応答が残る。消すかどうかは利用者に任せる
         flashDone(resetButton);
     });
-
-    //----------------------------------
-    // アバターのモデル名（VRM の meta より）
-    //----------------------------------
-    const modelNameElement = document.querySelector("#model-name");
-
-    avatar.ready
-        .then(() => {
-            const meta = avatar.humanoid.getMeta();
-            // VRM 1.0 は name、VRM 0.x は title
-            modelNameElement.textContent = meta?.name || meta?.title || "（名称なし）";
-        })
-        .catch(() => {
-            modelNameElement.textContent = "読み込めませんでした";
-        });
 
     const resultElement = document.querySelector("#speech-recognition-result");
 
@@ -414,7 +452,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 認識中の文字を画面下部に流す
         recognizer.oninterimresult = (event) => {
             showInterimText(event.detail.text);
-        };
+         };
         // 認識結果が確定した
         recognizer.onresult = onRecognized;
         // 認識に失敗した

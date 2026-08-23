@@ -6,7 +6,7 @@
     LLM_MODEL     モデル名。remote のとき必須（例: gpt-4o-mini）
     LLM_BASE_URL  remote のときのエンドポイント（例: https://api.openai.com/v1）
     LLM_API_KEY   remote のときの API キー
-    LLM_SYSTEM_PROMPT  システムプロンプト
+    LLM_SYSTEM_PROMPT  既定の人物像（画面で性格を設定していないときに使う）
 
 local は同梱の llama-server を起動して使う（llama_server.py を参照）。
 remote と local はどちらも OpenAI 互換なので、実装は OpenAICompatChat を共用する。
@@ -19,15 +19,35 @@ from .base import ChatModel, ChatModelError, Message, Role
 from .echo import EchoChat
 from .openai_compat import OpenAICompatChat
 
-DEFAULT_SYSTEM_PROMPT = (
-    "あなたは親しみやすい会話相手です。"
+#: 画面で性格を設定していないときの人物像。利用者の設定で置き換わる
+DEFAULT_PERSONA = "あなたは親しみやすい会話相手です。"
+
+#: 音声で読み上げるための制約。人物像と違い、利用者の設定では置き換えない。
+#: 応答は文ごとに区切って音声合成へ渡すため、箇条書きや記号が混ざると
+#: 読み上げが破綻し、長文だと最初の発話までの待ち時間も伸びる
+SPEECH_STYLE_RULES = (
     "返答はそのまま音声で読み上げられます。"
     "記号や箇条書きを使わず、1〜2 文の短い話し言葉で答えてください。"
 )
 
 
-def system_prompt() -> str:
-    return os.environ.get("LLM_SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
+def system_prompt(name: str = "", profile: str = "") -> str:
+    """システムプロンプトを組み立てる。
+
+    :param name:    キャラクタの名前。空なら名乗らせない
+    :param profile: 性格や職業などの自由記述。空なら既定の人物像を使う
+    """
+    parts: list[str] = []
+
+    if name:
+        parts.append(f"あなたの名前は「{name}」です。")
+
+    parts.append(profile or os.environ.get("LLM_SYSTEM_PROMPT", DEFAULT_PERSONA))
+
+    # 生成の直前に置く。性格の記述が長いほど前半の指示は効きにくくなるため
+    parts.append(SPEECH_STYLE_RULES)
+
+    return "\n".join(parts)
 
 
 def create_chat_model(local_base_url: str) -> ChatModel:

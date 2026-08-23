@@ -23,8 +23,17 @@ class ChatClient {
     _history = [];
     _maxHistory = 10;
 
+    // キャラクタ像。サーバがこれをシステムプロンプトに組み込む。
+    // 音声で読み上げるための制約はサーバ側が持つので、ここでは上書きできない
+    _persona = {name: "", profile: ""};
+
     set endpoint(value) { this._endpoint = value; }
     get endpoint() { return this._endpoint; }
+
+    set persona({name = "", profile = ""} = {}) {
+        this._persona = {name, profile};
+    }
+    get persona() { return {...this._persona}; }
 
     get history() { return [...this._history]; }
 
@@ -44,7 +53,11 @@ class ChatClient {
         const response = await fetch(this._endpoint, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({text, history: this._history})
+            body: JSON.stringify({
+                text,
+                history: this._history,
+                persona: this._persona
+            })
         });
 
         if (! response.ok) {

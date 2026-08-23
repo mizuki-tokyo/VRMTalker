@@ -119,13 +119,27 @@ async def post_tts(request: SynthesisRequest) -> Response:
 
 # ---------------------------------------------------------------- 対話
 
+class Persona(BaseModel):
+    """画面で設定するキャラクタ像。未設定なら既定の人物像が使われる。"""
+
+    name: str = Field("", max_length=50)
+    profile: str = Field("", max_length=2000)
+
+
 class ChatRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=4000)
     history: list[dict[str, str]] = Field(default_factory=list)
+    persona: Persona | None = None
 
 
 def _build_messages(request: ChatRequest) -> list[Message]:
-    messages = [Message(role="system", content=system_prompt())]
+    persona = request.persona or Persona()
+    messages = [
+        Message(
+            role="system",
+            content=system_prompt(name=persona.name, profile=persona.profile),
+        )
+    ]
     for item in request.history[-10:]:  # 直近のやりとりのみ渡す
         role = item.get("role")
         content = item.get("content")
