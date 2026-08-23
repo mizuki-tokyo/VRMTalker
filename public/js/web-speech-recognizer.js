@@ -80,16 +80,16 @@ class WebSpeechRecognizer extends SpeechRecognizer {
 
         this._recognition.onresult = (event) => {
             const results = event.results;
+            let text = "";
             for (let i = event.resultIndex; i < results.length; i++) {
-                const text = results[i][0].transcript;
-
-                if (results[i].isFinal !== true) {
-                    this._emit("interimresult", {text});
-                    continue;
+                text += results[i/*何番目の音節*/][0/*第一候補*/].transcript;
+                if (results[i].isFinal === true) {
+                    this._emit("result", {text});
+                    setTimeout(() => this._recognition.stop(), 0);
+                    return;
                 }
-                this._emit("result", {text});
-                setTimeout(() => this._recognition.stop(), 0);
             }
+            this._emit("interimresult", {text});
         };
     }
 }

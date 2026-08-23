@@ -426,7 +426,7 @@ const AudioPlayer = function() {
 
     const startBufferPlay = (buffer) => {
         // Note: AudioBufferSourceNode is not reusable. Create on every play.
-        var bufferSourceNode = createBufferSourceNode();
+        let bufferSourceNode = createBufferSourceNode();
         bufferSourceNode.buffer = buffer;
         audioSourceNode = bufferSourceNode;
         connect();
