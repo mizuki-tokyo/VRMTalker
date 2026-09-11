@@ -219,30 +219,4 @@ document.addEventListener('DOMContentLoaded', function() {
     speechRecognitionElement.setInputLevel(0);
 });
 
-//--------------------------------------------------------
-// ページ全体の読み込み完了後の処理をここに記述
-//--------------------------------------------------------
-window.addEventListener('load', function() {
-
-    //----------------------------------
-    // 画面サイズへの追従
-    //
-    // 位置と大きさは index.html の CSS（clamp / env）が決める。
-    // ここで補うのは「<chat-flow> の下端を、実際に描画されたボタンの位置から
-    // 空ける」ことだけ。CSS だけでは他要素の実寸を参照できないため
-    //----------------------------------
-    const recognitionElement = document.querySelector("speech-recognition");
-
-    const layout = () => {
-        const bounding = recognitionElement.getBoundingClientRect();
-        // ボタンの下側の余白と同じだけ、上側にも空ける
-        const inset = parseFloat(getComputedStyle(recognitionElement).bottom) || 0;
-        const reserved = (window.innerHeight - bounding.top) + inset;
-        document.documentElement.style.setProperty(
-            "--chat-flow-bottom", `${Math.round(reserved)}px`);
-    };
-
-    window.addEventListener("resize", layout);
-    layout();
-});
 

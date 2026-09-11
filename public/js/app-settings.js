@@ -70,7 +70,7 @@ const setupSettings = ({
 
     const speakerSelect = document.querySelector("#speaker-select");
 
-    // 話者一覧が届く前に呼ばれても良いよう関数にしておく
+    // 話者一覧を取得する前に呼ばれても良いよう関数にしておく
     let applyStyleId = (styleId) => {
         speechSynthesizer.styleId = styleId;
     };

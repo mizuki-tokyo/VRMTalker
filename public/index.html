@@ -65,6 +65,15 @@
           background-size: cover;
           background-repeat: no-repeat;
           background-position: center;
+
+          /*
+            吹き出しの領域と画面下部の操作列を縦に積む。
+            操作列の高さぶんだけ吹き出しが自動で縮むので、
+            下端に空ける量を JavaScript で計算する必要がない。
+            three-world と #credit は絶対配置なのでこの流れには入らない
+          */
+          display: flex;
+          flex-direction: column;
       }
       settings-panel:not(:defined) {
           visibility: hidden;
@@ -79,43 +88,72 @@
           pointer-events: auto;
       }
       chat-flow {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          /* 画面下部のボタンや認識結果と重ならないよう、下端を空ける。
-             実際の値は app.js の layout() がボタンの実寸から設定する */
-          bottom: var(--chat-flow-bottom, 60px);
+          /* 操作列の残り全部を使う */
+          flex: 1 1 auto;
+          /* flex アイテムの既定は min-height:auto。0 にしないと中身に
+             押し広げられて、内部のスクロールが効かなくなる */
+          min-height: 0;
+          /* three-world（絶対配置）より手前に描くために positioned にする。
+             static のままだと、吹き出しが手前に出るかどうかが
+             <chat-bubble> 側の position 指定に左右されてしまう */
+          position: relative;
           /* 手動でスクロールできるよう、#screen の pointer-events:none を打ち消す */
           pointer-events: auto;
       }
+
       /*
-        画面下部の操作列。左にマイク、右に設定。
-        大きさは --ui-button-size（clamp）が決めるので、JS では拡大しない
+        画面下部の操作列。左からマイク・認識結果・設定。
+        高さは中身が決めるので、認識結果が折り返せばその分だけ背が高くなり、
+        <chat-flow> が縮む。大きさは --ui-button-size（clamp）が決める
       */
-      speech-recognition {
-          position: absolute;
-          left: calc(var(--ui-gap) + var(--safe-left));
-          bottom: calc(var(--ui-gap) + var(--safe-bottom));
-          /* 大きさは要素側が --ui-button-size を読むので、ここでの指定は不要 */
-          pointer-events: auto;
+      #controls-panel {
+          /* three-world（絶対配置）より手前に描くために positioned にする。
+             static のままだと 3D の描画に隠れる。ボタンが隠れないのは
+             要素の内部が position:relative になっているからで、
+             認識結果のような素のテキストはここを指定しないと後ろに回る */
+          position: relative;
+
+          display: flex;
+          align-items: flex-end;
+          gap: var(--ui-gap);
+          padding: var(--ui-gap);
+          padding-left:   calc(var(--ui-gap) + var(--safe-left));
+          padding-right:  calc(var(--ui-gap) + var(--safe-right));
+          padding-bottom: calc(var(--ui-gap) + var(--safe-bottom));
+          /* 帯が画面幅いっぱいに広がるため、そのままだと画面下部で
+             3D を掴めなくなる。操作する部品だけを通す */
+          pointer-events: none;
       }
-      settings-panel {
-          position: absolute;
-          right: calc(var(--ui-gap) + var(--safe-right));
-          bottom: calc(var(--ui-gap) + var(--safe-bottom));
+      #controls-panel > * {
           pointer-events: auto;
+          /* 既定の flex-shrink:1 だとボタンが潰れる。
+             ボタンの中身は絶対配置なので内容幅が 0 になり、自動最小サイズも
+             効かない（認識結果を長くするとマイクが数 px まで縮む）。
+             伸び縮みするのは認識結果だけにする */
+          flex: 0 0 auto;
       }
 
       /* 認識結果はボタンの間に収める。幅が足りなければ折り返す */
       #speech-recognition-result {
-          position: absolute;
-          left: calc(var(--ui-gap) * 2 + var(--ui-button-size) + var(--safe-left));
-          right: calc(var(--ui-gap) * 2 + var(--ui-button-size) + var(--safe-right));
-          bottom: calc(var(--ui-gap) + var(--safe-bottom));
-          min-height: var(--ui-button-size);
-          display: flex;
-          align-items: center;
+          /* 操作列の中で伸び縮みするのはこれだけ */
+          flex: 1 1 auto;
+          /* 表示するだけの要素なので、下の 3D への操作を遮らない */
+          pointer-events: none;
+          /* flex アイテムの既定 min-width:auto だと max-content 幅になり、
+             折り返しても高さに反映されない */
+          min-width: 0;
+          /* 認識結果に区切りのない長い語（URL など）が来ても折り返す */
+          overflow-wrap: anywhere;
+          /* 極端に長い認識結果で操作列が伸び続け、ボタンが画面外へ
+             押し出されるのを防ぐ。全文は確定後に吹き出しへ残る */
+          max-height: calc(1.4em * 3);
+          overflow: hidden;
+          /* display:flex にすると中身が匿名アイテムになり、上と同じ問題が起きる */
+          display: block;
+          line-height: 1.4;
+          /* 1 行のときにボタンと高さが揃うよう下に余白を入れる。
+             行が増えたぶんは上へ伸びる */
+          padding-bottom: calc((var(--ui-button-size) - 1.4em) / 2);
           font-size: var(--ui-font);
           font-weight: 700;
           color: var(--pop-ink);
@@ -379,75 +417,79 @@
                     shadow="0.3"></vrm-avatar>
       </three-world>
       <chat-flow></chat-flow>
-      <speech-recognition></speech-recognition>
-      <span id="speech-recognition-result"></span>
       <span id="credit">VOICEVOX:四国めたん</span>
 
-      <!-- 設定ウインドウ。中身は slot なので自由に差し替えてよい -->
-      <settings-panel label="設定">
-        <label>キャラクタの近さ
-          <input id="zoom-slider" type="range" min="0" max="100" value="50">
-        </label>
-        <label>話者
-          <select id="speaker-select"></select>
-        </label>
+      <!-- 画面下部の操作列。この高さのぶんだけ <chat-flow> が縮む -->
+      <div id="controls-panel">
+        <speech-recognition></speech-recognition>
+        <span id="speech-recognition-result"></span>
 
-        <div class="settings-section">
-          <p class="settings-heading">吹き出しの色</p>
-          <color-picker id="left-fill"  label="キャラクタ / 背景"></color-picker>
-          <color-picker id="left-text"  label="キャラクタ / 文字"></color-picker>
-          <color-picker id="right-fill" label="あなた / 背景"></color-picker>
-          <color-picker id="right-text" label="あなた / 文字"></color-picker>
-        </div>
-
-        <div class="settings-section">
-          <p class="settings-heading">キャラクタ</p>
-          <label>名前
-            <input id="character-name" type="text" maxlength="50"
-                   placeholder="読み込み中…" autocomplete="off">
+        <!-- 設定ウインドウ。中身は slot なので自由に差し替えてよい -->
+        <settings-panel label="設定">
+          <label>キャラクタの近さ
+            <input id="zoom-slider" type="range" min="0" max="100" value="50">
           </label>
-          <label>性格・設定
-            <textarea id="character-profile" rows="4" maxlength="2000"
-                      placeholder="例: 元気な高校生。お菓子作りが趣味。"></textarea>
+          <label>話者
+            <select id="speaker-select"></select>
           </label>
-        </div>
 
-        <!--
-          アイコンは Lucide (ISC License) https://lucide.dev
-          save / trash-2 / check
-        -->
-        <div class="settings-actions">
-          <button id="save-settings" class="chip" type="button"
-                  title="現在の設定をこの端末に保存する">
-            <svg class="chip-icon icon-default" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
-              <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/>
-              <path d="M7 3v4a1 1 0 0 0 1 1h7"/>
-            </svg>
-            <svg class="chip-icon icon-done" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M20 6 9 17l-5-5"/>
-            </svg>
-            <span class="chip-label">保存</span>
-          </button>
+          <div class="settings-section">
+            <p class="settings-heading">吹き出しの色</p>
+            <color-picker id="left-fill"  label="キャラクタ / 背景"></color-picker>
+            <color-picker id="left-text"  label="キャラクタ / 文字"></color-picker>
+            <color-picker id="right-fill" label="あなた / 背景"></color-picker>
+            <color-picker id="right-text" label="あなた / 文字"></color-picker>
+          </div>
 
-          <button id="reset-settings" class="chip chip-danger" type="button"
-                  title="保存した設定を消して初期値に戻す">
-            <svg class="chip-icon icon-default" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M10 11v6"/>
-              <path d="M14 11v6"/>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
-              <path d="M3 6h18"/>
-              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            </svg>
-            <svg class="chip-icon icon-done" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M20 6 9 17l-5-5"/>
-            </svg>
-            <span class="chip-label">破棄</span>
-          </button>
-        </div>
+          <div class="settings-section">
+            <p class="settings-heading">キャラクタ</p>
+            <label>名前
+              <input id="character-name" type="text" maxlength="50"
+                     placeholder="読み込み中…" autocomplete="off">
+            </label>
+            <label>性格・設定
+              <textarea id="character-profile" rows="4" maxlength="2000"
+                        placeholder="例: 元気な高校生。お菓子作りが趣味。"></textarea>
+            </label>
+          </div>
 
-        <button id="clear-history" type="button">会話履歴をクリア</button>
-      </settings-panel>
+          <!--
+              アイコンは Lucide (ISC License) https://lucide.dev
+              save / trash-2 / check
+            -->
+          <div class="settings-actions">
+            <button id="save-settings" class="chip" type="button"
+                    title="現在の設定をこの端末に保存する">
+              <svg class="chip-icon icon-default" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
+                <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/>
+                <path d="M7 3v4a1 1 0 0 0 1 1h7"/>
+              </svg>
+              <svg class="chip-icon icon-done" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5"/>
+              </svg>
+              <span class="chip-label">保存</span>
+            </button>
+
+            <button id="reset-settings" class="chip chip-danger" type="button"
+                    title="保存した設定を消して初期値に戻す">
+              <svg class="chip-icon icon-default" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 11v6"/>
+                <path d="M14 11v6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                <path d="M3 6h18"/>
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              <svg class="chip-icon icon-done" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5"/>
+              </svg>
+              <span class="chip-label">破棄</span>
+            </button>
+          </div>
+
+          <button id="clear-history" type="button">会話履歴をクリア</button>
+        </settings-panel>
+      </div><!-- #controls-panel -->
     </div>
   </body>
 
