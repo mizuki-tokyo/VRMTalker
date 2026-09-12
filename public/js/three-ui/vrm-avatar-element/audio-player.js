@@ -441,6 +441,38 @@ const AudioPlayer = function() {
     }
 
     /**
+     * 再生を止める。
+     *
+     * 待っている呼び出し元は、最後まで再生したときと同じく解決させる。
+     * 中断は呼び出し側が意図して行うものなので、失敗として扱わない。
+     *
+     * isEnded を立てると update() のポーリングが次の周で終わり、
+     * onPlayEnd と接続の後始末まで通常どおり進む。
+     */
+    const stop = () => {
+        if (isEnded) {
+            return;
+        }
+        // 遅れて届く decodeAudioData() や play() の結果を捨てる
+        playGeneration++;
+        isEnded = true;
+
+        if (! audioSourceNode) {
+            return;
+        }
+        try {
+            if (audioSourceNode === mediaElementSourceNode) {
+                mediaElementSourceNode.mediaElement.pause();
+            } else {
+                // start() を呼ぶ前に止めようとすると例外になるため包む
+                audioSourceNode.stop(0);
+            }
+        } catch (error) {
+            console.warn("再生を止められませんでした", error);
+        }
+    };
+
+    /**
      * The resource supports the following.
      *  - URL string
      *  - ArrayBuffer object
@@ -548,6 +580,9 @@ const AudioPlayer = function() {
                 start(url);
             }
         },
+
+        /** 再生中の音声を止める。待っている呼び出し元は解決する。 */
+        stop,
 
         /** 母音推定に使う参照フォルマント。"male"（低め） または "female"（高め） */
         set voiceType(type) {

@@ -150,6 +150,16 @@ export default class VrmAvatarElement extends HTMLElement {
     }
 
     /**
+     * 発話中の音声を止める。
+     *
+     * 割り込みで話し始めるときや、アクションを中断するときに使う。
+     * speak() を待っている呼び出し元は、話し終えたときと同じく解決する。
+     */
+    stopSpeaking() {
+        this._humanoid?.stopSound();
+    }
+
+    /**
      * 表情名を、このモデルで実際に使える名前へ解決する。
      *
      * 口マスク版があればそちらを、無い表情なら代替表情を返す。
