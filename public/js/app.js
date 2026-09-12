@@ -3,6 +3,12 @@
 import ChatClient from "./chat-client.js";
 import SpeechSynthesizer from "./speech-synthesizer.js";
 import WebSpeechRecognizer from "./web-speech-recognizer.js";
+import Conversation from "./app-conversation.js";
+
+// 会話の節目でアバターが何をするか
+import createAvatarApi from "./app-avatar-api.js";
+import createActionRunner from "./app-action-runner.js";
+import avatarActions from "./app-avatar-actions.js";
 
 // 設定ウインドウ（話者・カメラの寄り・吹き出しの色・キャラクタ像）
 import setupSettings from "./app-settings.js";
@@ -96,6 +102,42 @@ document.addEventListener('DOMContentLoaded', function() {
         chatFlow.clearMessages();
     });
 
+    //----------------------------------
+    // 会話の進行と、それに対するアクション
+    //
+    // 会話の節目は conversation がイベントとして出す。
+    // 何をするかは app-avatar-actions.js に書く（このファイルには書かない）
+    //----------------------------------
+    const conversation = new Conversation({chatClient});
+
+    const runner = createActionRunner({
+        conversation,
+        createApi: (signal) => createAvatarApi({
+            avatar, chatFlow, speechSynthesizer, conversation, signal
+        }),
+        // 応答のアクションが終わったら入力待ちへ戻す
+        onSettled: (type) => {
+            if (type === "listenend") {
+                conversation.enterIdle();
+            }
+        }
+    });
+
+    for (const [type, handler] of Object.entries(avatarActions)) {
+        runner.on(type, handler);
+    }
+
+    // 待機中のアクションは、会話が始まったら止める。
+    // 止めないと「ずっと」で書いた待機の仕草が会話中も回り続ける
+    runner.cancelOn("idle", "listenstart");
+
+    //----------------------------------
+    // 認識した文字の表示
+    //
+    // 吹き出しは確定した瞬間に追加する。返事の吹き出しは必ず LLM の await を
+    // 挟むので、この同期的な追加が先に届き、順序は自然に守られる。
+    // 画面下の文字はそのまま少し残してから溶かす（情報が移ったことを見せる）
+    //----------------------------------
     const resultElement = document.querySelector("#speech-recognition-result");
 
     // 認識結果を画面下部に出しておく時間（ミリ秒）
@@ -111,28 +153,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // 表示中に次の認識が始まったとき、古い処理が新しい表示を消さないようにする
     let recognizedGeneration = 0;
 
-    /**
-     * 認識中の文字を画面下部に出す。確定していないので吹き出しにはしない。
-     *
-     * 前の認識結果を消している途中なら、世代を進めてその処理を打ち切る
-     * （消去が走って、表示し始めた今回の文字を消してしまわないように）
-     */
+    /** 認識中の文字を画面下部に出す。確定していないので吹き出しにはしない。 */
     const showInterimText = (text) => {
         ++recognizedGeneration;
         resultElement.classList.remove("fade-out");
         resultElement.textContent = text;
     };
 
-    /**
-     * 認識結果を画面下部にしばらく表示し、徐々に消してから吹き出しへ移す。
-     * @returns {Promise<void>} 吹き出しを出し終えた時点で解決する
-     */
-    const showRecognizedText = async (text) => {
+    /** 確定した文字を画面下部に残しつつ、徐々に消す。 */
+    const fadeOutRecognizedText = async () => {
         const generation = ++recognizedGeneration;
         const isCurrent = () => generation === recognizedGeneration;
-
-        resultElement.classList.remove("fade-out");
-        resultElement.textContent = text;
 
         await delay(RESULT_HOLD_MS);
         if (isCurrent()) {
@@ -143,49 +174,17 @@ document.addEventListener('DOMContentLoaded', function() {
             resultElement.textContent = "";
             resultElement.classList.remove("fade-out");
         }
-
-        // 追い越された場合でも、発話内容は吹き出しとして残す
-        chatFlow.appendMessage(text, "right");
     };
 
+    conversation.addEventListener("listenend", (event) => {
+        chatFlow.appendMessage(event.detail.text, "right");
+        fadeOutRecognizedText();
+    });
+
+    //----------------------------------
+    // 音声認識
+    //----------------------------------
     const speechRecognitionElement = document.querySelector("speech-recognition");
-
-    // 音声認識に成功した時
-    const onRecognized = async (event) => {
-        const text = event.detail.text;
-
-        // 発話と並行してモーションと表情を動かす。完了を待ちたい場合は await を付ける
-        avatar.playMotion("Hand Raising").catch((error) => console.warn(error));
-        avatar.tweenExpression("happy", 1.0, 0.3);
-
-        // 認識結果の表示 → フェードアウト → 右側の吹き出し。
-        // ここで待たずに進めて、表示している間に応答の生成を走らせる
-        const userMessage = showRecognizedText(text);
-
-        try {
-            // 応答は文が完成した順に届く。生成の完了を待たずに発話を始められる。
-            // 吹き出しも文ごとに出すので、喋っている内容と表示が一致する
-            for await (const sentence of chatClient.stream(text)) {
-                // ユーザーの吹き出しより先に応答を出さない（実質的に待つのは初回だけ）
-                await userMessage;
-                chatFlow.appendMessage(sentence, "left");
-
-                const arrayBuffer = await speechSynthesizer.createSound(sentence);
-                await avatar.speak(arrayBuffer);
-            }
-
-        } catch (error) {
-            console.error(error);
-            await userMessage;
-            chatFlow.appendMessage(error.message, "left");
-            // TODO: エラー時の動作と音声を設定すること
-            // 例えば、「聞こえませんでした」と発話している音声ファイルのパスを設定する
-            await avatar.speak("./mp3/konnichiwa.mp3");
-        }
-
-        // 発話が終わったら表情を戻す
-        await avatar.tweenExpression("happy", 0, 0.5);
-    };
 
     // 使用する音声認識の実装を選ぶ。別の認識方式に変えるときは、
     // SpeechRecognizer を継承した実装を作ってここを差し替える
@@ -193,20 +192,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (WebSpeechRecognizer.isSupported()) {
         const recognizer = new WebSpeechRecognizer();
 
-        // 認識中の文字を画面下部に流す
+        // 認識中の文字を画面下部に流す。会話の節目ではないので
+        // conversation のイベントにはせず、ここで表示だけを受け持つ
         recognizer.oninterimresult = (event) => {
             showInterimText(event.detail.text);
-         };
-        // 認識結果が確定した
-        recognizer.onresult = onRecognized;
-        // 認識に失敗した
-        recognizer.onerror = (event) => {
-
         };
-        // 認識の信頼度が閾値以下だった（基本的には発生しない）
-        recognizer.onnomatch = (event) => {
 
-        };
+        // 会話の進行は conversation が受け持つ（イベントへ変換する）
+        conversation.recognizer = recognizer;
 
         // 配線し終えてから要素へ渡す。渡すまでマイクボタンは押せない
         speechRecognitionElement.recognizer = recognizer;
@@ -217,6 +210,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     speechRecognitionElement.setInputLevel(0);
+
+    // モデルが表示できたら会話を始められる。ready → idle の順でイベントが出る
+    avatar.ready
+        .then(() => conversation.markReady())
+        .catch(() => {});
 });
 
 
