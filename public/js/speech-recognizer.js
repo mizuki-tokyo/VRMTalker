@@ -17,11 +17,15 @@
  *   document.querySelector("speech-recognition").recognizer = recognizer;
  *
  * イベント
+ *   start         認識を開始した        detail: なし
+ *   speechstart   発話区間の開始        detail: なし  ※任意
+ *   speechend     発話区間の終了        detail: なし  ※任意
  *   result        確定した認識結果      detail: {text}
  *   interimresult 認識中の途中経過      detail: {text}
  *   volumechange  入力レベル (0-100)    detail: {level}
  *   error         認識に失敗した        detail: {code, message}
  *   nomatch       結果を確定できなかった detail: なし
+ *   end           認識を終了した        detail: なし
  *
  * 受け取り方は 2 通りある。DOM のイベントと同じで、両方を同時に使える。
  *
@@ -32,16 +36,23 @@
  * 互いを潰さない。
  *
  * 実装が満たすべき約束
- *   - start() を呼ばれたら認識を始める
+ *   - start() を呼ばれたら認識を始め、実際に始まったら start を出す
  *   - 確定前の結果は interimresult で流してよい（流さなくてもよい）
  *   - 確定したら result を必ず一度出す
+ *   - 認識が終わったら end を必ず一度出す
  *   - 入力レベルを取れるなら volumechange で流す。取れなければ出さなくてよい
  *   - 認識が終わったら level 0 の volumechange を出してレベル表示を消す
+ *
+ * speechstart / speechend（ユーザが話し始めた・話し終えた）は任意とする。
+ * 発話区間を取れない実装（録音してまとめてサーバへ送る方式など）があるため、
+ * 受け取る側はこれらが来ないことを前提に作ること。
  */
 
 /** onXXX として代入できるイベント。 */
 const HANDLER_EVENT_TYPES = Object.freeze([
-    "result", "interimresult", "volumechange", "error", "nomatch"
+    "start", "speechstart", "speechend",
+    "result", "interimresult", "volumechange", "error", "nomatch",
+    "end"
 ]);
 
 

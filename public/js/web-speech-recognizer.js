@@ -59,15 +59,28 @@ class WebSpeechRecognizer extends SpeechRecognizer {
     }
 
     _setup() {
+        // マイクが実際に開いた時点を「認識開始」とする。
+        // start() を呼んだ直後ではなく、権限の確認などが済んだ後に来る
         this._recognition.onaudiostart = (e) => {
             VolumeMeter.onvolumechange = (level) => this._emit("volumechange", {level});
             VolumeMeter.startAudio(this._context);
+            this._emit("start");
         };
 
         this._recognition.onaudioend = (e) => {
             VolumeMeter.stopAudio();
             // レベル表示を消す。認識の後始末が終わってから通知する
             setTimeout(() => this._emit("volumechange", {level: 0}), 0);
+            this._emit("end");
+        };
+
+        // 発話区間。Web Speech API は検出できるが、実装によっては取れない
+        this._recognition.onspeechstart = (e) => {
+            this._emit("speechstart");
+        };
+
+        this._recognition.onspeechend = (e) => {
+            this._emit("speechend");
         };
 
         this._recognition.onnomatch = (e) => {
