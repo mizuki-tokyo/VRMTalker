@@ -234,5 +234,22 @@ async def get_status():
     }
 
 
+class NoCacheStaticFiles(StaticFiles):
+    """更新したファイルが必ず画面へ反映されるようにする。
+
+    ブラウザは JS や HTML を強く握る。編集しながら動かすと、直したはずの
+    ファイルが古いまま動き続け、原因の分からない不具合として現れる。
+
+    no-cache は「保存はしてよいが、使う前に必ず問い合わせる」の意味。
+    StaticFiles が ETag を付けるので、中身が変わっていなければ 304 が返り、
+    転送は起きない。毎回読み直させる no-store より軽い。
+    """
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 # 静的ファイルの配信は最後にマウントする（/api/* を先に解決させるため）
-app.mount("/", StaticFiles(directory=str(PUBLIC_DIR), html=True), name="public")
+app.mount("/", NoCacheStaticFiles(directory=str(PUBLIC_DIR), html=True), name="public")
