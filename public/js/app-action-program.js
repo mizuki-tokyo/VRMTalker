@@ -77,7 +77,7 @@ export const VALUE_BLOCKS = Object.freeze({
 });
 
 /** イベントの detail から読む値のブロック。 */
-const DETAIL_BLOCKS = Object.freeze({
+export const DETAIL_BLOCKS = Object.freeze({
     value_error_message: "message",
     value_error_phase: "phase"
 });

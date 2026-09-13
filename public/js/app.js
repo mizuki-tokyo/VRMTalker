@@ -10,6 +10,7 @@ import loadMotions from "./app-motions.js";
 import createAvatarApi from "./app-avatar-api.js";
 import createActionRunner from "./app-action-runner.js";
 import createActionProgram from "./app-action-program.js";
+import createBlockEditor from "./app-block-editor.js";
 import avatarActions from "./app-avatar-actions.js";
 
 // 設定ウインドウ（話者・カメラの寄り・吹き出しの色・キャラクタ像）
@@ -81,29 +82,38 @@ const ACTIONS_URL = "./actions.json";
  * @param {object} runner          app-action-runner
  * @param {object} handwritten     app-avatar-actions.js
  */
-const registerActions = async (runner, handwritten) => {
+const registerActions = async (runner, handwritten, program = null) => {
     let fromJson = {};
 
     try {
-        const response = await fetch(ACTIONS_URL);
-        if (! response.ok) {
-            throw new Error(`${response.status}`);
+        if (! program) {
+            const response = await fetch(ACTIONS_URL);
+            if (! response.ok) {
+                throw new Error(`${response.status}`);
+            }
+            program = await response.json();
         }
-        const program = createActionProgram(await response.json());
-        for (const warning of program.warnings) {
+        const compiled = createActionProgram(program);
+        for (const warning of compiled.warnings) {
             console.warn(`アクション定義: ${warning}`);
         }
-        fromJson = program.handlers;
+        fromJson = compiled.handlers;
     } catch (error) {
         console.warn(`アクション定義 (${ACTIONS_URL}) を読み込めませんでした。`
                      + `手書きのアクションだけを使います`, error);
     }
 
     const source = {};
-    for (const type of new Set([...Object.keys(fromJson), ...Object.keys(handwritten)])) {
-        const handler = fromJson[type] ?? handwritten[type];
-        runner.on(type, handler);
+    const types = new Set([...Object.keys(fromJson), ...Object.keys(handwritten)]);
+    for (const type of types) {
+        runner.on(type, fromJson[type] ?? handwritten[type]);
         source[type] = fromJson[type] ? ACTIONS_URL : "app-avatar-actions.js";
+    }
+    // 差し替えで消えたイベントの登録を残さない
+    for (const type of runner.types) {
+        if (! types.has(type)) {
+            runner.off(type);
+        }
     }
     console.info("アクションの取得元", source);
 };
@@ -167,6 +177,40 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     const actionsRegistered = registerActions(runner, avatarActions);
+
+    //----------------------------------
+    // ブロック編集画面
+    //
+    // 開くのは設定ウインドウから、閉じるのは編集画面から。編集のたびに
+    // 設定を開き直さずに済む。#edit を付けた URL でも開いた状態で始められる
+    //----------------------------------
+    const blockEditor = createBlockEditor({
+        actionsUrl: ACTIONS_URL,
+        getMotionNames: () => avatar.motionNames,
+        // 保存できたら、リロードせずに新しい動作へ差し替える
+        onSave: async (program) => {
+            runner.abortAll();
+            await registerActions(runner, avatarActions, program);
+        }
+    });
+
+    document.querySelector("#open-editor").addEventListener("click", () => {
+        document.querySelector("settings-panel").removeAttribute("open");
+        blockEditor.open();
+    });
+
+    // 編集できないサーバでは項目ごと隠す（外部公開時の運用）
+    fetch("/api/status")
+        .then((response) => response.json())
+        .then((status) => {
+            if (status.actions_editable !== false) {
+                document.querySelector("#editor-section").hidden = false;
+            }
+            if (status.actions_editable !== false && location.hash === "#edit") {
+                blockEditor.open();
+            }
+        })
+        .catch((error) => console.warn("状態を取得できませんでした", error));
 
     // 待機中のアクションは、会話が始まったら止める。
     // 止めないと「ずっと」で書いた待機の仕草が会話中も回り続ける

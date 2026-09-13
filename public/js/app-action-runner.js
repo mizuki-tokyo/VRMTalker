@@ -28,6 +28,9 @@ const createActionRunner = ({conversation, createApi, onSettled = () => {}}) => 
     // イベント名 -> 実行中のアクションの中断用
     const running = new Map();
 
+    // イベント名 -> 今のアクション。編集画面で保存すると差し替わる
+    const handlers = new Map();
+
     const abort = (type) => {
         const controller = running.get(type);
         if (controller) {
@@ -61,6 +64,10 @@ const createActionRunner = ({conversation, createApi, onSettled = () => {}}) => 
     return {
         /**
          * イベントにアクションを登録する。
+         *
+         * 同じイベントに登録し直すと差し替わる（購読は二重にならない）。
+         * 編集画面で保存したとき、リロードせずに新しい動作へ移れるようにするため
+         *
          * @param {string} type
          * @param {(api: object, detail: object) => Promise<void>} handler
          */
@@ -68,9 +75,29 @@ const createActionRunner = ({conversation, createApi, onSettled = () => {}}) => 
             if (typeof handler !== "function") {
                 return;
             }
-            conversation.addEventListener(type, (event) => {
-                run(type, handler, event.detail);
-            });
+            const isFirst = ! handlers.has(type);
+            handlers.set(type, handler);
+
+            if (isFirst) {
+                conversation.addEventListener(type, (event) => {
+                    // 登録し直されている場合があるので、そのつど引き直す
+                    const current = handlers.get(type);
+                    if (current) {
+                        run(type, current, event.detail);
+                    }
+                });
+            }
+        },
+
+        /** 登録を消す。差し替え後に消えたイベントを残さないために使う。 */
+        off(type) {
+            abort(type);
+            handlers.delete(type);
+        },
+
+        /** 登録済みのイベント名。 */
+        get types() {
+            return [...handlers.keys()];
         },
 
         /**

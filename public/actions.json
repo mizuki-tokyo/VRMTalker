@@ -4,17 +4,26 @@
     "blocks": [
       {
         "type": "event_ready",
+        "id": "y;K#oK.v!Vw#L*F6m$v!",
+        "x": 40,
+        "y": 40,
         "next": {
           "block": {
             "type": "avatar_speak_and_wait",
+            "id": "oSneW(7X:$p6K~Rzz5j`",
             "inputs": {
               "TEXT": {
                 "block": {
                   "type": "text_join",
+                  "id": "L)CB1q}qg)DUT{/qHh2l",
+                  "extraState": {
+                    "itemCount": 3
+                  },
                   "inputs": {
                     "ADD0": {
                       "shadow": {
                         "type": "text",
+                        "id": "eAE9d`_bpX%%g?V.vJ^h",
                         "fields": {
                           "TEXT": "こんにちは。わたしは"
                         }
@@ -22,12 +31,14 @@
                     },
                     "ADD1": {
                       "block": {
-                        "type": "value_character_name"
+                        "type": "value_character_name",
+                        "id": "VgKn[5VDKbc(9?)1Ut_0"
                       }
                     },
                     "ADD2": {
                       "shadow": {
                         "type": "text",
+                        "id": "r~UXzR!y=T%IjfhQz`86",
                         "fields": {
                           "TEXT": "です。"
                         }
@@ -40,6 +51,7 @@
             "next": {
               "block": {
                 "type": "screen_show_bubble",
+                "id": "r77GW|E.lcyrQ5aUMKh5",
                 "fields": {
                   "WHO": "キャラクタ"
                 },
@@ -47,6 +59,7 @@
                   "TEXT": {
                     "shadow": {
                       "type": "text",
+                      "id": "]yCl(?I8_#w%{sD(xtzE",
                       "fields": {
                         "TEXT": "マイクのボタンを押して話しかけてください。"
                       }
@@ -56,21 +69,24 @@
               }
             }
           }
-        },
-        "x": 40,
-        "y": 40
+        }
       },
       {
         "type": "event_listenend",
+        "id": "v0V*R-XEDswb(?_Y9d4E",
+        "x": 72,
+        "y": 232,
         "next": {
           "block": {
             "type": "avatar_play_motion",
+            "id": "(rXOsp0!D^ik:V+yvfpY",
             "fields": {
               "NAME": "手を挙げる"
             },
             "next": {
               "block": {
                 "type": "avatar_change_expression",
+                "id": "tP7A$k:)K=a+Y+uEFO9d",
                 "fields": {
                   "NAME": "happy"
                 },
@@ -78,6 +94,7 @@
                   "VALUE": {
                     "shadow": {
                       "type": "math_number",
+                      "id": "RFFo!SYEC!5*AJ;@bhl7",
                       "fields": {
                         "NUM": 1
                       }
@@ -86,6 +103,7 @@
                   "SECONDS": {
                     "shadow": {
                       "type": "math_number",
+                      "id": "@0XkAmi}4h,bW_aR:+w{",
                       "fields": {
                         "NUM": 0.3
                       }
@@ -95,6 +113,7 @@
                 "next": {
                   "block": {
                     "type": "chat_reply_each_sentence",
+                    "id": "Nh7kU^8ELaw[$7G|+kNK",
                     "fields": {
                       "SENTENCE": {
                         "id": "sentenceVar01"
@@ -103,12 +122,14 @@
                     "inputs": {
                       "PROMPT": {
                         "block": {
-                          "type": "value_user_text"
+                          "type": "value_user_text",
+                          "id": "/aOHXg69KlAMy$Mq(.v2"
                         }
                       },
                       "DO": {
                         "block": {
                           "type": "screen_show_bubble",
+                          "id": "3No,m*A$U3/n|v@1;Vvq",
                           "fields": {
                             "WHO": "キャラクタ"
                           },
@@ -116,6 +137,7 @@
                             "TEXT": {
                               "block": {
                                 "type": "variables_get",
+                                "id": "Li^Y4C-l:Pb*mSue[0oz",
                                 "fields": {
                                   "VAR": {
                                     "id": "sentenceVar01"
@@ -127,10 +149,12 @@
                           "next": {
                             "block": {
                               "type": "avatar_speak_and_wait",
+                              "id": "ia$`SaQ4!`Ys^SdX)[?~",
                               "inputs": {
                                 "TEXT": {
                                   "block": {
                                     "type": "variables_get",
+                                    "id": "y[O8FDT1Mqnri3df`Q9Z",
                                     "fields": {
                                       "VAR": {
                                         "id": "sentenceVar01"
@@ -147,6 +171,7 @@
                     "next": {
                       "block": {
                         "type": "avatar_change_expression_wait",
+                        "id": "a]{mGz)RwGda:[~qKLu=",
                         "fields": {
                           "NAME": "happy"
                         },
@@ -154,6 +179,7 @@
                           "VALUE": {
                             "shadow": {
                               "type": "math_number",
+                              "id": "*%6NhV-8P5~/+N:dR!+5",
                               "fields": {
                                 "NUM": 0
                               }
@@ -162,6 +188,7 @@
                           "SECONDS": {
                             "shadow": {
                               "type": "math_number",
+                              "id": "f|+*O*BIm{#us|H]*[7}",
                               "fields": {
                                 "NUM": 0.5
                               }
@@ -175,32 +202,37 @@
               }
             }
           }
-        },
-        "x": 40,
-        "y": 260
+        }
       },
       {
         "type": "event_error",
+        "id": "R?FQe5?h{vaNOw:rw;l[",
+        "x": 40,
+        "y": 560,
         "next": {
           "block": {
             "type": "screen_show_bubble",
+            "id": "L=~^+RQ@RD[4;Y!J;RT9",
             "fields": {
               "WHO": "キャラクタ"
             },
             "inputs": {
               "TEXT": {
                 "block": {
-                  "type": "value_error_message"
+                  "type": "value_error_message",
+                  "id": "HzTGa)61h.[/M:{x32v!"
                 }
               }
             },
             "next": {
               "block": {
                 "type": "avatar_play_sound_wait",
+                "id": "[KsvMh(E%BUCZLWwn6dY",
                 "inputs": {
                   "URL": {
                     "shadow": {
                       "type": "text",
+                      "id": "NG~q-QzC[=KB^^zHnDJW",
                       "fields": {
                         "TEXT": "./mp3/konnichiwa.mp3"
                       }
@@ -210,9 +242,7 @@
               }
             }
           }
-        },
-        "x": 40,
-        "y": 560
+        }
       }
     ]
   },
