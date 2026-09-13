@@ -1,0 +1,12 @@
+[
+    {
+        "name": "立ち姿",
+        "file": "./animations/vrma/standard_idle.vrma",
+        "default": true
+    },
+    { "name": "手を挙げる", "file": "./animations/fbx/Hand Raising.fbx" },
+    { "name": "おじぎ",     "file": "./animations/vrma/quick_formal_bow.vrma" },
+    { "name": "歩く",       "file": "./animations/vrma/CC0-walk.vrma" },
+    { "name": "軽く走る",   "file": "./animations/vrma/CC0-slowrun.vrma" },
+    { "name": "走る",       "file": "./animations/vrma/CC0-run.vrma" }
+]

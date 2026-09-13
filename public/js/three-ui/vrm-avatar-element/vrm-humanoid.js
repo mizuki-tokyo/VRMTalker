@@ -87,11 +87,21 @@ class VrmHumanoid {
         return this._currentVrm.meta;
     }
 
-    async loadAnimation(url, defaultAction=false) {
-        const action = await this._actionManager.loadAnimation(url);
+    /**
+     * @param {string}  url
+     * @param {boolean} [defaultAction] 既定（ループする待機）モーションにする
+     * @param {string}  [name] 登録する名前。省略するとファイル名から作る
+     */
+    async loadAnimation(url, defaultAction=false, name="") {
+        const action = await this._actionManager.loadAnimation(url, name);
         if (defaultAction === true) {
             this.setDefaultAction(action);
         }
+    }
+
+    /** 読み込み済みのモーション名。 */
+    getActionNames() {
+        return this._actionManager.getActionNames();
     }
 
     setDefaultAction(action) {

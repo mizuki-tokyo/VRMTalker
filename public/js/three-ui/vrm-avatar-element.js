@@ -116,10 +116,27 @@ export default class VrmAvatarElement extends HTMLElement {
         }
     }
 
-    /** モーション(FBX)を追加で読み込む。 */
-    async loadMotion(url, isDefault = false) {
+    /**
+     * モーション（FBX / VRMA）を追加で読み込む。
+     *
+     * name を指定すると、その名前で playMotion() から呼べるようになる。
+     * 画面の選択肢に日本語を出したい場合などに使う。
+     *
+     *   await avatar.loadMotion("./animations/fbx/Hand Raising.fbx", false, "手を挙げる");
+     *   await avatar.playMotion("手を挙げる");
+     *
+     * @param {string}  url
+     * @param {boolean} [isDefault] 既定（ループする待機）モーションにする
+     * @param {string}  [name] 登録する名前。省略するとファイル名から作る
+     */
+    async loadMotion(url, isDefault = false, name = "") {
         await this._ready;
-        return this._humanoid.loadAnimation(url, isDefault);
+        return this._humanoid.loadAnimation(url, isDefault, name);
+    }
+
+    /** 読み込み済みのモーション名。画面の選択肢を組み立てるのに使う。 */
+    get motionNames() {
+        return this._humanoid ? this._humanoid.getActionNames() : [];
     }
 
     /**

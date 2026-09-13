@@ -53,8 +53,9 @@ export default {
      * ここでは返事の組み立て方だけを書く
      */
     listenend: async (api, {text}) => {
-        // 返事を待つ間もアバターを動かしておく。await を付けないので並行して進む
-        api.playMotion("Hand Raising");
+        // 返事を待つ間もアバターを動かしておく。await を付けないので並行して進む。
+        // モーション名は animations/motions.json で決める
+        api.playMotion("手を挙げる");
         api.changeExpression("happy", 1.0, 0.3);
 
         // 返事は文が完成した順に届く。全部できあがるのを待たずに話し始められる

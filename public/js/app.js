@@ -6,6 +6,7 @@ import WebSpeechRecognizer from "./web-speech-recognizer.js";
 import Conversation from "./app-conversation.js";
 
 // 会話の節目でアバターが何をするか
+import loadMotions from "./app-motions.js";
 import createAvatarApi from "./app-avatar-api.js";
 import createActionRunner from "./app-action-runner.js";
 import avatarActions from "./app-avatar-actions.js";
@@ -211,10 +212,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     speechRecognitionElement.setInputLevel(0);
 
-    // モデルが表示できたら会話を始められる。ready → idle の順でイベントが出る
+    // モデルとモーションが揃ったら会話を始められる。ready → idle の順でイベントが出る。
+    // モーションの読み込みを先に済ませるのは、ready のアクションから
+    // すぐ playMotion() を呼べるようにするため
     avatar.ready
+        .then(() => loadMotions(avatar))
         .then(() => conversation.markReady())
-        .catch(() => {});
+        .catch((error) => console.warn(error));
 });
 
 

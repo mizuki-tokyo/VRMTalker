@@ -409,10 +409,12 @@
   <body>
     <div id="screen" style="background-image:url('./img/flat_room04.png')">
       <three-world>
+        <!--
+          モーションは animations/motions.json で定義する（既定の待機モーションも）。
+          画面に出す名前とファイルの対応をそこで決めるので、ここには書かない
+        -->
         <vrm-avatar src="./models/VRM1_Constraint_Twist_Sample.vrm"
                     position="0, 0, 0"
-                    idle="./animations/vrma/standard_idle.vrma"
-                    motions="./animations/fbx/Hand Raising.fbx"
                     light-intensity="1.2"
                     shadow="0.3"></vrm-avatar>
       </three-world>

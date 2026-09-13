@@ -19,7 +19,6 @@ class ActionManager {
             if (this._finishHandler) {
                 this._finishHandler(e);
             }
-            console.log("action end");
         });
     }
 
@@ -39,19 +38,26 @@ class ActionManager {
         return this._actionMap[name];
     }
 
+    /** 登録済みのモーション名。画面の選択肢を組み立てるのに使う。 */
     getActionNames() {
-        return this._actionMap.keys();
+        return Object.keys(this._actionMap);
     }
 
-    loadAnimation(animationUrl) {
+    /**
+     * モーションを読み込む。
+     *
+     * @param {string} animationUrl
+     * @param {string} [name] 登録する名前。省略するとファイル名から作る。
+     *                        画面に出す名前で呼びたい場合に指定する
+     */
+    loadAnimation(animationUrl, name) {
         return new Promise((resolve, reject) => {
             // Load animation
             loadAnimation(animationUrl, this._vrm)
                 .then((clip) => {
                     // Apply the loaded animation to mixer and play
                     const action = this._animationMixer.clipAction(clip);
-                    const name = this._getName(animationUrl);
-                    this._actionMap[name] = action;
+                    this._actionMap[name || this._getName(animationUrl)] = action;
                     resolve(action);
                 })
                 .catch((error) => {
