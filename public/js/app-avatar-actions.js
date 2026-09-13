@@ -31,11 +31,20 @@ export default {
     /** 入力待ちに入った。会話が始まると中断される。 */
     idle: async (api) => {
         // 待機中の仕草をここに書く。例えば数秒おきに小さく表情を動かす
+
+        // while (true) {
+        //     await api.wait(api.random(5, 15));
+        //     if (api.random(1, 100) <= 30) {
+        //         await api.playMotionAndWait("おじぎ");
+        //     }
+        // }
+
     },
 
     /** 音声認識が始まった。 */
     listenstart: async (api) => {
         // 聞く姿勢をここに書く
+        //await api.playMotionAndWait("おじぎ");
     },
 
     /** ユーザが話し始めた。音声認識の実装によっては呼ばれない。 */

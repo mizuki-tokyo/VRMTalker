@@ -1,0 +1,225 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "event_ready",
+        "next": {
+          "block": {
+            "type": "avatar_speak_and_wait",
+            "inputs": {
+              "TEXT": {
+                "block": {
+                  "type": "text_join",
+                  "inputs": {
+                    "ADD0": {
+                      "shadow": {
+                        "type": "text",
+                        "fields": {
+                          "TEXT": "こんにちは。わたしは"
+                        }
+                      }
+                    },
+                    "ADD1": {
+                      "block": {
+                        "type": "value_character_name"
+                      }
+                    },
+                    "ADD2": {
+                      "shadow": {
+                        "type": "text",
+                        "fields": {
+                          "TEXT": "です。"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "next": {
+              "block": {
+                "type": "screen_show_bubble",
+                "fields": {
+                  "WHO": "キャラクタ"
+                },
+                "inputs": {
+                  "TEXT": {
+                    "shadow": {
+                      "type": "text",
+                      "fields": {
+                        "TEXT": "マイクのボタンを押して話しかけてください。"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x": 40,
+        "y": 40
+      },
+      {
+        "type": "event_listenend",
+        "next": {
+          "block": {
+            "type": "avatar_play_motion",
+            "fields": {
+              "NAME": "手を挙げる"
+            },
+            "next": {
+              "block": {
+                "type": "avatar_change_expression",
+                "fields": {
+                  "NAME": "happy"
+                },
+                "inputs": {
+                  "VALUE": {
+                    "shadow": {
+                      "type": "math_number",
+                      "fields": {
+                        "NUM": 1
+                      }
+                    }
+                  },
+                  "SECONDS": {
+                    "shadow": {
+                      "type": "math_number",
+                      "fields": {
+                        "NUM": 0.3
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "chat_reply_each_sentence",
+                    "fields": {
+                      "SENTENCE": {
+                        "id": "sentenceVar01"
+                      }
+                    },
+                    "inputs": {
+                      "PROMPT": {
+                        "block": {
+                          "type": "value_user_text"
+                        }
+                      },
+                      "DO": {
+                        "block": {
+                          "type": "screen_show_bubble",
+                          "fields": {
+                            "WHO": "キャラクタ"
+                          },
+                          "inputs": {
+                            "TEXT": {
+                              "block": {
+                                "type": "variables_get",
+                                "fields": {
+                                  "VAR": {
+                                    "id": "sentenceVar01"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "next": {
+                            "block": {
+                              "type": "avatar_speak_and_wait",
+                              "inputs": {
+                                "TEXT": {
+                                  "block": {
+                                    "type": "variables_get",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "sentenceVar01"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "block": {
+                        "type": "avatar_change_expression_wait",
+                        "fields": {
+                          "NAME": "happy"
+                        },
+                        "inputs": {
+                          "VALUE": {
+                            "shadow": {
+                              "type": "math_number",
+                              "fields": {
+                                "NUM": 0
+                              }
+                            }
+                          },
+                          "SECONDS": {
+                            "shadow": {
+                              "type": "math_number",
+                              "fields": {
+                                "NUM": 0.5
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x": 40,
+        "y": 260
+      },
+      {
+        "type": "event_error",
+        "next": {
+          "block": {
+            "type": "screen_show_bubble",
+            "fields": {
+              "WHO": "キャラクタ"
+            },
+            "inputs": {
+              "TEXT": {
+                "block": {
+                  "type": "value_error_message"
+                }
+              }
+            },
+            "next": {
+              "block": {
+                "type": "avatar_play_sound_wait",
+                "inputs": {
+                  "URL": {
+                    "shadow": {
+                      "type": "text",
+                      "fields": {
+                        "TEXT": "./mp3/konnichiwa.mp3"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x": 40,
+        "y": 560
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "文",
+      "id": "sentenceVar01"
+    }
+  ]
+}

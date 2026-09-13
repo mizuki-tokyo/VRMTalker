@@ -184,6 +184,45 @@ async def post_chat(request: ChatRequest) -> StreamingResponse:
     )
 
 
+# ---------------------------------------------------------------- アクション
+
+#: アバターのアクション定義。編集画面から書き戻す
+ACTIONS_PATH = PUBLIC_DIR / "actions.json"
+
+#: 書き換えを許すか。ACTIONS_EDITABLE=0 で読み取り専用になる。
+#: このアプリをリバースプロキシ等で外部へ公開する場合は必ず 0 にすること。
+#: そうしないと、アクセスできる人が誰でもアバターの動作を書き換えられる
+ACTIONS_EDITABLE = os.environ.get("ACTIONS_EDITABLE", "1") != "0"
+
+
+@app.post("/api/actions")
+async def post_actions(program: dict) -> dict:
+    """アクション定義を保存する。
+
+    書き込み先は public/actions.json の固定で、パスは受け取らない。
+    ディレクトリごとコピーすれば、アクションも一緒に運ばれる。
+    """
+    if not ACTIONS_EDITABLE:
+        raise HTTPException(
+            status_code=403,
+            detail="アクションの保存は無効になっています（ACTIONS_EDITABLE=0）。",
+        )
+    if "blocks" not in program:
+        raise HTTPException(
+            status_code=400, detail="Blockly の形式ではありません（blocks がありません）。"
+        )
+
+    try:
+        ACTIONS_PATH.write_text(
+            json.dumps(program, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+    except OSError as error:
+        logger.warning("アクションを保存できませんでした: %s", error)
+        raise HTTPException(status_code=500, detail="アクションを保存できませんでした。")
+
+    return {"saved": True}
+
+
 @app.get("/api/status")
 async def get_status():
     """各機能が使える状態かを返す。画面側のエラー表示に使う。"""
@@ -191,6 +230,7 @@ async def get_status():
         "tts": text_to_speech.ready,
         "llm": chat_model.name if chat_model is not None else None,
         "llama_server": llama.running,
+        "actions_editable": ACTIONS_EDITABLE,
     }
 
 

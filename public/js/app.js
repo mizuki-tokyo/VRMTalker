@@ -9,6 +9,7 @@ import Conversation from "./app-conversation.js";
 import loadMotions from "./app-motions.js";
 import createAvatarApi from "./app-avatar-api.js";
 import createActionRunner from "./app-action-runner.js";
+import createActionProgram from "./app-action-program.js";
 import avatarActions from "./app-avatar-actions.js";
 
 // 設定ウインドウ（話者・カメラの寄り・吹き出しの色・キャラクタ像）
@@ -67,6 +68,47 @@ avatar.ready.then(() => {
 });
 */
 
+/** ビジュアルプログラミングで組んだアクション定義。 */
+const ACTIONS_URL = "./actions.json";
+
+/**
+ * アクションを登録する。
+ *
+ * イベント単位で JSON を優先し、JSON に無いイベントだけ手書きの関数を使う。
+ * ブロックで直したものが必ず反映されるよう、この向きにしてある。
+ * どちらを使ったかは起動時にコンソールへ出す
+ *
+ * @param {object} runner          app-action-runner
+ * @param {object} handwritten     app-avatar-actions.js
+ */
+const registerActions = async (runner, handwritten) => {
+    let fromJson = {};
+
+    try {
+        const response = await fetch(ACTIONS_URL);
+        if (! response.ok) {
+            throw new Error(`${response.status}`);
+        }
+        const program = createActionProgram(await response.json());
+        for (const warning of program.warnings) {
+            console.warn(`アクション定義: ${warning}`);
+        }
+        fromJson = program.handlers;
+    } catch (error) {
+        console.warn(`アクション定義 (${ACTIONS_URL}) を読み込めませんでした。`
+                     + `手書きのアクションだけを使います`, error);
+    }
+
+    const source = {};
+    for (const type of new Set([...Object.keys(fromJson), ...Object.keys(handwritten)])) {
+        const handler = fromJson[type] ?? handwritten[type];
+        runner.on(type, handler);
+        source[type] = fromJson[type] ? ACTIONS_URL : "app-avatar-actions.js";
+    }
+    console.info("アクションの取得元", source);
+};
+
+
 //--------------------------------------------------------
 // DOMの操作や初期化処理をここに記述
 //--------------------------------------------------------
@@ -124,9 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    for (const [type, handler] of Object.entries(avatarActions)) {
-        runner.on(type, handler);
-    }
+    const actionsRegistered = registerActions(runner, avatarActions);
 
     // 待機中のアクションは、会話が始まったら止める。
     // 止めないと「ずっと」で書いた待機の仕草が会話中も回り続ける
@@ -217,6 +257,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // すぐ playMotion() を呼べるようにするため
     avatar.ready
         .then(() => loadMotions(avatar))
+        // アクションの登録を待ってから ready を出す。でないと最初の
+        // イベントを取りこぼす
+        .then(() => actionsRegistered)
         .then(() => conversation.markReady())
         .catch((error) => console.warn(error));
 });
