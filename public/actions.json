@@ -14,13 +14,10 @@
             "inputs": {
               "TEXT": {
                 "block": {
-                  "type": "text_join",
+                  "type": "operator_join",
                   "id": "L)CB1q}qg)DUT{/qHh2l",
-                  "extraState": {
-                    "itemCount": 3
-                  },
                   "inputs": {
-                    "ADD0": {
+                    "STRING1": {
                       "shadow": {
                         "type": "text",
                         "id": "eAE9d`_bpX%%g?V.vJ^h",
@@ -29,18 +26,26 @@
                         }
                       }
                     },
-                    "ADD1": {
+                    "STRING2": {
                       "block": {
-                        "type": "value_character_name",
-                        "id": "VgKn[5VDKbc(9?)1Ut_0"
-                      }
-                    },
-                    "ADD2": {
-                      "shadow": {
-                        "type": "text",
-                        "id": "r~UXzR!y=T%IjfhQz`86",
-                        "fields": {
-                          "TEXT": "です。"
+                        "type": "operator_join",
+                        "id": "Zq4!]t2bWmE{v0^xH:sF",
+                        "inputs": {
+                          "STRING1": {
+                            "block": {
+                              "type": "value_character_name",
+                              "id": "VgKn[5VDKbc(9?)1Ut_0"
+                            }
+                          },
+                          "STRING2": {
+                            "shadow": {
+                              "type": "text",
+                              "id": "r~UXzR!y=T%IjfhQz`86",
+                              "fields": {
+                                "TEXT": "です。"
+                              }
+                            }
+                          }
                         }
                       }
                     }

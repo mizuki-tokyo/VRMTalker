@@ -73,7 +73,9 @@ export const VALUE_BLOCKS = Object.freeze({
     value_user_text:      {fn: "userText",      args: []},
     value_character_name: {fn: "characterName", args: []},
     operator_random:      {fn: "random",        args: ["FROM", "TO"]},
-    operator_includes:    {fn: "includes",      args: ["TEXT", "WORD"]}
+    operator_includes:    {fn: "includes",      args: ["TEXT", "WORD"]},
+    // 入力 2 つの横長な結合。入力を増やせる text_join も残してある
+    operator_join:        {fn: "join",          args: ["STRING1", "STRING2"]}
 });
 
 /** イベントの detail から読む値のブロック。 */

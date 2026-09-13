@@ -224,6 +224,11 @@ const createAvatarApi = ({avatar, chatFlow, speechSynthesizer, conversation, sig
         /** text に word が含まれるか。 */
         includes(text, word) {
             return String(text).includes(String(word));
+        },
+
+        /** 2 つの文字列をつなぐ。 */
+        join(a, b) {
+            return String(a ?? "") + String(b ?? "");
         }
     };
 

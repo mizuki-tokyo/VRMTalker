@@ -156,6 +156,14 @@ const buildBlockUi = (motionNames) => {
             message0: "%1 に %2 がふくまれる",
             args0: [text("TEXT"), text("WORD")],
             output: "Boolean", inputsInline: true, style: "operator_blocks"
+        },
+        // 入力 2 つの横長な結合。3 つ以上つなぎたいときは入力を増やせる
+        // text_join を使う（そちらは縦に積まれる）
+        operator_join: {
+            message0: "%1 と %2",
+            args0: [text("STRING1"), text("STRING2")],
+            output: "String", inputsInline: true, style: "operator_blocks",
+            tooltip: "2 つの文字をつなげる。入れ子にすれば 3 つ以上もつなげる"
         }
     };
 };
@@ -339,8 +347,19 @@ export const createToolbox = () => {
                     {kind: "block", type: "operator_random",
                      inputs: {FROM: shadowNumber(1), TO: shadowNumber(10)}},
                     {kind: "block", type: "text", fields: {TEXT: ""}},
+                    // 初期値は、つないだ結果が 1 つの語になるものを選ぶ。
+                    // 「こんにちは」＋「さん」のように結果が意味をなさないと、
+                    // このブロックが何をするのか値から読み取れない。
+                    // 入力の数を増やせるのが text_join の取り柄なので、
+                    // そちらは 3 つにして並べたときの違いを見せる
+                    {kind: "block", type: "operator_join",
+                     inputs: {STRING1: shadowText("おはよう"),
+                              STRING2: shadowText("ございます")}},
                     {kind: "block", type: "text_join",
-                     inputs: {ADD0: shadowText("こんにちは"), ADD1: shadowText("さん")}},
+                     extraState: {itemCount: 3},
+                     inputs: {ADD0: shadowText("きょうは"),
+                              ADD1: shadowText("いい"),
+                              ADD2: shadowText("天気")}},
                     {kind: "block", type: "operator_includes",
                      inputs: {TEXT: {block: {type: "value_user_text"}},
                               WORD: shadowText("ありがとう")}},
