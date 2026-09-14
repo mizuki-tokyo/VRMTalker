@@ -103,7 +103,7 @@ const createTheme = (Blockly) => {
             toolboxForegroundColour: "#575E75",
             flyoutBackgroundColour: "#F9F9F9",
             flyoutForegroundColour: "#575E75",
-            flyoutOpacity: 1,
+            flyoutOpacity: 0.9,
             scrollbarColour: "#CECDCE",
             insertionMarkerColour: "#000000",
             insertionMarkerOpacity: 0.2
@@ -116,6 +116,47 @@ const createTheme = (Blockly) => {
         // 帽子が付くのはイベントブロックだけにする
         startHats: false
     });
+};
+
+
+/** 登録したレンダラーの名前。inject の renderer に渡す。 */
+const RENDERER_NAME = "vrmtalker-zelos";
+
+let rendererRegistered = false;
+
+/**
+ * Zelos を土台に、C 型ブロックの左の縦棒を細くしたレンダラーを登録する。
+ *
+ * 「もし〜なら」「くりかえす」「ずっと」の左の棒は、Zelos の既定だと太く、
+ * Scratch に慣れた目には不恰好に映る。
+ *
+ * 寸法を持っているのは ConstantProvider なので、それを継承して数値を
+ * 上書きし、上書きした側を返す Renderer を登録する。登録は一度きりで、
+ * 二度目は Blockly が例外を投げる
+ */
+const registerRenderer = (Blockly) => {
+    if (rendererRegistered) {
+        return RENDERER_NAME;
+    }
+
+    class ScratchLikeConstantProvider extends Blockly.zelos.ConstantProvider {
+        constructor() {
+            super();
+            // 内側の開始位置は NOTCH_OFFSET_LEFT(12) + この値になる。
+            // Zelos の既定は 16（合計 28px）で、Scratch はもっと細い
+            this.STATEMENT_INPUT_PADDING_LEFT = 4;
+        }
+    }
+
+    class ScratchLikeRenderer extends Blockly.zelos.Renderer {
+        makeConstants_() {
+            return new ScratchLikeConstantProvider();
+        }
+    }
+
+    Blockly.blockRendering.register(RENDERER_NAME, ScratchLikeRenderer);
+    rendererRegistered = true;
+    return RENDERER_NAME;
 };
 
 
@@ -242,7 +283,7 @@ const createBlockEditor = ({actionsUrl, getNames, onSave}) => {
         workspace = Blockly.inject(area, {
             toolbox: createToolbox(),
             theme: createTheme(Blockly),
-            renderer: "zelos",
+            renderer: registerRenderer(Blockly),
             // カテゴリ付きにするとパレットが開きっぱなしになり、Scratch に近くなる
             horizontalLayout: false,
             trashcan: true,

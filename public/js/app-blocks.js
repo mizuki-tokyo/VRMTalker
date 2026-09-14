@@ -288,6 +288,31 @@ export const defineBlocks = (Blockly, names = {}) => {
         tooltip: "待機中のしぐさなどに使います。会話が始まると止まります"
     });
 
+    // 条件分岐。Blockly 標準の controls_if は歯車で else if を足す作りで、
+    // 形が Scratch と違って収まりが悪い。入力を固定した 2 種類を用意する。
+    // 「でなければもし」が要るときは control_if_else を入れ子にする（Scratch と同じ）
+    definitions.push({
+        type: "control_if",
+        message0: "もし %1 なら",
+        args0: [{type: "input_value", name: "CONDITION", check: "Boolean"}],
+        message1: "%1", args1: [{type: "input_statement", name: "DO"}],
+        previousStatement: null, nextStatement: null,
+        inputsInline: true, style: "control_blocks",
+        tooltip: "条件が成り立つときだけ、中のブロックを動かします"
+    });
+
+    definitions.push({
+        type: "control_if_else",
+        message0: "もし %1 なら",
+        args0: [{type: "input_value", name: "CONDITION", check: "Boolean"}],
+        message1: "%1", args1: [{type: "input_statement", name: "DO"}],
+        message2: "でなければ",
+        message3: "%1", args3: [{type: "input_statement", name: "ELSE"}],
+        previousStatement: null, nextStatement: null,
+        inputsInline: true, style: "control_blocks",
+        tooltip: "条件が成り立つかどうかで、動かすブロックを分けます"
+    });
+
     Blockly.defineBlocksWithJsonArray(definitions);
     return checkAgainstTables(ui);
 };
@@ -362,7 +387,8 @@ export const createToolbox = () => {
                     {kind: "block", type: "control_repeat",
                      inputs: {TIMES: shadowNumber(3)}},
                     {kind: "block", type: "control_forever"},
-                    {kind: "block", type: "controls_if"}
+                    {kind: "block", type: "control_if"},
+                    {kind: "block", type: "control_if_else"}
                 ]
             },
             {

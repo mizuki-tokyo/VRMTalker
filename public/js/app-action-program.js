@@ -91,7 +91,11 @@ export const DETAIL_BLOCKS = Object.freeze({
 /** このファイルが直接解釈するブロック。表に無くても知らないブロックではない。 */
 const BUILTIN_BLOCKS = Object.freeze([
     // 制御
-    "control_repeat", "control_forever", "controls_if",
+    "control_repeat", "control_forever",
+    "control_if", "control_if_else",
+    // controls_if は Blockly 標準の歯車付き。パレットからは外したが、
+    // 以前の定義がそのまま動くよう解釈だけは残してある
+    "controls_if",
     "chat_reply_each_sentence", "variables_set",
     // 値
     "text", "math_number", "logic_boolean", "variables_get", "text_join",
@@ -305,6 +309,22 @@ const createActionProgram = (json) => {
                 await runStatements(body, ctx);
                 await ctx.api.tick();
             }
+        }
+
+        case "control_if": {
+            if (await evaluate(inputBlock(block, "CONDITION"), ctx)) {
+                await runStatements(inputBlock(block, "DO"), ctx);
+            }
+            return;
+        }
+
+        case "control_if_else": {
+            if (await evaluate(inputBlock(block, "CONDITION"), ctx)) {
+                await runStatements(inputBlock(block, "DO"), ctx);
+            } else {
+                await runStatements(inputBlock(block, "ELSE"), ctx);
+            }
+            return;
         }
 
         case "controls_if": {
