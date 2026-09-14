@@ -67,20 +67,6 @@ avatar.addEventListener("error", (event) => {
 });
 
 
-/*
-//--------------------------------------------------------
-// モデルの読み込み完了後に行う処理はここに記述
-//--------------------------------------------------------
-avatar.ready.then(() => {
-    // print meta fields
-    const meta = avatar.humanoid.getMeta();
-    Object.keys(meta).forEach((key) => {
-        document.getElementById("meta").innerText += key + ' : ' + meta[key] + '\n';
-        document.getElementById("thumbnail").src = meta.thumbnailImage.src;
-    });
-});
-*/
-
 /** ビジュアルプログラミングで組んだアクション定義。 */
 const ACTIONS_URL = "./actions.json";
 
@@ -277,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     conversation.addEventListener("listenend", (event) => {
-        chatFlow.appendMessage(event.detail.text, "right");
+        //chatFlow.appendMessage(event.detail.text, "right");
         fadeOutRecognizedText();
     });
 
@@ -320,8 +306,8 @@ document.addEventListener('DOMContentLoaded', function() {
             loadMotions(avatar),
             emote.ready.catch(() => {})
         ]))
-        // アクションの登録を待ってから ready を出す。でないと最初の
-        // イベントを取りこぼす
+        // アクションの登録を待ってから ready を出す。
+        // そうしないと最初のイベントを取りこぼす
         .then(() => actionsRegistered)
         .then(() => conversation.markReady())
         .catch((error) => console.warn(error));

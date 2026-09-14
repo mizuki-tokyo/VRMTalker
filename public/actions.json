@@ -5,8 +5,8 @@
       {
         "type": "event_ready",
         "id": "y;K#oK.v!Vw#L*F6m$v!",
-        "x": 40,
-        "y": 40,
+        "x": 22,
+        "y": 12,
         "next": {
           "block": {
             "type": "avatar_speak_and_wait",
@@ -79,87 +79,85 @@
       {
         "type": "event_listenend",
         "id": "v0V*R-XEDswb(?_Y9d4E",
-        "x": 190,
-        "y": 283,
+        "x": 17,
+        "y": 233,
         "next": {
           "block": {
-            "type": "avatar_play_motion",
-            "id": "(rXOsp0!D^ik:V+yvfpY",
+            "type": "screen_show_bubble",
+            "id": "L@IuBU?B,qEgNLEJ6?]G",
             "fields": {
-              "NAME": "手を挙げる"
+              "WHO": "あなた"
+            },
+            "inputs": {
+              "TEXT": {
+                "block": {
+                  "type": "value_user_text",
+                  "id": "agc9!9Oig*x-Ewtyr||E"
+                }
+              }
             },
             "next": {
               "block": {
-                "type": "avatar_change_expression",
-                "id": "tP7A$k:)K=a+Y+uEFO9d",
+                "type": "avatar_play_motion",
+                "id": "(rXOsp0!D^ik:V+yvfpY",
                 "fields": {
-                  "NAME": "happy"
-                },
-                "inputs": {
-                  "VALUE": {
-                    "shadow": {
-                      "type": "math_number",
-                      "id": "RFFo!SYEC!5*AJ;@bhl7",
-                      "fields": {
-                        "NUM": 1
-                      }
-                    }
-                  },
-                  "SECONDS": {
-                    "shadow": {
-                      "type": "math_number",
-                      "id": "@0XkAmi}4h,bW_aR:+w{",
-                      "fields": {
-                        "NUM": 0.3
-                      }
-                    }
-                  }
+                  "NAME": "手を挙げる"
                 },
                 "next": {
                   "block": {
-                    "type": "chat_reply_each_sentence",
-                    "id": "Nh7kU^8ELaw[$7G|+kNK",
+                    "type": "avatar_change_expression",
+                    "id": "tP7A$k:)K=a+Y+uEFO9d",
                     "fields": {
-                      "SENTENCE": {
-                        "id": "sentenceVar01"
-                      }
+                      "NAME": "happy"
                     },
                     "inputs": {
-                      "PROMPT": {
-                        "block": {
-                          "type": "value_user_text",
-                          "id": "/aOHXg69KlAMy$Mq(.v2"
+                      "VALUE": {
+                        "shadow": {
+                          "type": "math_number",
+                          "id": "RFFo!SYEC!5*AJ;@bhl7",
+                          "fields": {
+                            "NUM": 1
+                          }
                         }
                       },
-                      "DO": {
-                        "block": {
-                          "type": "screen_show_bubble",
-                          "id": "3No,m*A$U3/n|v@1;Vvq",
+                      "SECONDS": {
+                        "shadow": {
+                          "type": "math_number",
+                          "id": "@0XkAmi}4h,bW_aR:+w{",
                           "fields": {
-                            "WHO": "キャラクタ"
-                          },
-                          "inputs": {
-                            "TEXT": {
-                              "block": {
-                                "type": "variables_get",
-                                "id": "Li^Y4C-l:Pb*mSue[0oz",
-                                "fields": {
-                                  "VAR": {
-                                    "id": "sentenceVar01"
-                                  }
-                                }
-                              }
+                            "NUM": 0.3
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "block": {
+                        "type": "chat_reply_each_sentence",
+                        "id": "Nh7kU^8ELaw[$7G|+kNK",
+                        "fields": {
+                          "SENTENCE": {
+                            "id": "sentenceVar01"
+                          }
+                        },
+                        "inputs": {
+                          "PROMPT": {
+                            "block": {
+                              "type": "value_user_text",
+                              "id": "/aOHXg69KlAMy$Mq(.v2"
                             }
                           },
-                          "next": {
+                          "DO": {
                             "block": {
-                              "type": "avatar_speak_and_wait",
-                              "id": "ia$`SaQ4!`Ys^SdX)[?~",
+                              "type": "screen_show_bubble",
+                              "id": "3No,m*A$U3/n|v@1;Vvq",
+                              "fields": {
+                                "WHO": "キャラクタ"
+                              },
                               "inputs": {
                                 "TEXT": {
                                   "block": {
                                     "type": "variables_get",
-                                    "id": "y[O8FDT1Mqnri3df`Q9Z",
+                                    "id": "Li^Y4C-l:Pb*mSue[0oz",
                                     "fields": {
                                       "VAR": {
                                         "id": "sentenceVar01"
@@ -167,35 +165,54 @@
                                     }
                                   }
                                 }
+                              },
+                              "next": {
+                                "block": {
+                                  "type": "avatar_speak_and_wait",
+                                  "id": "ia$`SaQ4!`Ys^SdX)[?~",
+                                  "inputs": {
+                                    "TEXT": {
+                                      "block": {
+                                        "type": "variables_get",
+                                        "id": "y[O8FDT1Mqnri3df`Q9Z",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "sentenceVar01"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
                               }
                             }
                           }
-                        }
-                      }
-                    },
-                    "next": {
-                      "block": {
-                        "type": "avatar_change_expression_wait",
-                        "id": "a]{mGz)RwGda:[~qKLu=",
-                        "fields": {
-                          "NAME": "happy"
                         },
-                        "inputs": {
-                          "VALUE": {
-                            "shadow": {
-                              "type": "math_number",
-                              "id": "*%6NhV-8P5~/+N:dR!+5",
-                              "fields": {
-                                "NUM": 0
-                              }
-                            }
-                          },
-                          "SECONDS": {
-                            "shadow": {
-                              "type": "math_number",
-                              "id": "f|+*O*BIm{#us|H]*[7}",
-                              "fields": {
-                                "NUM": 0.5
+                        "next": {
+                          "block": {
+                            "type": "avatar_change_expression_wait",
+                            "id": "a]{mGz)RwGda:[~qKLu=",
+                            "fields": {
+                              "NAME": "happy"
+                            },
+                            "inputs": {
+                              "VALUE": {
+                                "shadow": {
+                                  "type": "math_number",
+                                  "id": "*%6NhV-8P5~/+N:dR!+5",
+                                  "fields": {
+                                    "NUM": 0
+                                  }
+                                }
+                              },
+                              "SECONDS": {
+                                "shadow": {
+                                  "type": "math_number",
+                                  "id": "f|+*O*BIm{#us|H]*[7}",
+                                  "fields": {
+                                    "NUM": 0.5
+                                  }
+                                }
                               }
                             }
                           }
@@ -212,8 +229,8 @@
       {
         "type": "event_error",
         "id": "R?FQe5?h{vaNOw:rw;l[",
-        "x": 67,
-        "y": 726,
+        "x": 16,
+        "y": 718,
         "next": {
           "block": {
             "type": "screen_show_bubble",
