@@ -79,8 +79,8 @@
       {
         "type": "event_listenend",
         "id": "v0V*R-XEDswb(?_Y9d4E",
-        "x": 72,
-        "y": 232,
+        "x": 190,
+        "y": 283,
         "next": {
           "block": {
             "type": "avatar_play_motion",
@@ -212,8 +212,8 @@
       {
         "type": "event_error",
         "id": "R?FQe5?h{vaNOw:rw;l[",
-        "x": 40,
-        "y": 560,
+        "x": 67,
+        "y": 726,
         "next": {
           "block": {
             "type": "screen_show_bubble",
