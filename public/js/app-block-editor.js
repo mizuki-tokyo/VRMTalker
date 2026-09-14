@@ -121,11 +121,12 @@ const createTheme = (Blockly) => {
 
 /**
  * @param {object} deps
- * @param {string} deps.actionsUrl        定義の読み込み元
- * @param {() => string[]} deps.getMotionNames ドロップダウンに出すモーション名
+ * @param {string} deps.actionsUrl 定義の読み込み元
+ * @param {() => {motionNames: string[], emoteNames: string[]}} deps.getNames
+ *        ドロップダウンに出す名前。編集画面を開いた時点で読み直す
  * @param {(program: object) => Promise<void>} deps.onSave 保存できたとき
  */
-const createBlockEditor = ({actionsUrl, getMotionNames, onSave}) => {
+const createBlockEditor = ({actionsUrl, getNames, onSave}) => {
 
     const root = document.querySelector("#block-editor");
     const area = root.querySelector("#blockly-area");
@@ -234,7 +235,7 @@ const createBlockEditor = ({actionsUrl, getMotionNames, onSave}) => {
         if (! Blockly) {
             throw new Error("Blockly を読み込めませんでした");
         }
-        for (const warning of defineBlocks(Blockly, getMotionNames())) {
+        for (const warning of defineBlocks(Blockly, getNames())) {
             console.warn(`ブロック定義: ${warning}`);
         }
 

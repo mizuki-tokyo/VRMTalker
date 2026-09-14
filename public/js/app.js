@@ -27,9 +27,21 @@ import "./web-ui/speech-recognition-element.js";
 // 3D 表示
 import "./three-ui/three-world-element.js";
 import "./three-ui/vrm-avatar-element.js";
+import "./three-ui/vrm-emote-element.js";
 
 // モデルの読み込みと <three-world> への配置は <vrm-avatar> が行う（index.html を参照）
 const avatar = document.querySelector("vrm-avatar");
+
+// 頭の上に出す感情アイコン。<vrm-avatar> の子要素として置く。
+// 要らなければ index.html から <vrm-emote> を消せばよく、そのときは
+// エモートのブロックが何もしないだけで、ほかの機能はそのまま動く
+const emote = document.querySelector("vrm-emote") ?? {
+    ready: Promise.resolve(null),
+    emoteNames: [],
+    current: null,
+    show: () => {},
+    clear: () => {}
+};
 
 //----------------------------------
 // モデルの読み込み状況を表示
@@ -166,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const runner = createActionRunner({
         conversation,
         createApi: (signal) => createAvatarApi({
-            avatar, chatFlow, speechSynthesizer, conversation, signal
+            avatar, emote, chatFlow, speechSynthesizer, conversation, signal
         }),
         // 応答のアクションが終わったら入力待ちへ戻す
         onSettled: (type) => {
@@ -186,7 +198,10 @@ document.addEventListener('DOMContentLoaded', function() {
     //----------------------------------
     const blockEditor = createBlockEditor({
         actionsUrl: ACTIONS_URL,
-        getMotionNames: () => avatar.motionNames,
+        getNames: () => ({
+            motionNames: avatar.motionNames,
+            emoteNames: emote.emoteNames
+        }),
         // 保存できたら、リロードせずに新しい動作へ差し替える
         onSave: async (program) => {
             runner.abortAll();
@@ -297,10 +312,14 @@ document.addEventListener('DOMContentLoaded', function() {
     speechRecognitionElement.setInputLevel(0);
 
     // モデルとモーションが揃ったら会話を始められる。ready → idle の順でイベントが出る。
-    // モーションの読み込みを先に済ませるのは、ready のアクションから
-    // すぐ playMotion() を呼べるようにするため
+    // モーションとエモートの読み込みを先に済ませるのは、ready のアクションから
+    // すぐ playMotion() や showEmote() を呼べるようにするため。
+    // エモートは失敗しても続ける（アイコンが無くても会話はできる）
     avatar.ready
-        .then(() => loadMotions(avatar))
+        .then(() => Promise.all([
+            loadMotions(avatar),
+            emote.ready.catch(() => {})
+        ]))
         // アクションの登録を待ってから ready を出す。でないと最初の
         // イベントを取りこぼす
         .then(() => actionsRegistered)

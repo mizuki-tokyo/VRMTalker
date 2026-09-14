@@ -537,7 +537,16 @@
         <vrm-avatar src="./models/VRM1_Constraint_Twist_Sample.vrm"
                     position="0, 0, 0"
                     light-intensity="1.2"
-                    shadow="0.3"></vrm-avatar>
+                    shadow="0.3">
+          <!--
+            頭の上に出す感情アイコン。出せる絵は emotes/emotes.json で定義する。
+            入れ子は「どのアバターのものか」を表すだけで、three.js の親子関係
+            とは一致しない（vrm-emote-element.js を参照）
+          -->
+          <vrm-emote src="./emotes/emotes.json"
+                     size="0.28"
+                     offset="0.18, 0.28, 0"></vrm-emote>
+        </vrm-avatar>
       </three-world>
       <chat-flow></chat-flow>
       <span id="credit">VOICEVOX:四国めたん</span>

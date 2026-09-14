@@ -56,6 +56,9 @@ export const CALL_BLOCKS = Object.freeze({
     avatar_change_expression_wait:
                               {fn: "changeExpressionAndWait", args: ["NAME", "VALUE", "SECONDS"]},
     avatar_look_at:           {fn: "lookAt",                  args: ["BONE"]},
+    avatar_show_emote:        {fn: "showEmote",               args: ["NAME", "SECONDS"]},
+    avatar_show_emote_wait:   {fn: "showEmoteAndWait",        args: ["NAME", "SECONDS"]},
+    avatar_clear_emote:       {fn: "clearEmote",              args: []},
 
     // 画面
     screen_show_bubble:       {fn: "showBubble",              args: ["WHO", "TEXT"]},

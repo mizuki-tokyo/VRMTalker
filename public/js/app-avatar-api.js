@@ -31,12 +31,14 @@ export const SPEAKER = Object.freeze({
 /**
  * @param {object} deps
  * @param {Element}     deps.avatar            <vrm-avatar>
+ * @param {Element}     deps.emote             <vrm-emote>
  * @param {Element}     deps.chatFlow          <chat-flow>
  * @param {object}      deps.speechSynthesizer SpeechSynthesizer
  * @param {object}      deps.conversation      Conversation
  * @param {AbortSignal} deps.signal            中断の合図
  */
-const createAvatarApi = ({avatar, chatFlow, speechSynthesizer, conversation, signal}) => {
+const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer,
+                          conversation, signal}) => {
 
     const stopIfAborted = () => {
         if (signal.aborted) {
@@ -143,6 +145,28 @@ const createAvatarApi = ({avatar, chatFlow, speechSynthesizer, conversation, sig
         /** カメラの注視点をボーンに合わせる。 */
         lookAt(boneName) {
             avatar.focusCamera(String(boneName));
+        },
+
+        /**
+         * 頭の上に感情アイコンを出す。消えるのを待たない。
+         *
+         * 話しながらアイコンを出す使い方が主なので、こちらが既定。
+         * seconds が 0 以下なら clearEmote() を呼ぶまで出したままにする
+         */
+        showEmote(name, seconds) {
+            guard(() => emote.show(String(name), Number(seconds)), "エモートの表示")
+                .catch(() => {});
+        },
+
+        /** 感情アイコンを出して、消えるまで待つ。 */
+        async showEmoteAndWait(name, seconds) {
+            stopIfAborted();
+            await guard(() => emote.show(String(name), Number(seconds)), "エモートの表示");
+        },
+
+        /** 感情アイコンを消す。 */
+        clearEmote() {
+            guard(() => emote.clear(), "エモートの消去").catch(() => {});
         },
 
         //---------------------------------- 画面

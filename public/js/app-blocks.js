@@ -52,10 +52,14 @@ const EVENT_LABELS = Object.freeze({
  * field_* はドロップダウン（保存時は fields に入る）、input_value は
  * 差し込み口（保存時は inputs に入る）。インタプリタはどちらでも読める
  */
-const buildBlockUi = (motionNames) => {
-    const motions = (motionNames.length > 0)
-          ? motionNames.map((name) => [name, name])
-          : [["（モーションがありません）", ""]];
+const buildBlockUi = ({motionNames = [], emoteNames = []} = {}) => {
+    // 読み込みが終わる前に編集画面を開くと空になる。選べないことが伝わる
+    // 見出しを 1 つ出しておく（空のドロップダウンは Blockly が嫌う）
+    const choices = (names, empty) =>
+          (names.length > 0) ? names.map((name) => [name, name]) : [[empty, ""]];
+
+    const motions = choices(motionNames, "（モーションがありません）");
+    const emotes = choices(emoteNames, "（エモートがありません）");
 
     const text = (name) => ({type: "input_value", name});
     const number = (name) => ({type: "input_value", name, check: "Number"});
@@ -110,6 +114,22 @@ const buildBlockUi = (motionNames) => {
         avatar_look_at: {
             message0: "%1 を見る",
             args0: [dropdown("BONE", BONES)], style: "motion_blocks"
+        },
+        avatar_show_emote: {
+            message0: "%1 のエモートを %2 秒出す",
+            args0: [dropdown("NAME", emotes), number("SECONDS")],
+            style: "looks_blocks", inputsInline: true,
+            tooltip: "頭の上にアイコンを出す。消えるのを待たない。"
+                   + "出せる絵は emotes/emotes.json で決める"
+        },
+        avatar_show_emote_wait: {
+            message0: "%1 のエモートを %2 秒出して消えるまで待つ",
+            args0: [dropdown("NAME", emotes), number("SECONDS")],
+            style: "looks_blocks", inputsInline: true
+        },
+        avatar_clear_emote: {
+            message0: "エモートを消す", args0: [], style: "looks_blocks",
+            tooltip: "0 秒で出したエモートを消すときに使う"
         },
 
         //-------------------------------- 画面
@@ -210,11 +230,13 @@ const checkAgainstTables = (ui) => {
  * Blockly にブロックを登録する。
  *
  * @param {object} Blockly
- * @param {string[]} motionNames ドロップダウンに出すモーション名
+ * @param {object}   names
+ * @param {string[]} names.motionNames ドロップダウンに出すモーション名
+ * @param {string[]} names.emoteNames  ドロップダウンに出すエモート名
  * @returns {string[]} 表とずれている箇所の警告
  */
-export const defineBlocks = (Blockly, motionNames = []) => {
-    const ui = buildBlockUi(motionNames);
+export const defineBlocks = (Blockly, names = {}) => {
+    const ui = buildBlockUi(names);
     const definitions = [];
 
     // 帽子ブロック。下にだけつながる
@@ -299,6 +321,11 @@ export const createToolbox = () => {
                     {kind: "block", type: "avatar_change_expression_wait",
                      inputs: {VALUE: shadowNumber(0), SECONDS: shadowNumber(0.5)}},
                     {kind: "block", type: "avatar_look_at"},
+                    {kind: "block", type: "avatar_show_emote",
+                     inputs: {SECONDS: shadowNumber(2)}},
+                    {kind: "block", type: "avatar_show_emote_wait",
+                     inputs: {SECONDS: shadowNumber(2)}},
+                    {kind: "block", type: "avatar_clear_emote"},
                     {kind: "block", type: "avatar_play_sound",
                      inputs: {URL: shadowText("./mp3/konnichiwa.mp3")}},
                     {kind: "block", type: "avatar_play_sound_wait",
