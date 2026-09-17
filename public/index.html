@@ -343,16 +343,64 @@
       }
 
       /*
-        本番モードと編集モードの切り替え。押している間が編集モード。
-        本番モードでは灰色にして、いま触れない状態だと分かるようにする
+        会話モードと編集モードの切り替え。
+
+        トグルボタンだと、ラベルが「今の状態」なのか「押した結果」なのかが
+        判別できない。2 つ並べて片方を選ばせる形にすると、モードが 2 つある
+        ことも、今どちらなのかも、見ただけで分かる。
+
+        中身は本物のラジオボタン。矢印キーで切り替えられ、読み上げも
+        「2 つのうち 1 つ」と正しく伝わる
       */
-      #editor-mode {
+      #editor-modes {
+          display: flex;
+          flex: 0 0 auto;
+          gap: 2px;
+          padding: 2px;
+          border-radius: 999px;
           background: #e3e6f5;
-          color: var(--pop-ink);
       }
-      #editor-mode[aria-pressed="true"] {
-          background: var(--pop-yellow);
+      #editor-modes input {
+          /* 見た目はラベルが受け持つ。display:none にすると
+             キーボードで到達できなくなるので、隠さずに重ねる */
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          opacity: 0;
+          pointer-events: none;
+      }
+      #editor-modes label {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          padding: 6px 12px;
+          border-radius: 999px;
+          font-weight: 700;
+          white-space: nowrap;
           color: var(--pop-ink);
+          opacity: 0.55;
+          cursor: pointer;
+      }
+      #editor-modes label svg {
+          width: 1.15em;
+          height: 1.15em;
+      }
+      #editor-modes input:checked + label {
+          background: var(--pop-surface);
+          box-shadow: 0 1px 0 rgba(35, 36, 74, 0.18);
+          opacity: 1;
+      }
+      /* キーボードで移動してきたことが分かるようにする */
+      #editor-modes input:focus-visible + label {
+          outline: 2px solid var(--pop-blue);
+          outline-offset: 1px;
+      }
+      /* 狭い画面では文字を畳んでアイコンだけにする。
+         全画面表示のスマートフォンでは、文字を入れると操作列があふれる */
+      @media (max-width: 480px) {
+          #editor-modes label span {
+              display: none;
+          }
       }
 
       #blockly-area {
@@ -361,7 +409,7 @@
       }
 
       /*
-        本番モードではパレットを畳む。読み取り専用でも開けてしまい、
+        会話モードではパレットを畳む。読み取り専用でも開けてしまい、
         しかも何も作れないので、触った人が戸惑う
       */
       #block-editor:not(.is-editing) .blocklyToolbox {
@@ -564,10 +612,34 @@
         <p class="editor-title">アクション</p>
         <span id="editor-status"></span>
         <!--
-          本番モード（読み取り専用・会話でブロックが動く）と
-          編集モード（組み替えられる・クリックで試せる）の切り替え
+          会話モード（読み取り専用・音声認識が使える・会話でブロックが動く）と
+          編集モード（組み替えられる・クリックで試せる・音声認識は止まる）の切り替え。
+
+          アイコンは Lucide（ISC ライセンス）の mic と pencil を埋め込んだもの。
+          ローカルで動く雛形なので取りに行かせない。
+          マイクの絵が付いた側を離れると音声認識が止まる、と形で分かるようにしている
         -->
-        <button id="editor-mode" type="button" aria-pressed="false" hidden>本番モード</button>
+        <div id="editor-modes" role="radiogroup" aria-label="モード" hidden>
+          <input type="radio" name="editor-mode" id="editor-mode-talk" checked>
+          <label for="editor-mode-talk" title="会話モード：話しかけるとブロックが動きます">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 19v3"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <rect x="9" y="2" width="6" height="13" rx="3"/>
+            </svg><span>会話モード</span>
+          </label>
+
+          <input type="radio" name="editor-mode" id="editor-mode-edit">
+          <label for="editor-mode-edit" title="編集モード：組み替えられます。クリックで試せます">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321
+                       4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+              <path d="m15 5 4 4"/>
+            </svg><span>編集モード</span>
+          </label>
+        </div>
         <button id="editor-save" type="button">保存</button>
         <button id="editor-close" type="button">閉じる</button>
       </div>

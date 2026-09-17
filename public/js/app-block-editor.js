@@ -179,13 +179,22 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
     const root = document.querySelector("#block-editor");
     const area = root.querySelector("#blockly-area");
     const statusElement = root.querySelector("#editor-status");
-    const modeToggle = root.querySelector("#editor-mode");
+    const modeGroup = root.querySelector("#editor-modes");
+    const talkRadio = root.querySelector("#editor-mode-talk");
+    const editRadio = root.querySelector("#editor-mode-edit");
+
+    /** ラジオの選択を今のモードに合わせる。切り替えを断ったときにも戻す。 */
+    const showMode = (isEditing) => {
+        talkRadio.checked = ! isEditing;
+        editRadio.checked = isEditing;
+        root.classList.toggle("is-editing", isEditing);
+    };
 
     let workspace = null;
     let dirty = false;
     let resizeObserver = null;
 
-    // 編集モード（true）か本番モード（false）か。開いた直後は本番モードで、
+    // 編集モード（true）か会話モード（false）か。開いた直後は会話モードで、
     // ブロックを眺めながら実際の動きを確かめられる
     let editing = false;
 
@@ -284,7 +293,7 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
         setStatus("保存しました。すぐ試せます");
     };
 
-    //---------------------------------- 編集モードと本番モード
+    //---------------------------------- 編集モードと会話モード
 
     /**
      * ハイライト。実行中のブロック列の根元に印を付ける。
@@ -313,7 +322,7 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
         highlighted.clear();
     };
 
-    /** クリック実行が 1 つでも動いているか。本番モードへ移れるかの判定に使う。 */
+    /** クリック実行が 1 つでも動いているか。会話モードへ移れるかの判定に使う。 */
     const isTrialRunning = () => [...highlighted.keys()]
           .some((id) => trial.isRunning(trialKey(id)));
 
@@ -358,7 +367,7 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
     /**
      * モードを切り替える。
      *
-     * 本番モードでは Blockly を読み取り専用にする。これだけでブロックの移動も
+     * 会話モードでは Blockly を読み取り専用にする。これだけでブロックの移動も
      * 作成も止まり、しかもブロックのクリックが click イベントを出さなくなる
      * （targetType が "workspace" になる）ので、クリック実行も自動で無効になる。
      * ただしパレットは残ってしまうため、こちらで畳む
@@ -369,18 +378,21 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
         }
 
         if (! next) {
-            // 編集 → 本番。動かしたままにできない
+            // 編集 → 会話。動かしたままにできない
             if (isTrialRunning()) {
-                setStatus("試し実行を止めてから本番モードへ切り替えてください", true);
+                // 断ったので、ラジオの選択を今のモードへ戻す
+                showMode(editing);
+                setStatus("試し実行を止めてから会話モードへ切り替えてください", true);
                 return;
             }
-            // 画面のブロックと本番の動きが食い違わないようにする
+            // 画面のブロックと会話中の動きが食い違わないようにする
             if (dirty) {
                 if (window.confirm(
-                    "保存していない変更があります。保存して本番モードへ移りますか？\n"
-                        + "［キャンセル］を選ぶと変更を捨てて本番モードへ移ります。")) {
+                    "保存していない変更があります。保存して会話モードへ移りますか？\n"
+                        + "［キャンセル］を選ぶと変更を捨てて会話モードへ移ります。")) {
                     await save();
                     if (dirty) {
+                        showMode(editing);
                         return;   // 保存に失敗した
                     }
                 } else {
@@ -391,11 +403,9 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
 
         editing = next;
         workspace.setIsReadOnly(! editing);
-        root.classList.toggle("is-editing", editing);
-        modeToggle.setAttribute("aria-pressed", String(editing));
-        modeToggle.textContent = editing ? "編集モード" : "本番モード";
+        showMode(editing);
 
-        // 本番モードではパレットを畳む。読み取り専用でも開けてしまい、
+        // 会話モードではパレットを畳む。読み取り専用でも開けてしまい、
         // 何も作れないので触った人が戸惑う
         const toolbox = workspace.getToolbox();
         if (! editing) {
@@ -407,7 +417,7 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
 
         setStatus(editing
                   ? "編集モードです。ブロックをクリックすると試せます"
-                  : "本番モードです。会話でブロックが動きます");
+                  : "会話モードです。話しかけるとブロックが動きます");
     };
 
     //---------------------------------- 開閉
@@ -444,7 +454,7 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
             if (! event.isUiEvent) {
                 dirty = true;
             }
-            // 本番モードでは読み取り専用なので、そもそもここへ来ない
+            // 会話モードでは読み取り専用なので、そもそもここへ来ない
             if (event.type === Blockly.Events.CLICK && event.targetType === "block") {
                 onBlockClick(event.blockId);
             }
@@ -456,12 +466,11 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
 
         await loadProgram();
 
-        // 開いた直後は本番モード。editing は false から始まるので、
+        // 開いた直後は会話モード。editing は false から始まるので、
         // 読み取り専用と表示をここで合わせておく
         workspace.setIsReadOnly(true);
-        modeToggle.setAttribute("aria-pressed", "false");
-        modeToggle.textContent = "本番モード";
-        modeToggle.hidden = false;
+        showMode(false);
+        modeGroup.hidden = false;
     };
 
     const open = async () => {
@@ -488,14 +497,12 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
         if (dirty && ! window.confirm("保存していない変更があります。閉じますか？")) {
             return;
         }
-        // 閉じる＝本番モードへ戻る。試し実行を残したまま画面から消さない
+        // 閉じる＝会話モードへ戻る。試し実行を残したまま画面から消さない
         stopAllTrials();
         if (editing && workspace) {
             editing = false;
             workspace.setIsReadOnly(true);
-            root.classList.remove("is-editing");
-            modeToggle.setAttribute("aria-pressed", "false");
-            modeToggle.textContent = "本番モード";
+            showMode(false);
             workspace.getToolbox()?.clearSelection();
             trial.setEditing(false);
         }
@@ -507,7 +514,10 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
 
     root.querySelector("#editor-save").addEventListener("click", save);
     root.querySelector("#editor-close").addEventListener("click", close);
-    modeToggle.addEventListener("click", () => setEditing(! editing));
+    // ラジオは選ばれた時点で見た目が変わる。切り替えを断る場合は
+    // setEditing() の中で showMode() を呼んで選択を戻す
+    talkRadio.addEventListener("change", () => setEditing(false));
+    editRadio.addEventListener("change", () => setEditing(true));
     setupSplitter();
 
     window.addEventListener("resize", () => {
