@@ -209,15 +209,33 @@ document.addEventListener('DOMContentLoaded', function() {
         createApi: (signal) => createAvatarApi({
             avatar, emote, chatFlow, speechSynthesizer, conversation, signal
         }),
-        // 応答のアクションが終わったら入力待ちへ戻す
+        // アクションが終わったら入力待ちへ移す。
+        //
+        // ready をここに入れているのは、あいさつを喋り終えてから待機の仕草を
+        // 始めるため。イベントを出した時点で待機へ入れると、アクションは
+        // async なので最初の await で制御が戻り、喋っている最中に待機の
+        // 仕草が動き出してモーションがぶつかる
         onSettled: (type) => {
-            if (type === "listenend") {
+            if (type === "listenend" || type === "ready") {
                 conversation.enterIdle();
             }
         }
     });
 
     const actionsRegistered = registerActions(runner, avatarActions);
+
+    /**
+     * 会話を始める（始め直す）。
+     *
+     * 待機へ入るのは「準備ができたとき」のアクションが終わってからなので、
+     * そのアクションが登録されていないと誰も待機へ移してくれない。
+     * その場合は ready を飛ばして直接待機へ入る
+     *
+     * @param {boolean} [fireReady] 「準備ができたとき」から動かすか
+     */
+    const startConversation = (fireReady = true) => {
+        conversation.restart(fireReady && runner.types.includes("ready"));
+    };
 
     //----------------------------------
     // ブロック編集画面
@@ -276,7 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 「準備ができたとき」を出すかは設定で切れるが、待機へ
                     // 入り直すほうは常に行う。編集中に中断したままだと
                     // 「待機に入ったとき」が二度と動かないため
-                    conversation.restart(settings.replayOnTalk);
+                    startConversation(settings.replayOnTalk);
                 }
             }
         }
@@ -396,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // アクションの登録を待ってから ready を出す。
         // そうしないと最初のイベントを取りこぼす
         .then(() => actionsRegistered)
-        .then(() => conversation.markReady())
+        .then(() => startConversation())
         .catch((error) => console.warn(error));
 });
 
