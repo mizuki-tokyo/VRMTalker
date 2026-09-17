@@ -433,6 +433,14 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
         });
 
         workspace.addChangeListener((event) => {
+            // 読み込みが済んだ合図。Blockly はイベントを非同期に配るので、
+            // 定義を読み込んだ直後の create などは loadProgram() が
+            // dirty を戻した「あと」に届く。放っておくと、何も編集して
+            // いないのに未保存の扱いになる
+            if (event.type === Blockly.Events.FINISHED_LOADING) {
+                dirty = false;
+                return;
+            }
             if (! event.isUiEvent) {
                 dirty = true;
             }
