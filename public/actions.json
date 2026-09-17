@@ -265,6 +265,46 @@
             }
           }
         }
+      },
+      {
+        "type": "avatar_set_expression",
+        "id": "C%HKu.|d%?8@alEgx3V{",
+        "x": 601,
+        "y": 357,
+        "fields": {
+          "NAME": "angry"
+        },
+        "inputs": {
+          "VALUE": {
+            "shadow": {
+              "type": "math_number",
+              "id": "6,@c1qx-8/2:1BVoa5iv",
+              "fields": {
+                "NUM": 0
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "avatar_show_emote",
+        "id": "[b5WNM4LW%o#eN[ZTffo",
+        "x": 591,
+        "y": 472,
+        "fields": {
+          "NAME": "ワイワイ"
+        },
+        "inputs": {
+          "SECONDS": {
+            "shadow": {
+              "type": "math_number",
+              "id": "V|f+1v5lZiEh(a|2X+*t",
+              "fields": {
+                "NUM": 2
+              }
+            }
+          }
+        }
       }
     ]
   },
