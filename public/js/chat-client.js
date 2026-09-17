@@ -15,6 +15,39 @@ const sanitize = (text) => {
     return text.replace(SPECIAL_TOKEN_PATTERN, "").trim();
 };
 
+/**
+ * サーバが返したエラーの説明を、そのまま見せられる文字列にする。
+ *
+ * FastAPI の入力検証は detail を配列で返すため、そのまま Error へ渡すと
+ * message が "[object Object]" になり、何が悪かったのか分からなくなる。
+ *
+ *   [{"loc": ["body", "text"], "msg": "String should have at least 1 character"}]
+ *     -> "text: String should have at least 1 character"
+ *
+ * @returns {string} 説明を作れないときは空文字
+ */
+const describeDetail = (detail) => {
+    if (! detail) {
+        return "";
+    }
+    if (typeof detail === "string") {
+        return detail;
+    }
+    const items = Array.isArray(detail) ? detail : [detail];
+    return items.map((item) => {
+        if (typeof item === "string") {
+            return item;
+        }
+        // loc は ["body", "text"] のような場所。先頭の body / query は省く
+        const where = Array.isArray(item?.loc)
+              ? item.loc.filter((part) => !["body", "query", "path"].includes(part)).join(".")
+              : "";
+        const message = item?.msg ?? item?.message ?? JSON.stringify(item);
+        return where ? `${where}: ${message}` : String(message);
+    }).filter(Boolean).join(" / ");
+};
+
+
 class ChatClient {
 
     _endpoint = "/api/chat";
@@ -61,8 +94,9 @@ class ChatClient {
         });
 
         if (! response.ok) {
-            const detail = await response.json().catch(() => null);
-            throw new Error(detail?.detail || `応答の生成に失敗しました (${response.status})`);
+            const body = await response.json().catch(() => null);
+            throw new Error(describeDetail(body?.detail)
+                            || `応答の生成に失敗しました (${response.status})`);
         }
 
         const reader = response.body.getReader();
