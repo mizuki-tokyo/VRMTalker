@@ -256,6 +256,15 @@ const setupSettings = ({
     applyPersona();
 
     //----------------------------------
+    // 会話モードへ戻ったときの動き
+    //
+    // 組んだ結果をすぐ見られるよう既定は入り。何度も往復して組む人は、
+    // あいさつの繰り返しを切れる
+    //----------------------------------
+    const replayCheckbox = document.querySelector("#replay-on-talk");
+    replayCheckbox.checked = storedSettings?.replayOnTalk ?? true;
+
+    //----------------------------------
     // 設定の保存 / 破棄
     //----------------------------------
     const saveButton = document.querySelector("#save-settings");
@@ -280,7 +289,8 @@ const setupSettings = ({
             persona: {
                 name: characterNameInput.value.trim(),
                 profile: characterProfileInput.value.trim()
-            }
+            },
+            replayOnTalk: replayCheckbox.checked
         };
         try {
             localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -312,9 +322,21 @@ const setupSettings = ({
         characterProfileInput.value = "";
         applyPersona();
 
+        replayCheckbox.checked = true;
+
         // 会話履歴には元の性格での応答が残る。消すかどうかは利用者に任せる
         flashDone(resetButton);
     });
+
+    return {
+        /**
+         * 会話モードへ戻ったときに「準備ができたとき」から動かすか。
+         * 保存を押していなくても、チェックした時点の指定が使われる
+         */
+        get replayOnTalk() {
+            return replayCheckbox.checked;
+        }
+    };
 };
 
 export default setupSettings;

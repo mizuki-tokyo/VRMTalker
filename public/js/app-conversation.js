@@ -88,7 +88,27 @@ class Conversation extends EventTarget {
 
     /** 準備が整ったことを知らせる。モデルの読み込み後に呼ぶ。 */
     markReady() {
-        this._emit("ready");
+        this.restart();
+    }
+
+    /**
+     * 会話を最初から始め直す。
+     *
+     * ブロックの編集から戻ったときに呼ぶ。編集中は会話を止めているので、
+     * 待機に入り直さないと「待機に入ったとき」のブロックが二度と動かない。
+     * enterIdle() は二重発火を防ぐため入力待ちのままだと素通りするので、
+     * ここで解いてから呼ぶ。
+     *
+     * あいさつを繰り返したくない人のために ready は省ける。待機のほうは
+     * 好みではなく必要な処理なので、常に出す
+     *
+     * @param {boolean} [fireReady] 「準備ができたとき」も動かすか
+     */
+    restart(fireReady = true) {
+        this._idle = false;
+        if (fireReady) {
+            this._emit("ready");
+        }
         this.enterIdle();
     }
 

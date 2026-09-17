@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
     //----------------------------------
     const creditElement = document.querySelector("#credit");
 
-    setupSettings({
+    const settings = setupSettings({
         avatar, world, chatFlow, chatClient, speechSynthesizer,
         // VOICEVOX の利用規約により、実際に使用したキャラクターのクレジット表記が必要。
         // 設定ウインドウではなく常時表示なので、ここで面倒を見る
@@ -270,9 +270,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (editing) {
                     avatar.stopSpeaking();
                 } else {
-                    // 本番へ戻すときに入力待ちへ入れ直す。編集中に中断した
-                    // ぶん、会話の状態が宙に浮いたままになっている
-                    conversation.enterIdle();
+                    // 会話モードへ戻る＝プログラムが動き始める瞬間、と捉えて
+                    // 最初から動かす。組んだ結果をその場で見られる。
+                    //
+                    // 「準備ができたとき」を出すかは設定で切れるが、待機へ
+                    // 入り直すほうは常に行う。編集中に中断したままだと
+                    // 「待機に入ったとき」が二度と動かないため
+                    conversation.restart(settings.replayOnTalk);
                 }
             }
         }

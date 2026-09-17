@@ -480,6 +480,23 @@
           font-weight: 800;
           opacity: 0.6;
       }
+      /* チェックボックスの項目。押せる範囲をラベル全体に広げる */
+      .settings-check {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 10px;
+          line-height: 1.4;
+          cursor: pointer;
+      }
+      .settings-check input {
+          flex: 0 0 auto;
+          width: 18px;
+          height: 18px;
+          accent-color: var(--pop-blue);
+          cursor: pointer;
+      }
+
       .settings-section color-picker {
           display: block;
           margin-bottom: 10px;
@@ -784,6 +801,16 @@
           <p class="settings-heading">アクション</p>
           <button id="open-editor" type="button">ブロックで編集する</button>
           <p class="settings-note">画面が左右に分かれます。PC / タブレット推奨</p>
+
+          <!--
+            会話モードへ戻ったときに「準備ができたとき」から動かすか。
+            組んだ結果をすぐ見られるので既定は入り。
+            何度も往復して組む人は、あいさつの繰り返しを切れる
+          -->
+          <label class="settings-check">
+            <input type="checkbox" id="replay-on-talk" checked>
+            会話モードに戻ったら最初から実行する
+          </label>
         </div>
         </settings-panel>
       </div><!-- #controls-panel -->
