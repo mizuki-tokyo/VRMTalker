@@ -450,9 +450,9 @@ const createActionProgram = (json) => {
     for (const hat of json?.blocks?.blocks ?? []) {
         const eventType = EVENT_BLOCKS[hat?.type];
         if (! eventType) {
-            if (hat?.type) {
-                warnOnce(`イベントではないブロックが置かれています: ${hat.type}`);
-            }
+            // 帽子につながっていないブロックは、編集画面でクリックして
+            // 単体で試すためのもの。置いてあるのが普通なので何も言わない
+            // （イベント実行では動かないだけ）
             continue;
         }
         if (handlers[eventType]) {
