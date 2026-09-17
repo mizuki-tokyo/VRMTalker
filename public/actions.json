@@ -9,40 +9,46 @@
         "y": 12,
         "next": {
           "block": {
-            "type": "avatar_speak_and_wait",
-            "id": "oSneW(7X:$p6K~Rzz5j`",
-            "inputs": {
-              "TEXT": {
-                "block": {
-                  "type": "operator_join",
-                  "id": "L)CB1q}qg)DUT{/qHh2l",
-                  "inputs": {
-                    "STRING1": {
-                      "shadow": {
-                        "type": "text",
-                        "id": "eAE9d`_bpX%%g?V.vJ^h",
-                        "fields": {
-                          "TEXT": "こんにちは。わたしは"
-                        }
-                      }
-                    },
-                    "STRING2": {
-                      "block": {
-                        "type": "operator_join",
-                        "id": "Zq4!]t2bWmE{v0^xH:sF",
-                        "inputs": {
-                          "STRING1": {
-                            "block": {
-                              "type": "value_character_name",
-                              "id": "VgKn[5VDKbc(9?)1Ut_0"
+            "type": "screen_clear_bubbles",
+            "id": "FuQvT8hh9`S29!!/(8La",
+            "next": {
+              "block": {
+                "type": "avatar_speak_and_wait",
+                "id": "oSneW(7X:$p6K~Rzz5j`",
+                "inputs": {
+                  "TEXT": {
+                    "block": {
+                      "type": "operator_join",
+                      "id": "L)CB1q}qg)DUT{/qHh2l",
+                      "inputs": {
+                        "STRING1": {
+                          "shadow": {
+                            "type": "text",
+                            "id": "eAE9d`_bpX%%g?V.vJ^h",
+                            "fields": {
+                              "TEXT": "こんにちは。わたしは"
                             }
-                          },
-                          "STRING2": {
-                            "shadow": {
-                              "type": "text",
-                              "id": "r~UXzR!y=T%IjfhQz`86",
-                              "fields": {
-                                "TEXT": "です。"
+                          }
+                        },
+                        "STRING2": {
+                          "block": {
+                            "type": "operator_join",
+                            "id": "Zq4!]t2bWmE{v0^xH:sF",
+                            "inputs": {
+                              "STRING1": {
+                                "block": {
+                                  "type": "value_character_name",
+                                  "id": "VgKn[5VDKbc(9?)1Ut_0"
+                                }
+                              },
+                              "STRING2": {
+                                "shadow": {
+                                  "type": "text",
+                                  "id": "r~UXzR!y=T%IjfhQz`86",
+                                  "fields": {
+                                    "TEXT": "です。"
+                                  }
+                                }
                               }
                             }
                           }
@@ -50,23 +56,23 @@
                       }
                     }
                   }
-                }
-              }
-            },
-            "next": {
-              "block": {
-                "type": "screen_show_bubble",
-                "id": "r77GW|E.lcyrQ5aUMKh5",
-                "fields": {
-                  "WHO": "キャラクタ"
                 },
-                "inputs": {
-                  "TEXT": {
-                    "shadow": {
-                      "type": "text",
-                      "id": "]yCl(?I8_#w%{sD(xtzE",
-                      "fields": {
-                        "TEXT": "マイクのボタンを押して話しかけてください。"
+                "next": {
+                  "block": {
+                    "type": "screen_show_bubble",
+                    "id": "r77GW|E.lcyrQ5aUMKh5",
+                    "fields": {
+                      "WHO": "キャラクタ"
+                    },
+                    "inputs": {
+                      "TEXT": {
+                        "shadow": {
+                          "type": "text",
+                          "id": "]yCl(?I8_#w%{sD(xtzE",
+                          "fields": {
+                            "TEXT": "マイクのボタンを押して話しかけてください。"
+                          }
+                        }
                       }
                     }
                   }
@@ -79,8 +85,8 @@
       {
         "type": "event_listenend",
         "id": "v0V*R-XEDswb(?_Y9d4E",
-        "x": 17,
-        "y": 233,
+        "x": 14,
+        "y": 278,
         "next": {
           "block": {
             "type": "screen_show_bubble",
@@ -229,8 +235,8 @@
       {
         "type": "event_error",
         "id": "R?FQe5?h{vaNOw:rw;l[",
-        "x": 16,
-        "y": 718,
+        "x": 18,
+        "y": 787,
         "next": {
           "block": {
             "type": "screen_show_bubble",
@@ -267,40 +273,98 @@
         }
       },
       {
-        "type": "avatar_set_expression",
-        "id": "C%HKu.|d%?8@alEgx3V{",
-        "x": 601,
-        "y": 357,
-        "fields": {
-          "NAME": "angry"
-        },
-        "inputs": {
-          "VALUE": {
-            "shadow": {
-              "type": "math_number",
-              "id": "6,@c1qx-8/2:1BVoa5iv",
-              "fields": {
-                "NUM": 0
+        "type": "event_idle",
+        "id": "r{,8`DN)6NoF9Yf$H1JO",
+        "x": 567,
+        "y": 275,
+        "next": {
+          "block": {
+            "type": "control_wait",
+            "id": "XLU]LSEFhsuS=VfhcLCR",
+            "inputs": {
+              "SECONDS": {
+                "shadow": {
+                  "type": "math_number",
+                  "id": "[X_L?{Y`o`h!;{YayfE*",
+                  "fields": {
+                    "NUM": 1
+                  }
+                }
               }
-            }
-          }
-        }
-      },
-      {
-        "type": "avatar_show_emote",
-        "id": "[b5WNM4LW%o#eN[ZTffo",
-        "x": 591,
-        "y": 472,
-        "fields": {
-          "NAME": "ワイワイ"
-        },
-        "inputs": {
-          "SECONDS": {
-            "shadow": {
-              "type": "math_number",
-              "id": "V|f+1v5lZiEh(a|2X+*t",
-              "fields": {
-                "NUM": 2
+            },
+            "next": {
+              "block": {
+                "type": "avatar_change_expression_wait",
+                "id": "g]lGo=X4hz/?p_y~miA6",
+                "fields": {
+                  "NAME": "happy"
+                },
+                "inputs": {
+                  "VALUE": {
+                    "shadow": {
+                      "type": "math_number",
+                      "id": "/=afm/`Mi{3=`=D9xGZ{",
+                      "fields": {
+                        "NUM": 1
+                      }
+                    }
+                  },
+                  "SECONDS": {
+                    "shadow": {
+                      "type": "math_number",
+                      "id": "LE-m7B|t^Kr#LV!Lt*Jj",
+                      "fields": {
+                        "NUM": 0.5
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "control_wait",
+                    "id": "/|z4W5v6|SambU$u%~B!",
+                    "inputs": {
+                      "SECONDS": {
+                        "shadow": {
+                          "type": "math_number",
+                          "id": "8pje4@yj}Gcua^z|~LKe",
+                          "fields": {
+                            "NUM": 1
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "block": {
+                        "type": "avatar_change_expression_wait",
+                        "id": ":]cn~~rP5W0i}TRl1%`#",
+                        "fields": {
+                          "NAME": "happy"
+                        },
+                        "inputs": {
+                          "VALUE": {
+                            "shadow": {
+                              "type": "math_number",
+                              "id": "by=`LK3+z-)t+w|my8M%",
+                              "fields": {
+                                "NUM": 0
+                              }
+                            }
+                          },
+                          "SECONDS": {
+                            "shadow": {
+                              "type": "math_number",
+                              "id": "$c9^@@;j^Cod;#kb-^SX",
+                              "fields": {
+                                "NUM": 0.5
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
