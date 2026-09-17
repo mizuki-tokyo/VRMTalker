@@ -348,9 +348,23 @@
           transform: translateY(2px);
           box-shadow: 0 2px 0 rgba(35, 36, 74, 0.18);
       }
+      /*
+        閉じるは ✕ だけにして場所を空ける。
+        文字が無いぶん詰まりやすいので、指で押せる大きさは確保する
+      */
       #editor-close {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 38px;
+          height: 38px;
+          padding: 0;
           background: #e3e6f5;
           color: var(--pop-ink);
+      }
+      #editor-close svg {
+          width: 20px;
+          height: 20px;
       }
 
       /*
@@ -652,7 +666,18 @@
           </label>
         </div>
         <button id="editor-save" type="button">保存</button>
-        <button id="editor-close" type="button">閉じる</button>
+        <!--
+          ✕ は閉じる意味が通じるので、場所を空けるため文字を置かない。
+          見た目から消えるぶん、読み上げ用のラベルは aria-label に残す。
+          アイコンは Lucide（ISC ライセンス）の x
+        -->
+        <button id="editor-close" type="button" aria-label="閉じる" title="閉じる">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
       </div>
       <div id="blockly-area"></div>
       <div id="editor-splitter" title="ドラッグして幅を変える"></div>
