@@ -31,6 +31,11 @@ const createActionRunner = ({conversation, createApi, onSettled = () => {}}) => 
     // イベント名 -> 今のアクション。編集画面で保存すると差し替わる
     const handlers = new Map();
 
+    // 編集中はイベントでアクションを動かさない。単発実行（runOnce）は別で、
+    // 止めない。abortAll() は実行中のものを中断するだけなので、それだけでは
+    // 「編集中に会話のアクションが割り込む」のを防げない
+    let paused = false;
+
     const abort = (type) => {
         const controller = running.get(type);
         if (controller) {
@@ -80,6 +85,9 @@ const createActionRunner = ({conversation, createApi, onSettled = () => {}}) => 
 
             if (isFirst) {
                 conversation.addEventListener(type, (event) => {
+                    if (paused) {
+                        return;
+                    }
                     // 登録し直されている場合があるので、そのつど引き直す
                     const current = handlers.get(type);
                     if (current) {
@@ -87,6 +95,21 @@ const createActionRunner = ({conversation, createApi, onSettled = () => {}}) => 
                     }
                 });
             }
+        },
+
+        /**
+         * イベントでアクションを動かすのを止める／再開する。
+         *
+         * 編集中に会話のアクションが割り込むのを防ぐ。これから起きるイベントを
+         * 無視するだけなので、動いているものを止めたければ abortAll() を呼ぶ。
+         * 単発実行（runOnce）はこの指定を見ない
+         */
+        setPaused(value) {
+            paused = Boolean(value);
+        },
+
+        get isPaused() {
+            return paused;
         },
 
         /** 登録を消す。差し替え後に消えたイベントを残さないために使う。 */

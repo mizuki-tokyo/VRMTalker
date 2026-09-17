@@ -7,7 +7,7 @@ import Conversation from "./app-conversation.js";
 
 // 会話の節目でアバターが何をするか
 import loadMotions from "./app-motions.js";
-import createAvatarApi from "./app-avatar-api.js";
+import createAvatarApi, {ActionStopped} from "./app-avatar-api.js";
 import createActionRunner from "./app-action-runner.js";
 import createActionProgram from "./app-action-program.js";
 import createBlockEditor from "./app-block-editor.js";
@@ -72,6 +72,46 @@ avatar.addEventListener("error", (event) => {
 
 /** ビジュアルプログラミングで組んだアクション定義。 */
 const ACTIONS_URL = "./actions.json";
+
+/**
+ * 試し実行のときだけ api にかぶせるもの。
+ *
+ * 「ユーザの発話」は、会話モードなら音声認識の結果が入っている。けれども
+ * 編集中はマイクを止めているので空のままで、そのまま動かしても何も起きない
+ * ように見えてしまう。試すときはその場で入力してもらう。
+ *
+ * 訊くのは 1 回だけ。同じ実行の中で「ユーザの発話」が何度出てきても、
+ * 最初に入れた文字を使い回す（今の listenend は吹き出しと返事の 2 か所で
+ * 使っているので、毎回訊くと煩わしい）。
+ *
+ * 取り消したらその実行ごと中断する。空のまま進めても結果が読めないため
+ */
+const createTrialApi = (api) => {
+    let answer = null;
+
+    const trialApi = Object.create(api);
+
+    trialApi.userText = async () => {
+        if (answer === null) {
+            const input = await dialog.prompt(
+                "ユーザが話しかけた言葉として使う文字を入れてください。", {
+                    title: "ユーザの発話",
+                    defaultValue: api.userText(),
+                    placeholder: "こんにちは",
+                    okText: "これで試す"
+                });
+            if (input === null) {
+                throw new ActionStopped();
+            }
+            answer = input;
+        }
+        // 訊いている間に止められていないかを確かめる
+        await api.tick();
+        return answer;
+    };
+
+    return trialApi;
+};
 
 /**
  * アクションを登録する。
@@ -204,9 +244,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // 仕組みはここにあるので、必要な操作だけを渡す
         //----------------------------------
         trial: {
-            run: (key, action) => runner.runOnce(key, action),
+            run: (key, action) => runner.runOnce(key, (api) => action(createTrialApi(api))),
             isRunning: (key) => runner.isRunning(key),
-            stop: (key) => runner.abort(key),
+            stop: (key) => {
+                runner.abort(key);
+                // 発話を訊くダイアログが開いたままなら閉じる。
+                // 中断したのに問いだけ残ると、何も起きていないように見える
+                dialog.dismiss();
+            },
 
             /**
              * 編集モードに入る／出る。
@@ -217,6 +262,9 @@ document.addEventListener('DOMContentLoaded', function() {
              * 壊れたように見えるため
              */
             setEditing: (editing) => {
+                // これから起きるイベントを無視する。abortAll だけでは
+                // 「編集中に発生したイベント」を止められない
+                runner.setPaused(editing);
                 runner.abortAll();
                 speechRecognitionElement.disabled = editing;
                 if (editing) {
