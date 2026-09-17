@@ -15,6 +15,7 @@
 
 import {defineBlocks, createToolbox} from "./app-blocks.js";
 import {createStackAction} from "./app-action-program.js";
+import dialog from "./web-ui/dialog.js";
 
 const BLOCKLY_VERSION = "13.2.1";
 const BLOCKLY_SCRIPTS = [
@@ -387,9 +388,14 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
             }
             // 画面のブロックと会話中の動きが食い違わないようにする
             if (dirty) {
-                if (window.confirm(
-                    "保存していない変更があります。保存して会話モードへ移りますか？\n"
-                        + "［キャンセル］を選ぶと変更を捨てて会話モードへ移ります。")) {
+                const willSave = await dialog.confirm(
+                    "保存していない変更があります。\n"
+                        + "保存してから会話モードへ移りますか？", {
+                            title: "保存していない変更があります",
+                            okText: "保存して移る",
+                            cancelText: "変更を捨てる"
+                        });
+                if (willSave) {
                     await save();
                     if (dirty) {
                         showMode(editing);
@@ -494,7 +500,11 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
     };
 
     const close = async () => {
-        if (dirty && ! window.confirm("保存していない変更があります。閉じますか？")) {
+        if (dirty && ! await dialog.confirm("保存していない変更があります。閉じますか？", {
+            title: "保存していない変更があります",
+            okText: "閉じる",
+            cancelText: "やめる"
+        })) {
             return;
         }
         // 閉じる＝会話モードへ戻る。試し実行を残したまま画面から消さない

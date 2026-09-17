@@ -17,6 +17,8 @@
  * 設定ウインドウではなく常時表示の要素なので、app.js 側に残してある。
  */
 
+import dialog from "./web-ui/dialog.js";
+
 // localStorage のキー
 const SETTINGS_KEY = "vrmtalker.settings";
 
@@ -286,7 +288,7 @@ const setupSettings = ({
         } catch (error) {
             // 容量超過やプライベートモードなど。保存できなくても動作は続ける
             console.warn("設定を保存できませんでした", error);
-            window.alert("設定を保存できませんでした。");
+            dialog.alert("設定を保存できませんでした。", {title: "保存に失敗しました"});
         }
     });
 

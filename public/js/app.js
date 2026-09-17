@@ -16,6 +16,9 @@ import avatarActions from "./app-avatar-actions.js";
 // 設定ウインドウ（話者・カメラの寄り・吹き出しの色・キャラクタ像）
 import setupSettings from "./app-settings.js";
 
+// 標準の alert / confirm / prompt の代わり。見た目を画面と揃える
+import dialog from "./web-ui/dialog.js";
+
 // 画面部品。読み込むだけでカスタム要素として登録される
 import "./web-ui/chat-bubble-element.js";
 import "./web-ui/chat-flow-element.js";
@@ -63,7 +66,7 @@ avatar.addEventListener("progress", (event) => {
 });
 
 avatar.addEventListener("error", (event) => {
-    window.alert(event.detail.error);
+    dialog.alert(String(event.detail.error), {title: "モデルを読み込めませんでした"});
 });
 
 

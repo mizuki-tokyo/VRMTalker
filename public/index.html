@@ -32,6 +32,17 @@
           --ui-font:        clamp(12px, 2.4vw, 15px);
           --ui-radius:      18px;
 
+          /*
+            ダイアログ（web-ui/dialog.js）の色。あちらはプロジェクトに
+            依存しないので、この対応付けだけをここに書く。
+            カスタムプロパティの継承はシャドウ境界を越えるので中まで届く
+          */
+          --dialog-surface:  var(--pop-surface);
+          --dialog-ink:      var(--pop-ink);
+          --dialog-accent:   var(--pop-blue);
+          --dialog-backdrop: rgba(35, 36, 74, 0.45);
+          --dialog-radius:   var(--ui-radius);
+
           /* 画面端の余白（iPhone のノッチ等） */
           --safe-bottom: env(safe-area-inset-bottom, 0px);
           --safe-top:    env(safe-area-inset-top, 0px);
