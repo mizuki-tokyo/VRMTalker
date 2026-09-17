@@ -14,6 +14,7 @@
  */
 
 import {defineBlocks, createToolbox} from "./app-blocks.js";
+import {createStackAction} from "./app-action-program.js";
 
 const BLOCKLY_VERSION = "13.2.1";
 const BLOCKLY_SCRIPTS = [
@@ -166,16 +167,30 @@ const registerRenderer = (Blockly) => {
  * @param {() => {motionNames: string[], emoteNames: string[]}} deps.getNames
  *        ドロップダウンに出す名前。編集画面を開いた時点で読み直す
  * @param {(program: object) => Promise<void>} deps.onSave 保存できたとき
+ * @param {object} deps.trial ブロックを試しに動かすための手立て（app.js が渡す）
+ * @param {(key: string, action: (api) => Promise<void>) => Promise<void>} deps.trial.run
+ * @param {(key: string) => boolean} deps.trial.isRunning
+ * @param {(key: string) => void} deps.trial.stop
+ * @param {(editing: boolean) => void} deps.trial.setEditing
+ *        編集モードへ入る／出るとき。イベント実行の停止と再開は app.js 側が行う
  */
-const createBlockEditor = ({actionsUrl, getNames, onSave}) => {
+const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
 
     const root = document.querySelector("#block-editor");
     const area = root.querySelector("#blockly-area");
     const statusElement = root.querySelector("#editor-status");
+    const modeToggle = root.querySelector("#editor-mode");
 
     let workspace = null;
     let dirty = false;
     let resizeObserver = null;
+
+    // 編集モード（true）か本番モード（false）か。開いた直後は本番モードで、
+    // ブロックを眺めながら実際の動きを確かめられる
+    let editing = false;
+
+    /** クリック実行の実行キー。ワークスペースをまたがないよう接頭辞を付ける */
+    const trialKey = (blockId) => `trial:${blockId}`;
 
     const isFullscreen = () => window.innerWidth <= FULLSCREEN_MAX_WIDTH;
 
@@ -269,6 +284,132 @@ const createBlockEditor = ({actionsUrl, getNames, onSave}) => {
         setStatus("保存しました。すぐ試せます");
     };
 
+    //---------------------------------- 編集モードと本番モード
+
+    /**
+     * ハイライト。実行中のブロック列の根元に印を付ける。
+     *
+     * 消すときにブロックが既に削除されていることがあるので、都度たどり直さず
+     * SVG を覚えておく
+     */
+    const highlighted = new Map();
+
+    const setHighlight = (block, on) => {
+        const key = block.id;
+        if (on) {
+            const svg = block.getSvgRoot();
+            svg.classList.add("is-running");
+            highlighted.set(key, svg);
+        } else {
+            highlighted.get(key)?.classList.remove("is-running");
+            highlighted.delete(key);
+        }
+    };
+
+    const clearHighlights = () => {
+        for (const svg of highlighted.values()) {
+            svg.classList.remove("is-running");
+        }
+        highlighted.clear();
+    };
+
+    /** クリック実行が 1 つでも動いているか。本番モードへ移れるかの判定に使う。 */
+    const isTrialRunning = () => [...highlighted.keys()]
+          .some((id) => trial.isRunning(trialKey(id)));
+
+    const stopAllTrials = () => {
+        for (const id of [...highlighted.keys()]) {
+            trial.stop(trialKey(id));
+        }
+        clearHighlights();
+    };
+
+    /**
+     * ブロックをクリックしたとき。
+     *
+     * クリックされたブロックが属する列を根元からたどり、動いていなければ
+     * 始め、動いていれば止める（Scratch と同じ）
+     */
+    const onBlockClick = async (blockId) => {
+        const block = workspace.getBlockById(blockId);
+        if (! block) {
+            return;
+        }
+        const root = block.getRootBlock();
+        const key = trialKey(root.id);
+
+        if (trial.isRunning(key)) {
+            trial.stop(key);
+            return;
+        }
+
+        setHighlight(root, true);
+        setStatus("試しに動かしています…");
+        try {
+            await trial.run(key, createStackAction(root));
+        } finally {
+            setHighlight(root, false);
+            if (! isTrialRunning()) {
+                setStatus("編集モードです。ブロックをクリックすると試せます");
+            }
+        }
+    };
+
+    /**
+     * モードを切り替える。
+     *
+     * 本番モードでは Blockly を読み取り専用にする。これだけでブロックの移動も
+     * 作成も止まり、しかもブロックのクリックが click イベントを出さなくなる
+     * （targetType が "workspace" になる）ので、クリック実行も自動で無効になる。
+     * ただしパレットは残ってしまうため、こちらで畳む
+     */
+    const setEditing = async (next) => {
+        if (! workspace || next === editing) {
+            return;
+        }
+
+        if (! next) {
+            // 編集 → 本番。動かしたままにできない
+            if (isTrialRunning()) {
+                setStatus("試し実行を止めてから本番モードへ切り替えてください", true);
+                return;
+            }
+            // 画面のブロックと本番の動きが食い違わないようにする
+            if (dirty) {
+                if (window.confirm(
+                    "保存していない変更があります。保存して本番モードへ移りますか？\n"
+                        + "［キャンセル］を選ぶと変更を捨てて本番モードへ移ります。")) {
+                    await save();
+                    if (dirty) {
+                        return;   // 保存に失敗した
+                    }
+                } else {
+                    await loadProgram();   // 保存済みの内容に戻す
+                }
+            }
+        }
+
+        editing = next;
+        workspace.setIsReadOnly(! editing);
+        root.classList.toggle("is-editing", editing);
+        modeToggle.setAttribute("aria-pressed", String(editing));
+        modeToggle.textContent = editing ? "編集モード" : "本番モード";
+
+        // 本番モードではパレットを畳む。読み取り専用でも開けてしまい、
+        // 何も作れないので触った人が戸惑う
+        const toolbox = workspace.getToolbox();
+        if (! editing) {
+            toolbox?.clearSelection();
+        }
+
+        trial.setEditing(editing);
+        Blockly.svgResize(workspace);
+
+        setStatus(editing
+                  ? "編集モードです。ブロックをクリックすると試せます"
+                  : "本番モードです。会話でブロックが動きます");
+    };
+
     //---------------------------------- 開閉
 
     const build = async () => {
@@ -295,6 +436,10 @@ const createBlockEditor = ({actionsUrl, getNames, onSave}) => {
             if (! event.isUiEvent) {
                 dirty = true;
             }
+            // 本番モードでは読み取り専用なので、そもそもここへ来ない
+            if (event.type === Blockly.Events.CLICK && event.targetType === "block") {
+                onBlockClick(event.blockId);
+            }
         });
 
         // 幅が変わるたびに呼ばないと Blockly の描画が崩れる
@@ -302,6 +447,13 @@ const createBlockEditor = ({actionsUrl, getNames, onSave}) => {
         resizeObserver.observe(area);
 
         await loadProgram();
+
+        // 開いた直後は本番モード。editing は false から始まるので、
+        // 読み取り専用と表示をここで合わせておく
+        workspace.setIsReadOnly(true);
+        modeToggle.setAttribute("aria-pressed", "false");
+        modeToggle.textContent = "本番モード";
+        modeToggle.hidden = false;
     };
 
     const open = async () => {
@@ -324,9 +476,20 @@ const createBlockEditor = ({actionsUrl, getNames, onSave}) => {
         Blockly.svgResize(workspace);
     };
 
-    const close = () => {
+    const close = async () => {
         if (dirty && ! window.confirm("保存していない変更があります。閉じますか？")) {
             return;
+        }
+        // 閉じる＝本番モードへ戻る。試し実行を残したまま画面から消さない
+        stopAllTrials();
+        if (editing && workspace) {
+            editing = false;
+            workspace.setIsReadOnly(true);
+            root.classList.remove("is-editing");
+            modeToggle.setAttribute("aria-pressed", "false");
+            modeToggle.textContent = "本番モード";
+            workspace.getToolbox()?.clearSelection();
+            trial.setEditing(false);
         }
         root.removeAttribute("open");
         document.documentElement.style.removeProperty("--editor-width");
@@ -336,6 +499,7 @@ const createBlockEditor = ({actionsUrl, getNames, onSave}) => {
 
     root.querySelector("#editor-save").addEventListener("click", save);
     root.querySelector("#editor-close").addEventListener("click", close);
+    modeToggle.addEventListener("click", () => setEditing(! editing));
     setupSplitter();
 
     window.addEventListener("resize", () => {

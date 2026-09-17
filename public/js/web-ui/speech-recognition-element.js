@@ -148,6 +148,7 @@ const HTML = `
 export default class SpeechRecognitionElement extends HTMLElement {
 
     _buttonElement = null;
+    _disabled = false;
     _circleElement = null;
 
     // 音声認識の実装。使う前に外から注入する
@@ -256,9 +257,29 @@ export default class SpeechRecognitionElement extends HTMLElement {
         this._listeners = null;
     }
 
+    /**
+     * 押せないようにする。
+     *
+     * ブロックの編集中など、会話を受け付けたくないときに使う。認識中なら止める。
+     * 押せるかどうかは recognizer の有無とこの指定の両方で決まる
+     */
+    set disabled(value) {
+        this._disabled = Boolean(value);
+        if (this._disabled) {
+            this._recognizer?.stop();
+        }
+        this._updateAvailability();
+    }
+
+    get disabled() {
+        return Boolean(this._disabled);
+    }
+
     /** recognizer が無いうちは押しても何も起きないので、押せないようにする。 */
     _updateAvailability() {
-        this._buttonElement.disabled = ! this._recognizer;
+        if (this._buttonElement) {
+            this._buttonElement.disabled = ! this._recognizer || this._disabled;
+        }
     }
 
     _onClick = () => {

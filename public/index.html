@@ -304,6 +304,10 @@
           margin: 0;
           font-size: 1em;
           font-weight: 800;
+          /* 既定の flex-shrink:1 だと、ボタンが増えたときに折り返す。
+             縮めてよいのは状態表示だけにする */
+          flex: 0 0 auto;
+          white-space: nowrap;
       }
       #editor-status {
           flex: 1 1 auto;
@@ -338,9 +342,44 @@
           color: var(--pop-ink);
       }
 
+      /*
+        本番モードと編集モードの切り替え。押している間が編集モード。
+        本番モードでは灰色にして、いま触れない状態だと分かるようにする
+      */
+      #editor-mode {
+          background: #e3e6f5;
+          color: var(--pop-ink);
+      }
+      #editor-mode[aria-pressed="true"] {
+          background: var(--pop-yellow);
+          color: var(--pop-ink);
+      }
+
       #blockly-area {
           flex: 1 1 auto;
           min-height: 0;
+      }
+
+      /*
+        本番モードではパレットを畳む。読み取り専用でも開けてしまい、
+        しかも何も作れないので、触った人が戸惑う
+      */
+      #block-editor:not(.is-editing) .blocklyToolbox {
+          opacity: 0.35;
+          pointer-events: none;
+      }
+      #block-editor:not(.is-editing) .blocklyFlyout {
+          display: none;
+      }
+
+      /*
+        試し実行中のブロック列。Scratch と同じく列全体を光らせる。
+        SVG なので outline ではなく drop-shadow を重ねる
+      */
+      .blocklyBlockCanvas .is-running > .blocklyPath {
+          filter: drop-shadow(0 0 0 #ffd93d)
+                  drop-shadow(0 0 4px #ffd93d)
+                  drop-shadow(0 0 8px #ffbf00);
       }
 
       /* 右端の仕切り。つまんで幅を変える */
@@ -524,6 +563,11 @@
       <div class="editor-bar">
         <p class="editor-title">アクション</p>
         <span id="editor-status"></span>
+        <!--
+          本番モード（読み取り専用・会話でブロックが動く）と
+          編集モード（組み替えられる・クリックで試せる）の切り替え
+        -->
+        <button id="editor-mode" type="button" aria-pressed="false" hidden>本番モード</button>
         <button id="editor-save" type="button">保存</button>
         <button id="editor-close" type="button">閉じる</button>
       </div>

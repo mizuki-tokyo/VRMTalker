@@ -192,6 +192,38 @@ document.addEventListener('DOMContentLoaded', function() {
         onSave: async (program) => {
             runner.abortAll();
             await registerActions(runner, avatarActions, program);
+        },
+
+        //----------------------------------
+        // ブロックを試しに動かすための手立て
+        //
+        // 編集画面は「何をどう実行するか」を知らない。アクションを走らせる
+        // 仕組みはここにあるので、必要な操作だけを渡す
+        //----------------------------------
+        trial: {
+            run: (key, action) => runner.runOnce(key, action),
+            isRunning: (key) => runner.isRunning(key),
+            stop: (key) => runner.abort(key),
+
+            /**
+             * 編集モードに入る／出る。
+             *
+             * 編集中はイベント実行を止める。止めないと、試している最中に
+             * 会話のアクションが割り込んで声が重なる。
+             * マイクも止める。認識結果だけ出てアバターが無反応になると、
+             * 壊れたように見えるため
+             */
+            setEditing: (editing) => {
+                runner.abortAll();
+                speechRecognitionElement.disabled = editing;
+                if (editing) {
+                    avatar.stopSpeaking();
+                } else {
+                    // 本番へ戻すときに入力待ちへ入れ直す。編集中に中断した
+                    // ぶん、会話の状態が宙に浮いたままになっている
+                    conversation.enterIdle();
+                }
+            }
         }
     });
 

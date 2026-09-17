@@ -101,6 +101,31 @@ const createActionRunner = ({conversation, createApi, onSettled = () => {}}) => 
         },
 
         /**
+         * イベントに紐づかない単発の実行。編集画面でブロックをクリックしたとき。
+         *
+         * 規則 1 はそのまま効く。同じ key で呼び直すと前のものを中断してから
+         * 始まる。key はイベント名と重ならないものにすること（重ねると
+         * onSettled がイベント側の後始末を呼んでしまう）
+         *
+         * @param {string} key
+         * @param {(api: object) => Promise<void>} handler
+         * @returns {Promise<void>} 終わった（中断も含む）時点で解決する
+         */
+        runOnce(key, handler) {
+            return run(key, handler, {});
+        },
+
+        /** 実行中かどうか。クリックが「開始」か「停止」かの判定に使う。 */
+        isRunning(key) {
+            return running.has(key);
+        },
+
+        /** 指定したものだけ止める。 */
+        abort(key) {
+            abort(key);
+        },
+
+        /**
          * 規則 3。状態を表すイベントのアクションを、別のイベントで中断する。
          *
          *   runner.cancelOn("idle", "listenstart");
