@@ -176,13 +176,25 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer,
             chatFlow.appendMessage(String(text), (who === SPEAKER.user) ? "right" : "left");
         },
 
-        /** 吹き出しを全部消す。 */
+        /**
+         * 吹き出しを全部消す。画面から消すだけで、キャラクタは前のやり取りを
+         * 覚えたまま。忘れさせたいときは clearHistory() を使う
+         */
         clearBubbles() {
             chatFlow.clearMessages();
-            conversation.clearHistory();
         },
 
         //---------------------------------- 会話
+
+        /**
+         * キャラクタに前のやり取りを忘れさせる。画面の吹き出しは残る。
+         *
+         * 「見た目を消す」と「記憶を消す」は別の意図なので、ブロックも分けて
+         * ある。両方消したければ 2 つ並べる
+         */
+        clearHistory() {
+            conversation.clearHistory();
+        },
 
         /**
          * 返事を一文ずつ取り出す。ループブロックの中身になる。

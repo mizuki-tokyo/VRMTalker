@@ -139,7 +139,8 @@ const buildBlockUi = ({motionNames = [], emoteNames = []} = {}) => {
             style: "looks_blocks", inputsInline: true
         },
         screen_clear_bubbles: {
-            message0: "吹き出しを全部消す", args0: [], style: "looks_blocks"
+            message0: "吹き出しを全部消す", args0: [], style: "looks_blocks",
+            tooltip: "画面から消すだけ。キャラクタは前のやり取りを覚えたまま"
         },
 
         //-------------------------------- 会話
@@ -147,6 +148,11 @@ const buildBlockUi = ({motionNames = [], emoteNames = []} = {}) => {
             message0: "%1 に返事をする",
             args0: [text("PROMPT")], style: "sensing_blocks",
             tooltip: "返事を考えて、吹き出しに出しながら話す"
+        },
+        chat_clear_history: {
+            message0: "会話の記憶を消す", args0: [], style: "sensing_blocks",
+            tooltip: "キャラクタが前のやり取りを覚えていない状態に戻す。"
+                   + "吹き出しは消えない"
         },
 
         //-------------------------------- 制御
@@ -373,6 +379,7 @@ export const createToolbox = () => {
                      inputs: {PROMPT: {block: {type: "value_user_text"}}}},
                     {kind: "block", type: "chat_reply",
                      inputs: {PROMPT: {block: {type: "value_user_text"}}}},
+                    {kind: "block", type: "chat_clear_history"},
                     {kind: "block", type: "value_user_text"},
                     {kind: "block", type: "value_character_name"},
                     {kind: "block", type: "value_error_message"},

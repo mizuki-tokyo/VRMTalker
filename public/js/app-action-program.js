@@ -66,6 +66,7 @@ export const CALL_BLOCKS = Object.freeze({
 
     // 会話
     chat_reply:               {fn: "reply",                   args: ["PROMPT"]},
+    chat_clear_history:       {fn: "clearHistory",            args: []},
 
     // 制御（値を返さないもの）
     control_wait:             {fn: "wait",                    args: ["SECONDS"]}
