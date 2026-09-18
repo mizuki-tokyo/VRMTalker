@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
     //----------------------------------
     const creditElement = document.querySelector("#credit");
 
-    const settings = setupSettings({
+    setupSettings({
         avatar, world, chatFlow, chatClient, speechSynthesizer,
         // VOICEVOX の利用規約により、実際に使用したキャラクターのクレジット表記が必要。
         // 設定ウインドウではなく常時表示なので、ここで面倒を見る
@@ -189,9 +189,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     //----------------------------------
-    // 会話履歴
+    // メニューの操作
+    //
+    // どちらも押したらメニューを閉じる。結果はアバターの側に出るので、
+    // 開いたままだと見えない
     //----------------------------------
+    const settingsPanel = document.querySelector("settings-panel");
+
+    document.querySelector("#restart-conversation").addEventListener("click", () => {
+        settingsPanel.removeAttribute("open");
+        startConversation();
+    });
+
     document.querySelector("#clear-history").addEventListener("click", () => {
+        settingsPanel.removeAttribute("open");
         chatClient.clearHistory();
         chatFlow.clearMessages();
     });
@@ -288,20 +299,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (editing) {
                     avatar.stopSpeaking();
                 } else {
-                    // 会話モードへ戻る＝プログラムが動き始める瞬間、と捉えて
-                    // 最初から動かす。組んだ結果をその場で見られる。
+                    // 待機へ入り直すだけ。編集中に中断したままだと
+                    // 「待機に入ったとき」が二度と動かない。
                     //
-                    // 「準備ができたとき」を出すかは設定で切れるが、待機へ
-                    // 入り直すほうは常に行う。編集中に中断したままだと
-                    // 「待機に入ったとき」が二度と動かないため
-                    startConversation(settings.replayOnTalk);
+                    // 「準備ができたとき」からやり直したいときは、メニューの
+                    // 「はじめから実行」を押してもらう。モードの切り替えと
+                    // プログラムの開始は別の操作にしてある
+                    startConversation(false);
                 }
             }
         }
     });
 
     document.querySelector("#open-editor").addEventListener("click", () => {
-        document.querySelector("settings-panel").removeAttribute("open");
+        settingsPanel.removeAttribute("open");
         blockEditor.open();
     });
 

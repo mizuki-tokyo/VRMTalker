@@ -239,27 +239,26 @@
           font-size: var(--ui-font);
           cursor: pointer;
       }
-      #clear-history {
-          width: 100%;
-          padding: 10px 12px;
-          border: none;
-          border-radius: 999px;
-          background: var(--pop-pink);
-          color: #fff;
-          font: inherit;
-          font-size: var(--ui-font);
-          font-weight: 700;
-          box-shadow: var(--pop-shadow);
-          cursor: pointer;
+      /*
+        メニューの区切り。「操作する」「組み替える」「設定する」を分ける。
+        中の小見出し（吹き出しの色など）は破線なので、こちらは実線にして
+        階層が読み取れるようにする
+      */
+      .menu-section + .menu-section {
+          margin-top: 14px;
+          padding-top: 14px;
+          border-top: 2px solid #e3e6f5;
       }
-      #clear-history:active,
-      #open-editor:active {
-          transform: translateY(2px);
-          box-shadow: 0 2px 0 rgba(35, 36, 74, 0.18);
+      .menu-button + .menu-button {
+          margin-top: 8px;
       }
-      #open-editor {
+      /* メニューの主な操作。アイコンと文字を並べる */
+      .menu-button {
+          display: flex;
+          align-items: center;
+          gap: 8px;
           width: 100%;
-          padding: 10px 12px;
+          padding: 10px 14px;
           border: none;
           border-radius: 999px;
           background: var(--pop-blue);
@@ -267,8 +266,40 @@
           font: inherit;
           font-size: var(--ui-font);
           font-weight: 700;
+          text-align: left;
           box-shadow: var(--pop-shadow);
           cursor: pointer;
+      }
+      .menu-button--danger {
+          background: var(--pop-pink);
+      }
+      .menu-button:active {
+          transform: translateY(2px);
+          box-shadow: 0 2px 0 rgba(35, 36, 74, 0.18);
+      }
+      /* 「設定」の見出し。アイコンの大きさはボタンと揃える */
+      .menu-heading {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0 0 12px;
+          font-size: var(--ui-font);
+          font-weight: 800;
+          opacity: 0.6;
+      }
+      .menu-icon {
+          flex: none;
+          width: 18px;
+          height: 18px;
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 2;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+      }
+      /* 再生の三角だけは塗る。線画だと中身が抜けて見えづらい */
+      #restart-conversation .menu-icon polygon {
+          fill: currentColor;
       }
       .settings-note {
           margin: 8px 0 0;
@@ -469,9 +500,13 @@
           #editor-splitter { display: none; }
       }
 
-      /* 設定ウインドウ内の区切り */
+      /*
+        設定ウインドウ内の区切り。
+        破線の上下に同じだけ余白を置いて、線がどちらの区画にも寄らないようにする
+      */
       .settings-section {
-          padding-top: 12px;
+          margin-top: 14px;
+          padding-top: 14px;
           border-top: 2px dashed #e3e6f5;
       }
       .settings-heading {
@@ -480,23 +515,6 @@
           font-weight: 800;
           opacity: 0.6;
       }
-      /* チェックボックスの項目。押せる範囲をラベル全体に広げる */
-      .settings-check {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-top: 10px;
-          line-height: 1.4;
-          cursor: pointer;
-      }
-      .settings-check input {
-          flex: 0 0 auto;
-          width: 18px;
-          height: 18px;
-          accent-color: var(--pop-blue);
-          cursor: pointer;
-      }
-
       .settings-section color-picker {
           display: block;
           margin-bottom: 10px;
@@ -537,9 +555,11 @@
       }
 
       /* 設定の保存・破棄。場所を取らないよう 1 行に並べる */
+      /* 保存 / 破棄。直前の入力欄とくっつかないよう離す */
       .settings-actions {
           display: flex;
           gap: 8px;
+          margin-top: 14px;
       }
       .chip {
           flex: 1;
@@ -728,8 +748,74 @@
         <speech-recognition></speech-recognition>
         <span id="speech-recognition-result"></span>
 
-        <!-- 設定ウインドウ。中身は slot なので自由に差し替えてよい -->
-        <settings-panel label="設定">
+        <!--
+          メニュー。中身は slot なので自由に差し替えてよい。
+
+          「操作する」「組み替える」「設定する」の 3 つに分ける。
+          設定だけではなくなったので、見出しは「メニュー」にしてある
+
+          アイコンは Lucide (ISC License) https://lucide.dev
+          play / message-circle-x / settings。
+          ブロックのアイコンだけは Lucide に合うものが無いので自作
+        -->
+        <settings-panel label="メニュー">
+
+          <!-- 1. 会話の操作。ブロックを編集するかどうかに関わらず使う -->
+          <div class="menu-section">
+            <button id="restart-conversation" class="menu-button" type="button"
+                    title="「準備ができたとき」から動かし直す">
+              <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <polygon points="6 3 20 12 6 21 6 3"/>
+              </svg>
+              <span>はじめから実行</span>
+            </button>
+
+            <button id="clear-history" class="menu-button menu-button--danger" type="button"
+                    title="吹き出しを消して、キャラクタにも忘れさせる">
+              <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
+                <path d="m15 9-6 6"/>
+                <path d="m9 9 6 6"/>
+              </svg>
+              <span>会話履歴をクリア</span>
+            </button>
+          </div>
+
+          <!-- 2. ブロックの編集。ACTIONS_EDITABLE=0 のときは app.js が隠す -->
+          <div class="menu-section" id="editor-section" hidden>
+            <button id="open-editor" class="menu-button" type="button">
+              <!--
+                積み重なったブロック 2 つ。上の出っ張りが下の凹みへ入る。
+                18px で潰れないよう、凹凸は大きめにとってある
+              -->
+              <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 3.5h14a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-7.8v1.6H6.8v-1.6
+                         H5A1.5 1.5 0 0 1 3.5 9V5A1.5 1.5 0 0 1 5 3.5Z"/>
+                <path d="M5 12.1h1.8v1.6h4.4v-1.6H19a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5H5
+                         a1.5 1.5 0 0 1-1.5-1.5v-4a1.5 1.5 0 0 1 1.5-1.5Z"/>
+              </svg>
+              <span>ブロックで編集する</span>
+            </button>
+            <p class="settings-note">画面が左右に分かれます。PC / タブレット推奨</p>
+          </div>
+
+          <!-- 3. 設定 -->
+          <div class="menu-section">
+            <p class="menu-heading">
+              <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0
+                         l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72
+                         v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73
+                         l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2
+                         v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39
+                         a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09
+                         a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25
+                         a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              設定
+            </p>
+
           <label>キャラクタの近さ
             <input id="zoom-slider" type="range" min="0" max="100" value="50">
           </label>
@@ -790,28 +876,7 @@
               <span class="chip-label">破棄</span>
             </button>
           </div>
-
-          <button id="clear-history" type="button">会話履歴をクリア</button>
-
-        <!--
-          アクションの編集。サーバが ACTIONS_EDITABLE=0 のときは app.js が隠す。
-          ブロック操作には広い画面が要るので、PC / タブレットを推奨する
-        -->
-        <div class="settings-section" id="editor-section" hidden>
-          <p class="settings-heading">アクション</p>
-          <button id="open-editor" type="button">ブロックで編集する</button>
-          <p class="settings-note">画面が左右に分かれます。PC / タブレット推奨</p>
-
-          <!--
-            会話モードへ戻ったときに「準備ができたとき」から動かすか。
-            組んだ結果をすぐ見られるので既定は入り。
-            何度も往復して組む人は、あいさつの繰り返しを切れる
-          -->
-          <label class="settings-check">
-            <input type="checkbox" id="replay-on-talk" checked>
-            会話モードに戻ったら最初から実行する
-          </label>
-        </div>
+          </div><!-- 設定 -->
         </settings-panel>
       </div><!-- #controls-panel -->
     </div>
