@@ -1,0 +1,70 @@
+# 謝辞
+
+このアプリは、多くの方が公開してくださった素材とソフトウェアで成り立っています。
+ありがとうございます。
+
+このファイルを書き換えると、メニューの「リソースの出典」に表示される内容が変わります。
+素材を差し替えたときは、ここも合わせて直してください。
+
+---
+
+## 音声合成
+
+**VOICEVOX** — <https://voicevox.hiroshiba.jp/>
+
+利用規約により、実際に使用したキャラクター名のクレジット表記が必要です。
+画面の左上に常時表示しています。
+
+## 背景画像
+
+**AIPICT** — <https://aipict.com/>
+
+商用利用・加工可、クレジット表記不要で公開されています
+（`public/img/readme.txt` に利用規約の写しがあります）。
+
+素材としての再配布・販売は禁止されています。背景を差し替えて配布する場合はご注意ください。
+
+## 感情アイコン（エモート）
+
+**感情アイコン色々セット【フリー素材あそび】** —
+<https://commons.nicovideo.jp/works/agreement/nc411252>
+
+- 利用許可範囲: インターネット全般
+- 権利表記: 任意
+- 営利利用: 個人 OK、法人は要連絡
+
+詳細は `public/emotes/README.txt` を参照してください。
+
+## 3D モデル
+
+同梱のモデルの作者・利用許諾は、モデル自身に埋め込まれています。
+メニューの「3D モデルの情報」から確認できます。
+
+## フォント
+
+**LINE Seed JP** — <https://seed.line.me/index_jp.html>
+
+---
+
+## ソフトウェア
+
+| 名前 | 用途 |
+|---|---|
+| [three.js](https://threejs.org/) | 3D 表示 |
+| [@pixiv/three-vrm](https://github.com/pixiv/three-vrm) | VRM の読み込みと制御 |
+| [Blockly](https://developers.google.com/blockly) | ブロックの編集画面 |
+| [marked](https://marked.js.org/) | このページの表示 |
+| [Lucide](https://lucide.dev/) | アイコン |
+| [FastAPI](https://fastapi.tiangolo.com/) | サーバ |
+
+---
+
+## 出典が未記入のもの
+
+次の素材は出典を確認できていません。配布する前に記入してください。
+
+- `public/animations/vrma/quick_formal_bow.vrma`
+- `public/animations/vrma/standard_idle.vrma`
+- `public/animations/fbx/` の各ファイル
+
+ファイル名に `CC0-` が付く動きは CC0 として配布されているものです。

@@ -16,6 +16,9 @@ import avatarActions from "./app-avatar-actions.js";
 // 設定ウインドウ（話者・カメラの寄り・吹き出しの色・キャラクタ像）
 import setupSettings from "./app-settings.js";
 
+// 謝辞（素材の出典と、3D モデルに埋め込まれた情報）
+import {showAcknowledgment, showModelInfo} from "./app-credits.js";
+
 // 標準の alert / confirm / prompt の代わり。見た目を画面と揃える
 import dialog from "./web-ui/dialog.js";
 
@@ -206,6 +209,12 @@ document.addEventListener('DOMContentLoaded', function() {
         chatClient.clearHistory();
         chatFlow.clearMessages();
     });
+
+    // 謝辞。読むだけなのでメニューは開いたままにする
+    document.querySelector("#show-acknowledgment")
+        .addEventListener("click", () => showAcknowledgment());
+    document.querySelector("#show-model-info")
+        .addEventListener("click", () => showModelInfo(avatar));
 
     //----------------------------------
     // 会話の進行と、それに対するアクション

@@ -45,7 +45,19 @@ const ICON_ALERT = `
 </svg>`;
 
 const STYLE = `
-:host { all: initial; }
+/*
+  使う側の CSS の影響を受けないよう、いったん全部を初期値へ戻す。
+
+  ただし all:initial は書体や字の大きさまで戻してしまい、そのままだと
+  ダイアログだけ別のフォントで出る。文字まわりは受け継ぎ直す
+  （どの書体を使うかは、このファイルではなく使う側が決めること）
+*/
+:host {
+    all: initial;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+}
 
 dialog {
     box-sizing: border-box;
@@ -134,6 +146,68 @@ input:focus {
 }
 input:not(.is-shown) { display: none; }
 
+/*
+  長い説明の中身。読み物なので、縦に伸びすぎたら中だけを転がす。
+  文字は本文より少し小さくして、一覧性を優先する
+*/
+.content {
+    max-height: min(60vh, 460px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    font-size: 0.92em;
+    line-height: 1.7;
+}
+.content:empty { display: none; }
+.content > :first-child { margin-top: 0; }
+.content > :last-child { margin-bottom: 0; }
+.content h1, .content h2, .content h3 {
+    margin: 1.2em 0 0.4em;
+    font-size: 1em;
+    font-weight: 800;
+}
+.content p, .content ul, .content ol { margin: 0.4em 0; }
+.content ul, .content ol { padding-left: 1.4em; }
+.content li { margin: 0.2em 0; }
+.content a {
+    color: var(--dialog-accent, #4b6bfb);
+    overflow-wrap: anywhere;
+}
+.content code {
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: #eef1ff;
+    font-size: 0.92em;
+}
+.content pre {
+    margin: 0.4em 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #eef1ff;
+    overflow-x: auto;
+}
+.content pre code { padding: 0; background: none; }
+.content hr {
+    margin: 1em 0;
+    border: none;
+    border-top: 2px dashed #e3e6f5;
+}
+/* 出典の一覧は「名前 → 参照先」の対応が多いので、表も整えておく */
+.content table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.content th, .content td {
+    padding: 4px 6px;
+    border-bottom: 1px solid #e3e6f5;
+    text-align: left;
+    vertical-align: top;
+}
+
+/* 読み物のときは少し広くする */
+dialog.is-wide {
+    width: min(560px, calc(100vw - 32px));
+}
+
 .buttons {
     display: flex;
     justify-content: flex-end;
@@ -200,6 +274,23 @@ export class Dialog {
         return this._show({kind: "prompt", message, icon: "", ...options});
     }
 
+    /**
+     * 長い説明を出す。読むだけで、ボタンは閉じる 1 つ。
+     *
+     * 中身は HTML として差し込む。**渡す側が中身を信用できることを
+     * 確かめること。** 外から来た文字をそのまま渡してはいけない
+     * （このアプリでは、自分のサーバに置いたファイルだけを渡している）。
+     *
+     * @param {string} html
+     * @param {object} [options] title / okText
+     * @returns {Promise<void>}
+     */
+    info(html, options = {}) {
+        return this._show({
+            kind: "info", message: "", html, icon: "", wide: true, ...options
+        }).then(() => undefined);
+    }
+
     /** 開いているダイアログを取り消し扱いで閉じる。画面を切り替えるときなどに。 */
     dismiss() {
         if (this._dialog?.open) {
@@ -224,6 +315,7 @@ export class Dialog {
       <div class="body">
         <h2 class="title"></h2>
         <p class="message"></p>
+        <div class="content"></div>
         <input type="text">
       </div>
     </div>
@@ -241,6 +333,7 @@ export class Dialog {
             icon: shadow.querySelector(".icon"),
             title: shadow.querySelector(".title"),
             message: shadow.querySelector(".message"),
+            content: shadow.querySelector(".content"),
             input: shadow.querySelector("input"),
             ok: shadow.querySelector(".ok"),
             cancel: shadow.querySelector(".cancel")
@@ -256,11 +349,21 @@ export class Dialog {
     _show(options) {
         const run = () => new Promise((resolve) => {
             this._build();
-            const {form, icon, title, message, input, ok, cancel} = this._parts;
+            const {form, icon, title, message, content, input, ok, cancel} = this._parts;
 
             icon.innerHTML = options.icon ?? "";
             title.textContent = options.title ?? "";
             message.textContent = String(options.message ?? "");
+            // info のときだけ HTML。渡す側が中身を確かめている前提
+            content.innerHTML = options.html ?? "";
+
+            // 中のリンクは別のタブで開く。同じタブで飛ぶと、開いていた画面を
+            // まるごと離れてしまう（会話の途中なら、それまでのやり取りも消える）
+            for (const link of content.querySelectorAll("a[href]")) {
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+            }
+            this._dialog.classList.toggle("is-wide", Boolean(options.wide));
 
             const isPrompt = options.kind === "prompt";
             input.classList.toggle("is-shown", isPrompt);
@@ -270,23 +373,28 @@ export class Dialog {
             ok.textContent = options.okText ?? (isPrompt ? "決定" : "OK");
             ok.classList.add("is-shown");
             cancel.textContent = options.cancelText ?? "キャンセル";
-            cancel.classList.toggle("is-shown", options.kind !== "alert");
+            cancel.classList.toggle("is-shown",
+                                    options.kind !== "alert" && options.kind !== "info");
 
-            // 取り消しは空の returnValue で表す。Esc もここに来る
-            // （method="dialog" の submit は returnValue にボタンの value が入るが、
-            //   入力した文字を返したいので自前で close() を呼ぶ）
+            // 決定したかどうかは returnValue に混ぜず、ここで覚えておく。
+            // 入力が空文字の prompt と、取り消しとを区別する必要があるため
+            let decided = false;
+
+            // method="dialog" の submit は returnValue にボタンの value を入れるが、
+            // 入力した文字を返したいので自前で close() を呼ぶ
             const onSubmit = (event) => {
                 event.preventDefault();
-                this._dialog.close(isPrompt ? `${input.value}` : "");
+                decided = true;
+                this._dialog.close(isPrompt ? input.value : "");
             };
+            // 取り消し。Esc で閉じたときも decided は false のままここへ来る
             const onCancelClick = () => this._dialog.close("");
 
             const onClose = () => {
                 form.removeEventListener("submit", onSubmit);
                 cancel.removeEventListener("click", onCancelClick);
                 this._dialog.removeEventListener("close", onClose);
-                const value = this._dialog.returnValue;
-                resolve(value.startsWith("") ? value.slice(1) : null);
+                resolve(decided ? this._dialog.returnValue : null);
             };
 
             form.addEventListener("submit", onSubmit);

@@ -273,6 +273,27 @@
       .menu-button--danger {
           background: var(--pop-pink);
       }
+      /*
+        読むためだけの項目。操作の邪魔をしないよう、小さく灰色にする。
+        影も落とさない（押して何かが変わるボタンではない）
+      */
+      .menu-button--quiet {
+          padding: 7px 12px;
+          background: #eef1ff;
+          color: var(--pop-ink);
+          font-size: calc(var(--ui-font) * 0.9);
+          font-weight: 700;
+          box-shadow: none;
+          opacity: 0.85;
+      }
+      .menu-button--quiet .menu-icon {
+          width: 16px;
+          height: 16px;
+      }
+      .menu-button--quiet:active {
+          transform: translateY(1px);
+          box-shadow: none;
+      }
       .menu-button:active {
           transform: translateY(2px);
           box-shadow: 0 2px 0 rgba(35, 36, 74, 0.18);
@@ -877,6 +898,41 @@
             </button>
           </div>
           </div><!-- 設定 -->
+
+          <!--
+            4. 謝辞。読むためだけの項目なので、ほかより小さく控えめにする。
+            アイコンは Lucide (ISC License) の heart / file-badge
+          -->
+          <div class="menu-section">
+            <p class="menu-heading">
+              <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2
+                         -1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+              </svg>
+              謝辞
+            </p>
+
+            <button id="show-acknowledgment" class="menu-button menu-button--quiet"
+                    type="button" title="画像や音声などの素材の出典">
+              <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                <path d="M8 13h8"/>
+                <path d="M8 17h5"/>
+              </svg>
+              <span>リソースの出典</span>
+            </button>
+
+            <button id="show-model-info" class="menu-button menu-button--quiet"
+                    type="button" title="モデルに埋め込まれた作者と利用許諾">
+              <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2 3 7v10l9 5 9-5V7Z"/>
+                <path d="m3 7 9 5 9-5"/>
+                <path d="M12 12v10"/>
+              </svg>
+              <span>3D モデルの情報</span>
+            </button>
+          </div>
         </settings-panel>
       </div><!-- #controls-panel -->
     </div>
