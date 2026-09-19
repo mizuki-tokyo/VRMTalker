@@ -20,7 +20,7 @@ import setupSettings from "./app-settings.js";
 import {showAcknowledgment, showModelInfo} from "./app-credits.js";
 
 // 標準の alert / confirm / prompt の代わり。見た目を画面と揃える
-import dialog from "./web-ui/dialog.js";
+import dialog, {ICONS} from "./web-ui/dialog.js";
 
 // 画面部品。読み込むだけでカスタム要素として登録される
 import "./web-ui/chat-bubble-element.js";
@@ -201,6 +201,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.querySelector("#restart-conversation").addEventListener("click", () => {
         settingsPanel.removeAttribute("open");
+
+        // 編集モードの間はイベントを止めてある（trial.setEditing を参照）。
+        // 押しても何も起きないので、黙って無視すると壊れたように見える。
+        // 代わりに、そのモードでの試し方を知らせる
+        if (runner.isPaused) {
+            dialog.alert(
+                "編集モードの間は、イベントが起きません。\n\n"
+                    + "動きを確かめるときは、ブロックをクリックしてください。"
+                    + "つながっているブロックは、上から順にまとめて動きます。"
+                    + "実行中にもう一度クリックすると止まります。\n\n"
+                    + "はじめから実行するときは、会話モードに切り替えてください。",
+                {title: "編集モードです", icon: ICONS.info, okText: "閉じる"});
+            return;
+        }
         startConversation();
     });
 
