@@ -363,15 +363,7 @@
           border-bottom: 2px solid #e3e6f5;
           font-size: var(--ui-font);
       }
-      .editor-title {
-          margin: 0;
-          font-size: 1em;
-          font-weight: 800;
-          /* 既定の flex-shrink:1 だと、ボタンが増えたときに折り返す。
-             縮めてよいのは状態表示だけにする */
-          flex: 0 0 auto;
-          white-space: nowrap;
-      }
+      /* 縮めてよいのはここだけ。ボタンやラジオが縮むと折り返してしまう */
       #editor-status {
           flex: 1 1 auto;
           min-width: 0;
@@ -472,12 +464,24 @@
           outline: 2px solid var(--pop-blue);
           outline-offset: 1px;
       }
-      /* 狭い画面では文字を畳んでアイコンだけにする。
-         全画面表示のスマートフォンでは、文字を入れると操作列があふれる */
-      @media (max-width: 480px) {
-          #editor-modes label span {
-              display: none;
-          }
+      /*
+        バーが狭いときは、モードの文字を畳んでアイコンだけにする。
+        畳まないと、先に削られるのは縮んでよい状態表示のほうで、
+        「編集モードです。…」が 1 文字も読めなくなる。
+
+        狭いかどうかは画面ではなく編集画面の幅で決める（利用者が横幅を
+        変えられるので、広い画面でもバーは狭いことがある）。
+        判定は app-block-editor.js が .is-narrow で伝えてくる
+      */
+      #block-editor.is-narrow #editor-modes label span {
+          /* display:none にすると、読み上げ用の名前まで消えてラジオが
+             「何のボタンか」を答えられなくなる。見た目だけ畳む */
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
       }
 
       #blockly-area {
@@ -704,7 +708,10 @@
     -->
     <div id="block-editor">
       <div class="editor-bar">
-        <p class="editor-title">アクション</p>
+        <!--
+          見出しは置かない。状態表示（「編集モードです。…」）だけで何の画面かは
+          伝わるうえ、幅が狭いとその状態表示が先に削られてしまうため
+        -->
         <span id="editor-status"></span>
         <!--
           会話モード（読み取り専用・音声認識が使える・会話でブロックが動く）と

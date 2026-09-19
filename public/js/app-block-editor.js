@@ -30,6 +30,14 @@ const DEFAULT_WIDTH_RATIO = 0.5;
 /** この幅より狭い画面では全画面にする（スマートフォン） */
 const FULLSCREEN_MAX_WIDTH = 820;
 
+/**
+ * この幅より狭いと、上のバーのモードの文字を畳んでアイコンだけにする。
+ *
+ * 画面の幅ではなく編集画面の幅で決める。利用者が横幅を変えられるので、
+ * 広い画面でもバーが狭いことがある
+ */
+const NARROW_BAR_WIDTH = 560;
+
 const STORAGE_KEY = "vrmtalker.editorWidth";
 
 
@@ -206,7 +214,15 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
 
     const setStatus = (message, isError = false) => {
         statusElement.textContent = message;
+        // 幅が足りないと末尾が「…」で切れる。全文はマウスを乗せれば読める
+        statusElement.title = message;
         statusElement.classList.toggle("is-error", isError);
+    };
+
+    /** バーが狭いかどうかを CSS へ伝える。畳み方は index.html が決める。 */
+    const updateBarLayout = () => {
+        root.classList.toggle("is-narrow",
+                              root.getBoundingClientRect().width < NARROW_BAR_WIDTH);
     };
 
     //---------------------------------- 分割幅
@@ -491,8 +507,12 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
             }
         });
 
-        // 幅が変わるたびに呼ばないと Blockly の描画が崩れる
-        resizeObserver = new ResizeObserver(() => Blockly.svgResize(workspace));
+        // 幅が変わるたびに呼ばないと Blockly の描画が崩れる。
+        // バーの畳み方も編集画面の幅で決まるので、ここで一緒に見る
+        resizeObserver = new ResizeObserver(() => {
+            Blockly.svgResize(workspace);
+            updateBarLayout();
+        });
         resizeObserver.observe(area);
 
         await loadProgram();
@@ -510,6 +530,7 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
         }
         root.setAttribute("open", "");
         applyWidth(readStoredWidth() || window.innerWidth * DEFAULT_WIDTH_RATIO);
+        updateBarLayout();
 
         if (! workspace) {
             setStatus("読み込んでいます…");
