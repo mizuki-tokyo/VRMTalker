@@ -111,6 +111,11 @@ const buildBlockUi = ({motionNames = [], emoteNames = []} = {}) => {
             args0: [dropdown("NAME", EXPRESSIONS), number("VALUE"), number("SECONDS")],
             style: "looks_blocks", inputsInline: true
         },
+        avatar_clear_expression: {
+            message0: "表情を消す", args0: [], style: "looks_blocks",
+            tooltip: "出している表情をすべて消して、ふつうの顔に戻す。"
+                   + "まばたきと口の形はそのまま"
+        },
         avatar_look_at: {
             message0: "%1 を見る",
             args0: [dropdown("BONE", BONES)], style: "motion_blocks"
@@ -351,6 +356,7 @@ export const createToolbox = () => {
                      inputs: {VALUE: shadowNumber(1), SECONDS: shadowNumber(0.3)}},
                     {kind: "block", type: "avatar_change_expression_wait",
                      inputs: {VALUE: shadowNumber(0), SECONDS: shadowNumber(0.5)}},
+                    {kind: "block", type: "avatar_clear_expression"},
                     {kind: "block", type: "avatar_look_at"},
                     {kind: "block", type: "avatar_show_emote",
                      inputs: {SECONDS: shadowNumber(2)}},

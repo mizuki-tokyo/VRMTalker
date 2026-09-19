@@ -65,6 +65,9 @@ const parseUrlList = (text) => {
 const DEFAULT_SHADOW_OPACITY = 0.3;
 const SHADOW_PLANE_SCALE = 3.0;
 
+/** 表情の変化を識別する名前。同じ表情を二重に動かさないために使う。 */
+const expressionTweenKey = (name) => `expression:${name}`;
+
 export default class VrmAvatarElement extends HTMLElement {
 
     _world = null;
@@ -76,6 +79,10 @@ export default class VrmAvatarElement extends HTMLElement {
 
     // 元の表情名 → 口のモーフを取り除いた版の表情名
     _maskedExpressions = new Map();
+
+    // tweenExpression() で動かしたことのある表情名。
+    // clearExpressions() がまとめて止めるために覚えておく
+    _tweenedExpressions = new Set();
 
     _ready = null;
     _resolveReady = null;
@@ -231,18 +238,38 @@ export default class VrmAvatarElement extends HTMLElement {
             return;
         }
 
+        this._tweenedExpressions.add(resolved);
+
         return this._world.tween({
             // 現在値から始める。前の変化を中断した場合も途中の値から続く
             from: () => expressionManager.getValue(resolved) ?? 0,
             to: value,
             duration,
             easing,
-            // 同じ表情を二重に動かさないための識別子
-            key: `expression:${resolved}`,
+            key: expressionTweenKey(resolved),
             onUpdate: (weight) => {
                 this._humanoid?.setFaceExpression(resolved, weight);
             }
         });
+    }
+
+    /**
+     * 表情をすべて 0 に戻す。
+     *
+     *   avatar.clearExpressions();
+     *
+     * 変化の途中のものはその場で打ち切る。打ち切らないと、次のフレームで
+     * 元の値が書き戻されてしまう
+     */
+    clearExpressions() {
+        if (! this._humanoid) {
+            return;
+        }
+        for (const name of this._tweenedExpressions) {
+            this._world?.cancelTween(expressionTweenKey(name));
+        }
+        this._tweenedExpressions.clear();
+        this._humanoid.resetFaceExpressions();
     }
 
     /**
@@ -295,6 +322,7 @@ export default class VrmAvatarElement extends HTMLElement {
         this._restoreMorphClamp?.();
         this._restoreMorphClamp = null;
         this._maskedExpressions = new Map();
+        this._tweenedExpressions.clear();
         this._humanoid?.dispose();
         this._humanoid = null;
         this._lookAtInitialized = false;

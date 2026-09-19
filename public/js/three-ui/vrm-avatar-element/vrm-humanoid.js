@@ -372,6 +372,20 @@ class VrmHumanoid {
             this._currentVrm.expressionManager.update();
         }
     }
+
+    /**
+     * 表情をすべて 0 に戻す。
+     *
+     * 名前を 1 つずつ 0 にしていくのと違い、モデルが独自に持つ表情も含めて
+     * 確実に戻る。まばたきと口の形は毎フレーム設定し直されるため、
+     * これで消しても次のフレームで元通りになる
+     */
+    resetFaceExpressions() {
+        if (this._currentVrm) {
+            this._currentVrm.expressionManager.resetValues();
+            this._currentVrm.expressionManager.update();
+        }
+    }
 }
 
 export default VrmHumanoid;

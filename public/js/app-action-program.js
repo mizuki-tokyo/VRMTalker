@@ -55,6 +55,7 @@ export const CALL_BLOCKS = Object.freeze({
     avatar_change_expression: {fn: "changeExpression",        args: ["NAME", "VALUE", "SECONDS"]},
     avatar_change_expression_wait:
                               {fn: "changeExpressionAndWait", args: ["NAME", "VALUE", "SECONDS"]},
+    avatar_clear_expression:  {fn: "clearExpression",         args: []},
     avatar_look_at:           {fn: "lookAt",                  args: ["BONE"]},
     avatar_show_emote:        {fn: "showEmote",               args: ["NAME", "SECONDS"]},
     avatar_show_emote_wait:   {fn: "showEmoteAndWait",        args: ["NAME", "SECONDS"]},

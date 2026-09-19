@@ -142,6 +142,16 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer,
                 "表情の変更");
         },
 
+        /**
+         * 表情を全部消して、ふつうの顔に戻す。
+         *
+         * 出した表情を 1 つずつ 0 に戻さなくてよいようにするもの。
+         * まばたきと口の形は消えない（会話を続けられる）
+         */
+        clearExpression() {
+            avatar.clearExpressions();
+        },
+
         /** カメラの注視点をボーンに合わせる。 */
         lookAt(boneName) {
             avatar.focusCamera(String(boneName));
