@@ -299,14 +299,35 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
     /**
      * ハイライト。実行中のブロック列の根元に印を付ける。
      *
+     * 印は根元のブロック 1 つだけで足りる。Blockly は連なるブロックを根元の
+     * <g> の子孫として描くので、そこへ掛けたフィルタが列全体に及ぶ
+     * （見た目の指定は index.html の .is-running を参照）。
+     *
      * 消すときにブロックが既に削除されていることがあるので、都度たどり直さず
      * SVG を覚えておく
      */
     const highlighted = new Map();
 
+    /**
+     * 光の太さ。画面上で何ピクセルに見せたいか。
+     *
+     * フィルタのぼかし幅はブロックと同じ座標系で効くため、倍率をそのまま
+     * 受ける。打ち消さないと、拡大したときに太く、縮小したときに消える。
+     *
+     * 拡大縮小に追従させるため viewport_change でも書き換えるが、光らせる
+     * 瞬間にも入れ直す。倍率を変えただけでは viewport_change が出ないことが
+     * あるため、始まりだけは確実に合わせておく
+     */
+    const GLOW_SIZE = 2;
+
+    const updateGlowSize = (scale) => {
+        area.style.setProperty("--glow-size", `${GLOW_SIZE / (scale || 1)}px`);
+    };
+
     const setHighlight = (block, on) => {
         const key = block.id;
         if (on) {
+            updateGlowSize(workspace.scale);
             const svg = block.getSvgRoot();
             svg.classList.add("is-running");
             highlighted.set(key, svg);
@@ -463,6 +484,10 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
             // 会話モードでは読み取り専用なので、そもそもここへ来ない
             if (event.type === Blockly.Events.CLICK && event.targetType === "block") {
                 onBlockClick(event.blockId);
+            }
+            // 拡大縮小しても光の太さが見かけ上変わらないようにする
+            if (event.type === Blockly.Events.VIEWPORT_CHANGE) {
+                updateGlowSize(event.scale ?? workspace.scale);
             }
         });
 

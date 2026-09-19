@@ -499,12 +499,24 @@
 
       /*
         試し実行中のブロック列。Scratch と同じく列全体を光らせる。
-        SVG なので outline ではなく drop-shadow を重ねる
+
+        先頭ブロックの <g> にフィルタを 1 回かけるだけで列全体が光る。
+        Blockly は「次のブロック」「C 型の中身」「差し込んだ値ブロック」を、
+        すべて先頭の <g> の子孫として描くため、フィルタが子孫ごと掛かる。
+        Scratch（scratch-blocks の setGlowStack）も同じ仕組みを使っている。
+
+        Scratch はアルファを 1 に均して縁をくっきりさせているが、CSS には
+        同じ指定が無いので、同じ drop-shadow を重ねて近い見え方にしている。
+
+        ぼかし幅はブロックと同じ座標系で効くため、そのままだと拡大で太く、
+        縮小で消える。倍率の逆数を --glow-size に入れて打ち消す
+        （app-block-editor.js が倍率の変化に合わせて書き換える）
       */
-      .blocklyBlockCanvas .is-running > .blocklyPath {
-          filter: drop-shadow(0 0 0 #ffd93d)
-                  drop-shadow(0 0 4px #ffd93d)
-                  drop-shadow(0 0 8px #ffbf00);
+      .blocklyBlockCanvas .is-running {
+          filter: drop-shadow(0 0 var(--glow-size, 2px) #ff8a00)
+                  drop-shadow(0 0 var(--glow-size, 2px) #ff8a00)
+                  drop-shadow(0 0 var(--glow-size, 2px) #ff8a00)
+                  drop-shadow(0 0 var(--glow-size, 2px) #ff8a00);
       }
 
       /* 右端の仕切り。つまんで幅を変える */
