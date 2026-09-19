@@ -491,14 +491,34 @@
 
       /*
         会話モードではパレットを畳む。読み取り専用でも開けてしまい、
-        しかも何も作れないので、触った人が戸惑う
+        しかも何も作れないので、触った人が戸惑う。
+
+        !important は Blockly が style 属性へ直接書くものに勝つため。
+        付けないと、次の 2 か所に負けて素通りする。
+
+          ToolboxCategory    カテゴリの行に pointer-events:auto を書く。
+                             親の .blocklyToolbox を none にしても、子が
+                             自分で auto と宣言すると当たり判定が戻る
+          Flyout             開くたびに display:block を自分へ書く
+
+        閉じている間は Blockly も display:none を書くので、効いているように
+        見えてしまう。カテゴリを押した瞬間にだけ現れる
       */
       #block-editor:not(.is-editing) .blocklyToolbox {
           opacity: 0.35;
           pointer-events: none;
       }
+      /* カテゴリの行だけは、Blockly が書いた auto を打ち消す必要がある。
+         行を囲む入れ物には同じ id が振られていて、Blockly は押された要素の
+         id からカテゴリを引く。入れ物が押せると行と同じことが起きるため、
+         上の .blocklyToolbox の none も外せない（受け継がせて止める） */
+      #block-editor:not(.is-editing) .blocklyToolboxCategory {
+          pointer-events: none !important;
+      }
+      /* カテゴリを押せない時点で開かないが、キーボードで辿り着ける道は
+         pointer-events では塞げないので、こちらも残す */
       #block-editor:not(.is-editing) .blocklyFlyout {
-          display: none;
+          display: none !important;
       }
 
       /*
