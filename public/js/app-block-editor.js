@@ -15,7 +15,7 @@
 
 import {defineBlocks, createToolbox} from "./app-blocks.js";
 import {createStackAction} from "./app-action-program.js";
-import dialog from "./web-ui/dialog.js";
+import dialog, {ICONS} from "./web-ui/dialog.js";
 
 const BLOCKLY_VERSION = "13.2.1";
 const BLOCKLY_SCRIPTS = [
@@ -504,6 +504,26 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
             // 拡大縮小しても光の太さが見かけ上変わらないようにする
             if (event.type === Blockly.Events.VIEWPORT_CHANGE) {
                 updateGlowSize(event.scale ?? workspace.scale);
+            }
+            // 会話モードでパレットを押されたとき。開いても何も出せないので、
+            // 閉じたうえで切り替え方を知らせる。
+            //
+            // 選択を外すと oldItem だけのイベントがもう 1 度届くため、
+            // newItem のあるものだけを見る（無いと繰り返しになる）
+            if (event.type === Blockly.Events.TOOLBOX_ITEM_SELECT
+                && event.newItem && ! editing) {
+                workspace.getToolbox()?.clearSelection();
+                // 押されたカテゴリから焦点を外す。外さないと、ダイアログを
+                // 閉じたときに焦点がそこへ戻り、Blockly がもう一度選び直して
+                // 案内が出続ける（確認済み）
+                if (root.contains(document.activeElement)) {
+                    document.activeElement.blur();
+                }
+                dialog.alert(
+                    "会話モードでは、ブロックを組み替えられません。\n\n"
+                        + "パレットからブロックを出したり、並べ替えたりするときは、"
+                        + "上の「編集モード」に切り替えてください。",
+                    {title: "会話モードです", icon: ICONS.info, okText: "閉じる"});
             }
         });
 
