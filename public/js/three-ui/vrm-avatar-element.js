@@ -41,6 +41,12 @@ import resolveExpressionName from "./vrm-avatar-element/expression-name.js";
  *                     口の形が崩れるのを防ぐ。口に触れていない表情や、口の形を
  *                     モーフで作っていないモデルでは何もしない
  *
+ * 属性の変更
+ *   position / focus / camera-distance / shadow / clamp-morphs / light-intensity は、
+ *   読み込んだ後に書き換えても画面に反映される。値を消せば既定に戻る。
+ *   src / idle / motions / mask-mouth-expressions は読み込むときに一度だけ読む
+ *   （モデルの入れ直しになり、実行中の発話や動きの扱いまで決める必要があるため）
+ *
  * イベント
  *   progress : 読み込み中。event.detail.value に 0-100
  *   load     : 読み込み完了
@@ -76,6 +82,7 @@ export default class VrmAvatarElement extends HTMLElement {
     _lookAtInitialized = false;
     _shadowPlane = null;
     _restoreMorphClamp = null;
+    _fillLight = null;
 
     // 元の表情名 → 口のモーフを取り除いた版の表情名
     _maskedExpressions = new Map();
@@ -293,6 +300,60 @@ export default class VrmAvatarElement extends HTMLElement {
         await this.tweenExpression(name, 0, fadeOut);
     }
 
+    /** 後から変えても反映する属性。ここに無いものは読み込むときの一度きり。 */
+    static get observedAttributes() {
+        return ["position", "focus", "camera-distance",
+                "shadow", "clamp-morphs", "light-intensity"];
+    }
+
+    /**
+     * 属性が書き換えられたとき。
+     *
+     * 読み込みが済むまでは何もしない。この呼び出しは connectedCallback より
+     * **先に**来るため（HTML に書いてある属性は要素ができた時点で 1 つずつ
+     * 通知される）、まだモデルが無い。最初の値は _load() がまとめて適用する
+     */
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (! this._humanoid || oldValue === newValue) {
+            return;
+        }
+        this._applyAttribute(name);
+    }
+
+    /**
+     * 属性 1 つぶんを画面へ反映する。
+     *
+     * 読み込みのときも同じ関数を通す。2 通りの経路があると、片方だけ直した
+     * ときに食い違うため（_applyAttributes() を参照）
+     */
+    _applyAttribute(name) {
+        switch (name) {
+        case "position":
+            this._applyPosition();
+            break;
+        case "focus":
+        case "camera-distance":
+            this.focusCamera();
+            break;
+        case "shadow":
+            this._setupShadow();
+            break;
+        case "clamp-morphs":
+            this._setupMorphClamp();
+            break;
+        case "light-intensity":
+            this._applyFillLight();
+            break;
+        }
+    }
+
+    /** 反映できる属性をすべて適用する。読み込みの最後に呼ぶ。 */
+    _applyAttributes() {
+        for (const name of this.constructor.observedAttributes) {
+            this._applyAttribute(name);
+        }
+    }
+
     connectedCallback() {
         this.style.display = "none";
 
@@ -323,6 +384,8 @@ export default class VrmAvatarElement extends HTMLElement {
         this._restoreMorphClamp = null;
         this._maskedExpressions = new Map();
         this._tweenedExpressions.clear();
+        // 光源はモデルの scene に入れてあるので、モデルと一緒に消える
+        this._fillLight = null;
         this._humanoid?.dispose();
         this._humanoid = null;
         this._lookAtInitialized = false;
@@ -353,20 +416,15 @@ export default class VrmAvatarElement extends HTMLElement {
             }
 
             this._setupMouthMask(humanoid);
-            // 表情をすべて登録した後に掛ける（対象モーフを集めるため）
-            this._setupMorphClamp(humanoid);
             await this._loadMotions(humanoid);
 
             this._humanoid = humanoid;
             this._attachToWorld();
 
-            const position = parseVector3(this.getAttribute("position") || "");
-            if (position) {
-                humanoid.position = position;
-            }
-            this._addFillLight(humanoid);
-            this._setupShadow();
-            this.focusCamera();
+            // 位置・影・光・注視点・モーフの上限は、後から属性を書き換えた
+            // ときと同じ道を通す。表情をすべて登録した後になるのも都合がよい
+            // （モーフの上限は対象のモーフを集めるため）
+            this._applyAttributes();
 
             this._resolveReady(this);
             this.dispatchEvent(new CustomEvent("load"));
@@ -451,6 +509,11 @@ export default class VrmAvatarElement extends HTMLElement {
      * 体格の違うモデルに差し替えても足元に合う。
      */
     _setupShadow() {
+        // 掛け直せるように、前の板を必ず外してから始める。
+        // 属性を消したときは板が無くなるので影も出なくなる（影を受けるものが
+        // 無くなるため）。描画側の影の設定と castShadow は残るが、見た目には
+        // 出ない
+        this._removeShadowPlane();
         if (! this.hasAttribute("shadow")) {
             return;
         }
@@ -523,7 +586,11 @@ export default class VrmAvatarElement extends HTMLElement {
      * VRM 仕様の overrideBlink は VRM 0.0 では使えず blink/lookAt/mouth しか
      * 救えないので、モデルに依存しない安全網として既定で有効にしている。
      */
-    _setupMorphClamp(humanoid) {
+    _setupMorphClamp() {
+        // 掛け直せるように、前のものを必ず外してから始める
+        this._restoreMorphClamp?.();
+        this._restoreMorphClamp = null;
+
         const attribute = this.getAttribute("clamp-morphs");
         if (attribute === "off" || attribute === "none") {
             return;
@@ -531,17 +598,45 @@ export default class VrmAvatarElement extends HTMLElement {
         const value = Number(attribute);
         const max = (attribute !== null && value > 0) ? value : 1.0;
 
-        this._restoreMorphClamp = clampExpressionMorphs(humanoid.vrm, {max});
+        this._restoreMorphClamp = clampExpressionMorphs(this._humanoid.vrm, {max});
     }
 
-    _addFillLight(humanoid) {
+    /** 補助ライトを付け直す。外さずに足すと明るさが積み重なる。 */
+    _applyFillLight() {
+        if (this._fillLight) {
+            this._fillLight.removeFromParent();
+            this._fillLight.dispose();
+            this._fillLight = null;
+        }
         const intensity = Number(this.getAttribute("light-intensity"));
         if (! (intensity > 0)) {
             return;
         }
         const light = new THREE.DirectionalLight(0xffffff, intensity);
         light.position.set(1.0, 1.0, 1.0).normalize();
-        humanoid.vrm.scene.add(light);
+        this._humanoid.vrm.scene.add(light);
+        this._fillLight = light;
+    }
+
+    /**
+     * 位置を属性に合わせる。
+     *
+     * 属性を消したら元の位置（原点）へ戻す。属性に書いてあるとおりの場所に
+     * いる、という状態にしておく
+     */
+    _applyPosition() {
+        const text = this.getAttribute("position");
+        if (text === null) {
+            this._humanoid.position = {x: 0, y: 0, z: 0};
+            return;
+        }
+        const position = parseVector3(text);
+        if (! position) {
+            console.warn(`<vrm-avatar>: position="${text}" を読み取れません。`
+                         + `"x, y, z" の形で書いてください。`);
+            return;
+        }
+        this._humanoid.position = position;
     }
 
     _attachToWorld() {
