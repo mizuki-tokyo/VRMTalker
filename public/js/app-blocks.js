@@ -52,7 +52,8 @@ const EVENT_LABELS = Object.freeze({
  * field_* はドロップダウン（保存時は fields に入る）、input_value は
  * 差し込み口（保存時は inputs に入る）。インタプリタはどちらでも読める
  */
-const buildBlockUi = ({motionNames = [], emoteNames = [], soundNames = []} = {}) => {
+const buildBlockUi = ({motionNames = [], emoteNames = [], soundNames = [],
+                       backgroundNames = []} = {}) => {
     // 読み込みが終わる前に編集画面を開くと空になる。選べないことが伝わる
     // 見出しを 1 つ出しておく（空のドロップダウンは Blockly が嫌う）
     const choices = (names, empty) =>
@@ -61,6 +62,7 @@ const buildBlockUi = ({motionNames = [], emoteNames = [], soundNames = []} = {})
     const motions = choices(motionNames, "（モーションがありません）");
     const emotes = choices(emoteNames, "（エモートがありません）");
     const sounds = choices(soundNames, "（効果音がありません）");
+    const backgrounds = choices(backgroundNames, "（背景がありません）");
 
     const text = (name) => ({type: "input_value", name});
     const number = (name) => ({type: "input_value", name, check: "Number"});
@@ -164,6 +166,11 @@ const buildBlockUi = ({motionNames = [], emoteNames = [], soundNames = []} = {})
             message0: "吹き出しを全部消す", args0: [], style: "looks_blocks",
             tooltip: "画面から消すだけ。キャラクタは前のやり取りを覚えたまま"
         },
+        screen_set_background: {
+            message0: "背景を %1 にする",
+            args0: [dropdown("NAME", backgrounds)], style: "looks_blocks",
+            tooltip: "選べる背景は img/backgrounds.json で決める"
+        },
 
         //-------------------------------- 会話
         chat_reply: {
@@ -262,6 +269,7 @@ const checkAgainstTables = (ui) => {
  * @param {string[]} names.motionNames ドロップダウンに出すモーション名
  * @param {string[]} names.emoteNames  ドロップダウンに出すエモート名
  * @param {string[]} names.soundNames  ドロップダウンに出す効果音名
+ * @param {string[]} names.backgroundNames ドロップダウンに出す背景名
  * @returns {string[]} 表とずれている箇所の警告
  */
 export const defineBlocks = (Blockly, names = {}) => {
@@ -401,7 +409,8 @@ export const createToolbox = () => {
                 contents: [
                     {kind: "block", type: "screen_show_bubble",
                      inputs: {TEXT: shadowText("こんにちは")}},
-                    {kind: "block", type: "screen_clear_bubbles"}
+                    {kind: "block", type: "screen_clear_bubbles"},
+                    {kind: "block", type: "screen_set_background"}
                 ]
             },
             {

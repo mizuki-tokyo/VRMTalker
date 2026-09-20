@@ -69,6 +69,7 @@ export const CALL_BLOCKS = Object.freeze({
     // 画面
     screen_show_bubble:       {fn: "showBubble",              args: ["WHO", "TEXT"]},
     screen_clear_bubbles:     {fn: "clearBubbles",            args: []},
+    screen_set_background:    {fn: "setBackground",           args: ["NAME"]},
 
     // 会話
     chat_reply:               {fn: "reply",                   args: ["PROMPT"]},

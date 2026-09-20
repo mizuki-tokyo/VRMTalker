@@ -35,11 +35,12 @@ export const SPEAKER = Object.freeze({
  * @param {Element}     deps.chatFlow          <chat-flow>
  * @param {object}      deps.speechSynthesizer SpeechSynthesizer
  * @param {object}      deps.sounds            SoundPlayer
+ * @param {object}      deps.background        Background
  * @param {object}      deps.conversation      Conversation
  * @param {AbortSignal} deps.signal            中断の合図
  */
 const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds,
-                          conversation, signal}) => {
+                          background, conversation, signal}) => {
 
     const stopIfAborted = () => {
         if (signal.aborted) {
@@ -220,6 +221,16 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds,
          */
         clearBubbles() {
             chatFlow.clearMessages();
+        },
+
+        /**
+         * 背景の絵を替える。
+         *
+         * 絵を読み込めた時点で替わる。待たないので、続けて書いたブロックは
+         * 替わる前に動き出す（替わるまで待つ必要がある使い方は想定していない）
+         */
+        setBackground(name) {
+            guard(() => background.set(String(name)), "背景の変更").catch(() => {});
         },
 
         //---------------------------------- 会話

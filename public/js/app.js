@@ -3,6 +3,7 @@
 import ChatClient from "./chat-client.js";
 import SpeechSynthesizer from "./speech-synthesizer.js";
 import SoundPlayer from "./sound-player.js";
+import Background from "./background.js";
 import WebSpeechRecognizer from "./web-speech-recognizer.js";
 import Conversation from "./app-conversation.js";
 
@@ -177,6 +178,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const sounds = new SoundPlayer();
     const soundsLoaded = sounds.load();
 
+    // 背景。最初に出す絵は index.html が決める（#screen の style）。
+    // ここで読むのは、あとから切り替えられる絵の一覧
+    const background = new Background(document.querySelector("#screen"));
+    const backgroundsLoaded = background.load();
+
     const chatClient = new ChatClient();
     const chatFlow = document.querySelector("chat-flow");
     const world = document.querySelector("three-world");
@@ -248,7 +254,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const runner = createActionRunner({
         conversation,
         createApi: (signal) => createAvatarApi({
-            avatar, emote, chatFlow, speechSynthesizer, sounds, conversation, signal
+            avatar, emote, chatFlow, speechSynthesizer, sounds, background,
+            conversation, signal
         }),
         // アクションが終わったら入力待ちへ移す。
         //
@@ -289,7 +296,8 @@ document.addEventListener('DOMContentLoaded', function() {
         getNames: () => ({
             motionNames: avatar.motionNames,
             emoteNames: emote.emoteNames,
-            soundNames: sounds.names
+            soundNames: sounds.names,
+            backgroundNames: background.names
         }),
         // 保存できたら、リロードせずに新しい動作へ差し替える
         onSave: async (program) => {
@@ -445,14 +453,15 @@ document.addEventListener('DOMContentLoaded', function() {
     speechRecognitionElement.setInputLevel(0);
 
     // モデルとモーションが揃ったら会話を始められる。ready → idle の順でイベントが出る。
-    // モーション・エモート・効果音の読み込みを先に済ませるのは、ready のアクション
-    // から、すぐ playMotion() や showEmote() を呼べるようにするため。
-    // エモートと効果音は失敗しても続ける（無くても会話はできる）
+    // モーション・エモート・効果音・背景の読み込みを先に済ませるのは、ready の
+    // アクションから、すぐ playMotion() や showEmote() を呼べるようにするため。
+    // モーション以外は失敗しても続ける（無くても会話はできる）
     avatar.ready
         .then(() => Promise.all([
             loadMotions(avatar),
             emote.ready.catch(() => {}),
-            soundsLoaded
+            soundsLoaded,
+            backgroundsLoaded
         ]))
         // アクションの登録を待ってから ready を出す。
         // そうしないと最初のイベントを取りこぼす

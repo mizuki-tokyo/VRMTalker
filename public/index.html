@@ -94,6 +94,42 @@
           display: flex;
           flex-direction: column;
       }
+
+      /*
+        背景を切り替えるときに、次の絵を重ねる層（js/background.js が使う）。
+
+        background-image は transition できないので、2 枚重ねて上の透明度だけを
+        動かす。変わり切ったら #screen 自身の背景へ移し、この層を透明に戻す。
+        どちらも同じ絵になった瞬間に入れ替えるので、継ぎ目は見えない。
+
+        z-index:-1 で、3D やボタンより後ろ・#screen 自身の背景より手前に置く
+      */
+      #screen::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          background-image: var(--next-background, none);
+          background-size: cover;
+          background-repeat: no-repeat;
+          background-position: center;
+          opacity: 0;
+          pointer-events: none;
+      }
+      /* 動かすのは付いている間だけ。外すときは待たずに消したい
+         （そのときは下に同じ絵が出ている） */
+      #screen.is-fading::after {
+          opacity: 1;
+          transition: opacity 0.6s ease;
+      }
+      /* 動きを減らす設定のときは一瞬で替える。0 にしないのは、終わりの合図
+         （transitionend）が出なくなるため */
+      @media (prefers-reduced-motion: reduce) {
+          #screen.is-fading::after {
+              transition-duration: 0.001s;
+          }
+      }
+
       settings-panel:not(:defined) {
           visibility: hidden;
       }
@@ -769,7 +805,7 @@
       <div id="editor-splitter" title="ドラッグして幅を変える"></div>
     </div>
 
-    <div id="screen" style="background-image:url('./img/flat_room04.png')">
+    <div id="screen" style="background-image:url('./img/pastel_room.png')">
       <three-world>
         <!--
           モーションは animations/motions.json で定義する（既定の待機モーションも）。

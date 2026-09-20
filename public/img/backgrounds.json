@@ -1,0 +1,7 @@
+[
+    { "name": "アトリエ",         "file": "./img/atelier.png" },
+    { "name": "音楽スタジオ",     "file": "./img/music_studio.png" },
+    { "name": "クリスマス",       "file": "./img/snow_christmas.png" },
+    { "name": "ビーチ",           "file": "./img/beach.png" },
+    { "name": "パステル色の部屋", "file": "./img/pastel_room.png" }
+]
