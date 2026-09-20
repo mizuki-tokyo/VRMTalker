@@ -61,6 +61,11 @@ export const CALL_BLOCKS = Object.freeze({
     avatar_show_emote_wait:   {fn: "showEmoteAndWait",        args: ["NAME", "SECONDS"]},
     avatar_clear_emote:       {fn: "clearEmote",              args: []},
 
+    // 効果音
+    sound_play:               {fn: "playSoundEffect",         args: ["NAME"]},
+    sound_play_wait:          {fn: "playSoundEffectAndWait",  args: ["NAME"]},
+    sound_stop:               {fn: "stopSoundEffects",        args: []},
+
     // 画面
     screen_show_bubble:       {fn: "showBubble",              args: ["WHO", "TEXT"]},
     screen_clear_bubbles:     {fn: "clearBubbles",            args: []},

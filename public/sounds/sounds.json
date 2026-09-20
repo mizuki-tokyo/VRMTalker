@@ -1,0 +1,8 @@
+[
+    { "name": "正解",         "file": "./sounds/correct.mp3" },
+    { "name": "不正解",       "file": "./sounds/incorrect.mp3" },
+    { "name": "拍手",         "file": "./sounds/applause.mp3" },
+    { "name": "笑い声",       "file": "./sounds/laughing.mp3" },
+    { "name": "パワーアップ", "file": "./sounds/power-up.mp3" },
+    { "name": "パワーダウン", "file": "./sounds/power-down.mp3" }
+]

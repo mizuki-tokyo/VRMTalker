@@ -34,10 +34,11 @@ export const SPEAKER = Object.freeze({
  * @param {Element}     deps.emote             <vrm-emote>
  * @param {Element}     deps.chatFlow          <chat-flow>
  * @param {object}      deps.speechSynthesizer SpeechSynthesizer
+ * @param {object}      deps.sounds            SoundPlayer
  * @param {object}      deps.conversation      Conversation
  * @param {AbortSignal} deps.signal            中断の合図
  */
-const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer,
+const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds,
                           conversation, signal}) => {
 
     const stopIfAborted = () => {
@@ -46,8 +47,12 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer,
         }
     };
 
-    // 中断されたら発話も止める。何も再生していなければ何も起きない
-    signal.addEventListener("abort", () => avatar.stopSpeaking(), {once: true});
+    // 中断されたら音も止める。何も鳴っていなければ何も起きない。
+    // 止めないと、ブロックを止めたのに声や効果音だけが続く
+    signal.addEventListener("abort", () => {
+        avatar.stopSpeaking();
+        sounds.stop();
+    }, {once: true});
 
     /** 中断できる sleep。 */
     const sleep = (ms) => new Promise((resolve, reject) => {
@@ -177,6 +182,29 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer,
         /** 感情アイコンを消す。 */
         clearEmote() {
             guard(() => emote.clear(), "エモートの消去").catch(() => {});
+        },
+
+        //---------------------------------- 効果音
+
+        /**
+         * 効果音を鳴らす。鳴り終わるのを待たない。
+         *
+         * 鳴らすたびに新しい再生が始まるので、続けて呼べば重なって鳴る。
+         * 発話とは別系統で、互いに止め合わない
+         */
+        playSoundEffect(name) {
+            sounds.play(String(name));
+        },
+
+        /** 効果音を鳴らして、鳴り終わるまで待つ。 */
+        async playSoundEffectAndWait(name) {
+            stopIfAborted();
+            await guard(() => sounds.playAndWait(String(name)), "効果音の再生");
+        },
+
+        /** 鳴っている効果音を全部止める。発話は止まらない。 */
+        stopSoundEffects() {
+            sounds.stop();
         },
 
         //---------------------------------- 画面

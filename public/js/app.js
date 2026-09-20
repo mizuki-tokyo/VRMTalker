@@ -2,6 +2,7 @@
 // 音声対話のコア
 import ChatClient from "./chat-client.js";
 import SpeechSynthesizer from "./speech-synthesizer.js";
+import SoundPlayer from "./sound-player.js";
 import WebSpeechRecognizer from "./web-speech-recognizer.js";
 import Conversation from "./app-conversation.js";
 
@@ -170,6 +171,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const speechSynthesizer = new SpeechSynthesizer();
 
+    // 効果音。定義（sounds/sounds.json）はここですぐ読み始める。
+    // ブロックのドロップダウンの選択肢になるので、編集画面が開くより先に
+    // 揃えておきたい。モデルの読み込みを待つ理由は無い
+    const sounds = new SoundPlayer();
+    const soundsLoaded = sounds.load();
+
     const chatClient = new ChatClient();
     const chatFlow = document.querySelector("chat-flow");
     const world = document.querySelector("three-world");
@@ -241,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const runner = createActionRunner({
         conversation,
         createApi: (signal) => createAvatarApi({
-            avatar, emote, chatFlow, speechSynthesizer, conversation, signal
+            avatar, emote, chatFlow, speechSynthesizer, sounds, conversation, signal
         }),
         // アクションが終わったら入力待ちへ移す。
         //
@@ -281,7 +288,8 @@ document.addEventListener('DOMContentLoaded', function() {
         actionsUrl: ACTIONS_URL,
         getNames: () => ({
             motionNames: avatar.motionNames,
-            emoteNames: emote.emoteNames
+            emoteNames: emote.emoteNames,
+            soundNames: sounds.names
         }),
         // 保存できたら、リロードせずに新しい動作へ差し替える
         onSave: async (program) => {
@@ -437,13 +445,14 @@ document.addEventListener('DOMContentLoaded', function() {
     speechRecognitionElement.setInputLevel(0);
 
     // モデルとモーションが揃ったら会話を始められる。ready → idle の順でイベントが出る。
-    // モーションとエモートの読み込みを先に済ませるのは、ready のアクションから
-    // すぐ playMotion() や showEmote() を呼べるようにするため。
-    // エモートは失敗しても続ける（アイコンが無くても会話はできる）
+    // モーション・エモート・効果音の読み込みを先に済ませるのは、ready のアクション
+    // から、すぐ playMotion() や showEmote() を呼べるようにするため。
+    // エモートと効果音は失敗しても続ける（無くても会話はできる）
     avatar.ready
         .then(() => Promise.all([
             loadMotions(avatar),
-            emote.ready.catch(() => {})
+            emote.ready.catch(() => {}),
+            soundsLoaded
         ]))
         // アクションの登録を待ってから ready を出す。
         // そうしないと最初のイベントを取りこぼす

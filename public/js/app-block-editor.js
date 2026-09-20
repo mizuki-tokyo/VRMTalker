@@ -103,6 +103,7 @@ const createTheme = (Blockly) => {
             event_category: {colour: PALETTE.events},
             control_category: {colour: PALETTE.control},
             looks_category: {colour: PALETTE.looks},
+            sound_category: {colour: PALETTE.sound},
             sensing_category: {colour: PALETTE.sensing},
             operator_category: {colour: PALETTE.operators},
             variable_category: {colour: PALETTE.variables}

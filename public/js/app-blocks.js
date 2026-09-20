@@ -52,7 +52,7 @@ const EVENT_LABELS = Object.freeze({
  * field_* はドロップダウン（保存時は fields に入る）、input_value は
  * 差し込み口（保存時は inputs に入る）。インタプリタはどちらでも読める
  */
-const buildBlockUi = ({motionNames = [], emoteNames = []} = {}) => {
+const buildBlockUi = ({motionNames = [], emoteNames = [], soundNames = []} = {}) => {
     // 読み込みが終わる前に編集画面を開くと空になる。選べないことが伝わる
     // 見出しを 1 つ出しておく（空のドロップダウンは Blockly が嫌う）
     const choices = (names, empty) =>
@@ -60,6 +60,7 @@ const buildBlockUi = ({motionNames = [], emoteNames = []} = {}) => {
 
     const motions = choices(motionNames, "（モーションがありません）");
     const emotes = choices(emoteNames, "（エモートがありません）");
+    const sounds = choices(soundNames, "（効果音がありません）");
 
     const text = (name) => ({type: "input_value", name});
     const number = (name) => ({type: "input_value", name, check: "Number"});
@@ -135,6 +136,22 @@ const buildBlockUi = ({motionNames = [], emoteNames = []} = {}) => {
         avatar_clear_emote: {
             message0: "エモートを消す", args0: [], style: "looks_blocks",
             tooltip: "0 秒で出したエモートを消すときに使う"
+        },
+
+        //-------------------------------- 効果音
+        sound_play: {
+            message0: "%1 の音を鳴らす",
+            args0: [dropdown("NAME", sounds)], style: "sound_blocks",
+            tooltip: "鳴り終わるのを待たない。続けて鳴らすと音が重なる。"
+                   + "鳴らせる音は sounds/sounds.json で決める"
+        },
+        sound_play_wait: {
+            message0: "%1 の音を鳴らして終わるまで待つ",
+            args0: [dropdown("NAME", sounds)], style: "sound_blocks"
+        },
+        sound_stop: {
+            message0: "音を止める", args0: [], style: "sound_blocks",
+            tooltip: "鳴っている効果音を全部止める。話すのは止まらない"
         },
 
         //-------------------------------- 画面
@@ -244,6 +261,7 @@ const checkAgainstTables = (ui) => {
  * @param {object}   names
  * @param {string[]} names.motionNames ドロップダウンに出すモーション名
  * @param {string[]} names.emoteNames  ドロップダウンに出すエモート名
+ * @param {string[]} names.soundNames  ドロップダウンに出す効果音名
  * @returns {string[]} 表とずれている箇所の警告
  */
 export const defineBlocks = (Blockly, names = {}) => {
@@ -368,6 +386,14 @@ export const createToolbox = () => {
                     {kind: "block", type: "avatar_play_sound_wait",
                      inputs: {URL: shadowText("./mp3/konnichiwa.mp3")}},
                     {kind: "block", type: "avatar_stop_speaking"}
+                ]
+            },
+            {
+                kind: "category", name: "音", categorystyle: "sound_category",
+                contents: [
+                    {kind: "block", type: "sound_play"},
+                    {kind: "block", type: "sound_play_wait"},
+                    {kind: "block", type: "sound_stop"}
                 ]
             },
             {

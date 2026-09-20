@@ -35,6 +35,20 @@
 
 詳細は `public/emotes/README.txt` を参照してください。
 
+## 効果音
+
+すべて **freesound.org** で CC0 として公開されているものです
+（`public/sounds/readme.txt` に一覧があります）。
+
+| 音 | 作者 |
+|---|---|
+| 正解 | [Mudkip2016](https://freesound.org/people/Mudkip2016/sounds/423930) |
+| 不正解 | [Producing_RayLite](https://freesound.org/people/Producing_RayLite/sounds/700641) |
+| 拍手 | [Sandermotions](https://freesound.org/people/Sandermotions/sounds/277021) |
+| 笑い声 | [ShangusBurger](https://freesound.org/people/ShangusBurger/sounds/763834) |
+| パワーアップ | [JustInvoke](https://freesound.org/people/JustInvoke/sounds/138485) |
+| パワーダウン | [JustInvoke](https://freesound.org/people/JustInvoke/sounds/138488) |
+
 ## 3D モデル
 
 同梱のモデルの作者・利用許諾は、モデル自身に埋め込まれています。
