@@ -28,8 +28,17 @@ DEFAULT_PERSONA = "あなたは親しみやすい会話相手です。"
 SPEECH_STYLE_RULES = (
     "返答はそのまま音声で読み上げられます。"
     "記号や箇条書きを使わず、1〜2 文の短い話し言葉で答えてください。"
+    "絵文字は読み上げられません。"
 )
 
+# EMOTION_ESTIMATION = '''
+# 絵文字を使用する場合は、必ず以下の５種類から１つを選んで応答の最後に加るようにしてください。
+# 🙂:通常、
+# 😄:喜びを感じている、
+# 😠:怒りを感じている、
+# 😭:悲しみを感じている、
+# 😌:安らぎを感じている、
+# '''
 
 def system_prompt(name: str = "", profile: str = "") -> str:
     """システムプロンプトを組み立てる。
@@ -43,6 +52,8 @@ def system_prompt(name: str = "", profile: str = "") -> str:
         parts.append(f"あなたの名前は「{name}」です。")
 
     parts.append(profile or os.environ.get("LLM_SYSTEM_PROMPT", DEFAULT_PERSONA))
+
+    #parts.append(EMOTION_ESTIMATION)
 
     # 生成の直前に置く。性格の記述が長いほど前半の指示は効きにくくなるため
     parts.append(SPEECH_STYLE_RULES)
