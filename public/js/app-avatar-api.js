@@ -36,11 +36,12 @@ export const SPEAKER = Object.freeze({
  * @param {object}      deps.speechSynthesizer SpeechSynthesizer
  * @param {object}      deps.sounds            SoundPlayer
  * @param {object}      deps.background        Background
+ * @param {object}      deps.toast             画面に短い知らせを出すもの
  * @param {object}      deps.conversation      Conversation
  * @param {AbortSignal} deps.signal            中断の合図
  */
 const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds,
-                          background, conversation, signal}) => {
+                          background, toast, conversation, signal}) => {
 
     const stopIfAborted = () => {
         if (signal.aborted) {
@@ -221,6 +222,16 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds,
          */
         clearBubbles() {
             chatFlow.clearMessages();
+        },
+
+        /**
+         * 画面にメッセージを出す。消えるのを待たない。
+         *
+         * 吹き出しと違って会話の記録には残らない。エラーの知らせなど、
+         * キャラクタの発言ではないものに使う
+         */
+        showToast(text, seconds) {
+            toast.show(String(text), Number(seconds));
         },
 
         /**

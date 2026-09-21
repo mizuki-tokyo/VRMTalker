@@ -166,6 +166,13 @@ const buildBlockUi = ({motionNames = [], emoteNames = [], soundNames = [],
             message0: "吹き出しを全部消す", args0: [], style: "looks_blocks",
             tooltip: "画面から消すだけ。キャラクタは前のやり取りを覚えたまま"
         },
+        screen_show_toast: {
+            message0: "%1 というメッセージを %2 秒間出す",
+            args0: [text("TEXT"), number("SECONDS")],
+            style: "looks_blocks", inputsInline: true,
+            tooltip: "画面の真ん中に出して、時間が来たら消える。消えるのを待たない。"
+                   + "吹き出しと違って会話の記録には残らない"
+        },
         screen_set_background: {
             message0: "背景を %1 にする",
             args0: [dropdown("NAME", backgrounds)], style: "looks_blocks",
@@ -410,6 +417,9 @@ export const createToolbox = () => {
                     {kind: "block", type: "screen_show_bubble",
                      inputs: {TEXT: shadowText("こんにちは")}},
                     {kind: "block", type: "screen_clear_bubbles"},
+                    {kind: "block", type: "screen_show_toast",
+                     inputs: {TEXT: shadowText("エラーが起きました"),
+                              SECONDS: shadowNumber(3)}},
                     {kind: "block", type: "screen_set_background"}
                 ]
             },

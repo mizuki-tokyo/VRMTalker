@@ -43,6 +43,10 @@
           --dialog-backdrop: rgba(35, 36, 74, 0.45);
           --dialog-radius:   var(--ui-radius);
 
+          /* 画面に出す短い知らせ（web-ui/toast.js）。色は既定のまま
+             （濃い下地に白文字。どんな背景の上でも読める） */
+          --toast-radius: var(--ui-radius);
+
           /* 画面端の余白（iPhone のノッチ等） */
           --safe-bottom: env(safe-area-inset-bottom, 0px);
           --safe-top:    env(safe-area-inset-top, 0px);
@@ -176,12 +180,10 @@
           padding-left:   calc(var(--ui-gap) + var(--safe-left));
           padding-right:  calc(var(--ui-gap) + var(--safe-right));
           padding-bottom: calc(var(--ui-gap) + var(--safe-bottom));
-          /* 帯が画面幅いっぱいに広がるため、そのままだと画面下部で
-             3D を掴めなくなる。操作する部品だけを通す */
-          pointer-events: none;
+          /* 3D オブジェクトを操作されないように、#screen の pointer-events:none を打ち消す */
+          pointer-events: auto;
 
           & > * {
-              pointer-events: auto;
               /* 既定の flex-shrink:1 だとボタンが潰れる。
                  ボタンの中身は絶対配置なので内容幅が 0 になり、自動最小サイズも
                  効かない（認識結果を長くするとマイクが数 px まで縮む）。

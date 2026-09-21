@@ -239,16 +239,25 @@
         "y": 787,
         "next": {
           "block": {
-            "type": "screen_show_bubble",
-            "id": "L=~^+RQ@RD[4;Y!J;RT9",
-            "fields": {
-              "WHO": "キャラクタ"
-            },
+            "type": "screen_show_toast",
+            "id": "WC.Z{],ldyJ(G(r=OTE?",
             "inputs": {
               "TEXT": {
-                "block": {
-                  "type": "value_error_message",
-                  "id": "HzTGa)61h.[/M:{x32v!"
+                "shadow": {
+                  "type": "text",
+                  "id": "aZqT+vECf]O6p7wu5SSB",
+                  "fields": {
+                    "TEXT": "エラーが起きました"
+                  }
+                }
+              },
+              "SECONDS": {
+                "shadow": {
+                  "type": "math_number",
+                  "id": "0N,y;((v]vtQ%m8sDITo",
+                  "fields": {
+                    "NUM": 3
+                  }
                 }
               }
             },
@@ -262,7 +271,7 @@
                       "type": "text",
                       "id": "NG~q-QzC[=KB^^zHnDJW",
                       "fields": {
-                        "TEXT": "./voices/konnichiwa.mp3"
+                        "TEXT": "./voices/error.mp3"
                       }
                     }
                   }

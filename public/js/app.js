@@ -4,6 +4,7 @@ import ChatClient from "./chat-client.js";
 import SpeechSynthesizer from "./speech-synthesizer.js";
 import SoundPlayer from "./sound-player.js";
 import Background from "./background.js";
+import Toast from "./web-ui/toast.js";
 import WebSpeechRecognizer from "./web-speech-recognizer.js";
 import Conversation from "./app-conversation.js";
 
@@ -178,10 +179,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const sounds = new SoundPlayer();
     const soundsLoaded = sounds.load();
 
+    const screenElement = document.querySelector("#screen");
+
     // 背景。最初に出す絵は index.html が決める（#screen の style）。
     // ここで読むのは、あとから切り替えられる絵の一覧
-    const background = new Background(document.querySelector("#screen"));
+    const background = new Background(screenElement);
     const backgroundsLoaded = background.load();
+
+    /**
+     * 画面に出す短い知らせ。
+     *
+     * 出す先を #screen にするのは、編集画面を開いて左右に分かれたときに、
+     * 隠れず、残った側の真ん中に出るようにするため（#screen には transform が
+     * 掛かっているので、中の position:fixed はこの要素を基準に決まる）。
+     *
+     * 場所を真ん中にしているのは、エラーのように必ず気づいてほしい知らせに
+     * 使うため。下は操作列（マイクと認識結果）と重なる
+     */
+    const toast = {
+        show: (text, seconds) => Toast.show(
+            text, Math.max(0, seconds) * 1000, Toast.POSITION.CENTER, screenElement)
+    };
 
     const chatClient = new ChatClient();
     const chatFlow = document.querySelector("chat-flow");
@@ -254,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const runner = createActionRunner({
         conversation,
         createApi: (signal) => createAvatarApi({
-            avatar, emote, chatFlow, speechSynthesizer, sounds, background,
+            avatar, emote, chatFlow, speechSynthesizer, sounds, background, toast,
             conversation, signal
         }),
         // アクションが終わったら入力待ちへ移す。
@@ -319,6 +337,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 発話を訊くダイアログが開いたままなら閉じる。
                 // 中断したのに問いだけ残ると、何も起きていないように見える
                 dialog.dismiss();
+                // 出しっぱなしのメッセージも消す（止めた後に残り続けない）
+                Toast.dismiss();
             },
 
             /**
