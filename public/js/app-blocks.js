@@ -390,9 +390,9 @@ export const createToolbox = () => {
                      inputs: {SECONDS: shadowNumber(2)}},
                     {kind: "block", type: "avatar_clear_emote"},
                     {kind: "block", type: "avatar_play_sound",
-                     inputs: {URL: shadowText("./mp3/konnichiwa.mp3")}},
+                     inputs: {URL: shadowText("./voices/konnichiwa.mp3")}},
                     {kind: "block", type: "avatar_play_sound_wait",
-                     inputs: {URL: shadowText("./mp3/konnichiwa.mp3")}},
+                     inputs: {URL: shadowText("./voices/konnichiwa.mp3")}},
                     {kind: "block", type: "avatar_stop_speaking"}
                 ]
             },
