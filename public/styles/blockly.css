@@ -1,0 +1,60 @@
+/*
+ * Blockly の見た目を整えるスタイル。
+ *
+ *   <link rel="stylesheet" href="./styles/blockly.css">
+ *
+ * このファイルはプロジェクトに依存しない。Blockly が付けるクラス名だけを
+ * 相手にしており、置き場所や画面の作りを問わないので、そのまま他へ持って
+ * いける。色や書体は変数で差し替える（既定値だけで使っても成立する）。
+ *
+ *   --blockly-category-height     カテゴリ 1 行の高さ
+ *   --blockly-category-bar-width  カテゴリの色を示す縦棒の太さ
+ *   --blockly-category-font       カテゴリの文字
+ *   --blockly-glow-color          実行中のブロック列を光らせる色
+ *   --blockly-glow-size           その光の太さ。下の説明を参照
+ *
+ * 逆に、そのプロジェクトの画面の作りに依存する指定は入れない。
+ * 例えば「会話モードではパレットを畳む」のような、モードの概念を前提に
+ * したものは持ち込む側（index.html）に置く。
+ */
+
+/*
+ * カテゴリの行。
+ *
+ * 既定は行が高く、少ない項目でも縦に伸びて一覧しづらい。詰めて、
+ * 色の縦棒も細くする（太いと文字が押し出される）。
+ * 縦棒の幅は Blockly が style 属性へ直接書くため !important が要る
+ */
+.blocklyToolboxCategory {
+    height: var(--blockly-category-height, 33px);
+    line-height: var(--blockly-category-height, 33px);
+}
+.blocklyToolboxCategoryIcon {
+    width: var(--blockly-category-bar-width, 4px) !important;
+}
+.blocklyToolboxCategoryLabel {
+    font: var(--blockly-category-font, 14px sans-serif) !important;
+}
+
+/*
+ * 試し実行中のブロック列。Scratch と同じく列全体を光らせる。
+ *
+ * 使う側は、実行している列の先頭ブロックの <g>（block.getSvgRoot()）へ
+ * is-running を付ける。それだけで列全体が光る。Blockly は「次のブロック」
+ * 「C 型の中身」「差し込んだ値ブロック」を、すべて先頭の <g> の子孫として
+ * 描くため、フィルタが子孫ごと掛かるため。Scratch（scratch-blocks の
+ * setGlowStack）も同じ仕組みを使っている。
+ *
+ * Scratch はアルファを 1 に均して縁をくっきりさせているが、CSS には同じ
+ * 指定が無いので、同じ drop-shadow を重ねて近い見え方にしている。
+ *
+ * ぼかし幅はブロックと同じ座標系で効くため、そのままだと拡大で太く、縮小で
+ * 消える。使う側が倍率の逆数を --blockly-glow-size に入れて打ち消すこと
+ * （このプロジェクトでは app-block-editor.js が倍率の変化に合わせて書く）
+ */
+.blocklyBlockCanvas .is-running {
+    filter: drop-shadow(0 0 var(--blockly-glow-size, 2px) var(--blockly-glow-color, #ff8a00))
+            drop-shadow(0 0 var(--blockly-glow-size, 2px) var(--blockly-glow-color, #ff8a00))
+            drop-shadow(0 0 var(--blockly-glow-size, 2px) var(--blockly-glow-color, #ff8a00))
+            drop-shadow(0 0 var(--blockly-glow-size, 2px) var(--blockly-glow-color, #ff8a00));
+}

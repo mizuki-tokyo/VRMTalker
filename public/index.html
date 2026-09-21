@@ -78,9 +78,9 @@
           height: 100%;
           position: fixed;
           transform: scale(1.0);
-          /* background: transparent; */
           pointer-events: none;
-          /* for background image */
+
+          /* 背景の絵。差し替えは js/background.js が行う */
           background-size: cover;
           background-repeat: no-repeat;
           background-position: center;
@@ -93,40 +93,41 @@
           */
           display: flex;
           flex-direction: column;
-      }
 
-      /*
-        背景を切り替えるときに、次の絵を重ねる層（js/background.js が使う）。
+          /*
+            背景を切り替えるときに、次の絵を重ねる層。
 
-        background-image は transition できないので、2 枚重ねて上の透明度だけを
-        動かす。変わり切ったら #screen 自身の背景へ移し、この層を透明に戻す。
-        どちらも同じ絵になった瞬間に入れ替えるので、継ぎ目は見えない。
+            background-image は transition できないので、2 枚重ねて上の透明度
+            だけを動かす。変わり切ったら #screen 自身の背景へ移し、この層を
+            透明に戻す。どちらも同じ絵になった瞬間に入れ替えるので、継ぎ目は
+            見えない。
 
-        z-index:-1 で、3D やボタンより後ろ・#screen 自身の背景より手前に置く
-      */
-      #screen::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          z-index: -1;
-          background-image: var(--next-background, none);
-          background-size: cover;
-          background-repeat: no-repeat;
-          background-position: center;
-          opacity: 0;
-          pointer-events: none;
-      }
-      /* 動かすのは付いている間だけ。外すときは待たずに消したい
-         （そのときは下に同じ絵が出ている） */
-      #screen.is-fading::after {
-          opacity: 1;
-          transition: opacity 0.6s ease;
-      }
-      /* 動きを減らす設定のときは一瞬で替える。0 にしないのは、終わりの合図
-         （transitionend）が出なくなるため */
-      @media (prefers-reduced-motion: reduce) {
-          #screen.is-fading::after {
-              transition-duration: 0.001s;
+            z-index:-1 で、3D やボタンより後ろ・#screen 自身の背景より手前に置く
+          */
+          &::after {
+              content: "";
+              position: absolute;
+              inset: 0;
+              z-index: -1;
+              background-image: var(--next-background, none);
+              background-size: cover;
+              background-repeat: no-repeat;
+              background-position: center;
+              opacity: 0;
+              pointer-events: none;
+          }
+          /* 動かすのは付いている間だけ。外すときは待たずに消したい
+             （そのときは下に同じ絵が出ている） */
+          &.is-fading::after {
+              opacity: 1;
+              transition: opacity 0.6s ease;
+          }
+          /* 動きを減らす設定のときは一瞬で替える。0 にしないのは、終わりの
+             合図（transitionend）が出なくなるため */
+          @media (prefers-reduced-motion: reduce) {
+              &.is-fading::after {
+                  transition-duration: 0.001s;
+              }
           }
       }
 
@@ -178,14 +179,15 @@
           /* 帯が画面幅いっぱいに広がるため、そのままだと画面下部で
              3D を掴めなくなる。操作する部品だけを通す */
           pointer-events: none;
-      }
-      #controls-panel > * {
-          pointer-events: auto;
-          /* 既定の flex-shrink:1 だとボタンが潰れる。
-             ボタンの中身は絶対配置なので内容幅が 0 になり、自動最小サイズも
-             効かない（認識結果を長くするとマイクが数 px まで縮む）。
-             伸び縮みするのは認識結果だけにする */
-          flex: 0 0 auto;
+
+          & > * {
+              pointer-events: auto;
+              /* 既定の flex-shrink:1 だとボタンが潰れる。
+                 ボタンの中身は絶対配置なので内容幅が 0 になり、自動最小サイズも
+                 効かない（認識結果を長くするとマイクが数 px まで縮む）。
+                 伸び縮みするのは認識結果だけにする */
+              flex: 0 0 auto;
+          }
       }
 
       /* 認識結果はボタンの間に収める。幅が足りなければ折り返す */
@@ -221,9 +223,10 @@
             app.js の読み取り方も見直すこと
           */
           transition: opacity 0.5s ease;
-      }
-      #speech-recognition-result.fade-out {
-          opacity: 0;
+
+          &.fade-out {
+              opacity: 0;
+          }
       }
 
       /*
@@ -243,25 +246,28 @@
           border-radius: 999px;
           background: #e8eaf6;
           outline: none;
-      }
-      #zoom-slider::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 22px;
-          height: 22px;
-          border: none;
-          border-radius: 50%;
-          background: var(--pop-blue);
-          box-shadow: var(--pop-shadow);
-          cursor: pointer;
-      }
-      #zoom-slider::-moz-range-thumb {
-          width: 22px;
-          height: 22px;
-          border: none;
-          border-radius: 50%;
-          background: var(--pop-blue);
-          cursor: pointer;
+
+          /* つまみ。ブラウザごとに別の擬似要素なので、まとめて書けない
+             （片方でも知らない記法があると、規則ごと捨てられる） */
+          &::-webkit-slider-thumb {
+              -webkit-appearance: none;
+              appearance: none;
+              width: 22px;
+              height: 22px;
+              border: none;
+              border-radius: 50%;
+              background: var(--pop-blue);
+              box-shadow: var(--pop-shadow);
+              cursor: pointer;
+          }
+          &::-moz-range-thumb {
+              width: 22px;
+              height: 22px;
+              border: none;
+              border-radius: 50%;
+              background: var(--pop-blue);
+              cursor: pointer;
+          }
       }
       #speaker-select {
           width: 100%;
@@ -285,9 +291,6 @@
           padding-top: 14px;
           border-top: 2px solid #e3e6f5;
       }
-      .menu-button + .menu-button {
-          margin-top: 8px;
-      }
       /* メニューの主な操作。アイコンと文字を並べる */
       .menu-button {
           display: flex;
@@ -305,34 +308,41 @@
           text-align: left;
           box-shadow: var(--pop-shadow);
           cursor: pointer;
-      }
-      .menu-button--danger {
-          background: var(--pop-pink);
-      }
-      /*
-        読むためだけの項目。操作の邪魔をしないよう、小さく灰色にする。
-        影も落とさない（押して何かが変わるボタンではない）
-      */
-      .menu-button--quiet {
-          padding: 7px 12px;
-          background: #eef1ff;
-          color: var(--pop-ink);
-          font-size: calc(var(--ui-font) * 0.9);
-          font-weight: 700;
-          box-shadow: none;
-          opacity: 0.85;
-      }
-      .menu-button--quiet .menu-icon {
-          width: 16px;
-          height: 16px;
-      }
-      .menu-button--quiet:active {
-          transform: translateY(1px);
-          box-shadow: none;
-      }
-      .menu-button:active {
-          transform: translateY(2px);
-          box-shadow: 0 2px 0 rgba(35, 36, 74, 0.18);
+
+          & + & {
+              margin-top: 8px;
+          }
+          &:active {
+              transform: translateY(2px);
+              box-shadow: 0 2px 0 rgba(35, 36, 74, 0.18);
+          }
+
+          &.menu-button--danger {
+              background: var(--pop-pink);
+          }
+
+          /*
+            読むためだけの項目。操作の邪魔をしないよう、小さく灰色にする。
+            影も落とさない（押して何かが変わるボタンではない）
+          */
+          &.menu-button--quiet {
+              padding: 7px 12px;
+              background: #eef1ff;
+              color: var(--pop-ink);
+              font-size: calc(var(--ui-font) * 0.9);
+              font-weight: 700;
+              box-shadow: none;
+              opacity: 0.85;
+
+              & .menu-icon {
+                  width: 16px;
+                  height: 16px;
+              }
+              &:active {
+                  transform: translateY(1px);
+                  box-shadow: none;
+              }
+          }
       }
       /* 「設定」の見出し。アイコンの大きさはボタンと揃える */
       .menu-heading {
@@ -369,6 +379,12 @@
         Blockly は Shadow DOM の中では座標計算が崩れるため、ここだけ light DOM
       */
       #block-editor {
+          /*
+            Blockly 自体の見た目は styles/blockly.css が持つ（他のプロジェクト
+            でも使えるように分けてある）。この画面の書体だけ、ここから渡す
+          */
+          --blockly-category-font: 14px LINESeedJP_Rg;
+
           display: none;
           position: fixed;
           top: 0;
@@ -379,207 +395,201 @@
           flex-direction: column;
           background: #ffffff;
           box-shadow: 2px 0 12px rgba(35, 36, 74, 0.18);
-      }
-      #block-editor[open] {
-          display: flex;
-      }
-      /* 狭い画面では全体を覆う。ブロック操作は PC / タブレットを推奨 */
-      @media (max-width: 820px) {
-          #block-editor[open] {
-              width: 100%;
+
+          &[open] {
+              display: flex;
           }
-      }
+          /* 狭い画面では全体を覆う。ブロック操作は PC / タブレットを推奨 */
+          @media (max-width: 820px) {
+              &[open] {
+                  width: 100%;
+              }
+          }
 
-      .editor-bar {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px calc(var(--ui-gap) + var(--safe-left));
-          padding-top: calc(8px + var(--safe-top));
-          border-bottom: 2px solid #e3e6f5;
-          font-size: var(--ui-font);
-      }
-      /* 縮めてよいのはここだけ。ボタンやラジオが縮むと折り返してしまう */
-      #editor-status {
-          flex: 1 1 auto;
-          min-width: 0;
-          opacity: 0.7;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-      }
-      #editor-status.is-error {
-          color: var(--pop-pink);
-          opacity: 1;
-      }
-      .editor-bar button {
-          flex: 0 0 auto;
-          padding: 8px 14px;
-          border: none;
-          border-radius: 999px;
-          background: var(--pop-blue);
-          color: #fff;
-          font: inherit;
-          font-weight: 700;
-          box-shadow: var(--pop-shadow);
-          cursor: pointer;
-      }
-      .editor-bar button:active {
-          transform: translateY(2px);
-          box-shadow: 0 2px 0 rgba(35, 36, 74, 0.18);
-      }
-      /*
-        閉じるは ✕ だけにして場所を空ける。
-        文字が無いぶん詰まりやすいので、指で押せる大きさは確保する
-      */
-      #editor-close {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 38px;
-          height: 38px;
-          padding: 0;
-          background: #e3e6f5;
-          color: var(--pop-ink);
-      }
-      #editor-close svg {
-          width: 20px;
-          height: 20px;
-      }
+          .editor-bar {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              padding: 8px calc(var(--ui-gap) + var(--safe-left));
+              padding-top: calc(8px + var(--safe-top));
+              border-bottom: 2px solid #e3e6f5;
+              font-size: var(--ui-font);
 
-      /*
-        会話モードと編集モードの切り替え。
+              & button {
+                  flex: 0 0 auto;
+                  padding: 8px 14px;
+                  border: none;
+                  border-radius: 999px;
+                  background: var(--pop-blue);
+                  color: #fff;
+                  font: inherit;
+                  font-weight: 700;
+                  box-shadow: var(--pop-shadow);
+                  cursor: pointer;
 
-        トグルボタンだと、ラベルが「今の状態」なのか「押した結果」なのかが
-        判別できない。2 つ並べて片方を選ばせる形にすると、モードが 2 つある
-        ことも、今どちらなのかも、見ただけで分かる。
+                  &:active {
+                      transform: translateY(2px);
+                      box-shadow: 0 2px 0 rgba(35, 36, 74, 0.18);
+                  }
+              }
+          }
 
-        中身は本物のラジオボタン。矢印キーで切り替えられ、読み上げも
-        「2 つのうち 1 つ」と正しく伝わる
-      */
-      #editor-modes {
-          display: flex;
-          flex: 0 0 auto;
-          gap: 2px;
-          padding: 2px;
-          border-radius: 999px;
-          background: #e3e6f5;
-      }
-      #editor-modes input {
-          /* 見た目はラベルが受け持つ。display:none にすると
-             キーボードで到達できなくなるので、隠さずに重ねる */
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          opacity: 0;
-          pointer-events: none;
-      }
-      #editor-modes label {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          padding: 6px 12px;
-          border-radius: 999px;
-          font-weight: 700;
-          white-space: nowrap;
-          color: var(--pop-ink);
-          opacity: 0.55;
-          cursor: pointer;
-      }
-      #editor-modes label svg {
-          width: 1.15em;
-          height: 1.15em;
-      }
-      #editor-modes input:checked + label {
-          background: var(--pop-surface);
-          box-shadow: 0 1px 0 rgba(35, 36, 74, 0.18);
-          opacity: 1;
-      }
-      /* キーボードで移動してきたことが分かるようにする */
-      #editor-modes input:focus-visible + label {
-          outline: 2px solid var(--pop-blue);
-          outline-offset: 1px;
-      }
-      /*
-        バーが狭いときは、モードの文字を畳んでアイコンだけにする。
-        畳まないと、先に削られるのは縮んでよい状態表示のほうで、
-        「編集モードです。…」が 1 文字も読めなくなる。
+          /* 縮めてよいのはここだけ。ボタンやラジオが縮むと折り返してしまう */
+          #editor-status {
+              flex: 1 1 auto;
+              min-width: 0;
+              opacity: 0.7;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
 
-        狭いかどうかは画面ではなく編集画面の幅で決める（利用者が横幅を
-        変えられるので、広い画面でもバーは狭いことがある）。
-        判定は app-block-editor.js が .is-narrow で伝えてくる
-      */
-      #block-editor.is-narrow #editor-modes label span {
-          /* display:none にすると、読み上げ用の名前まで消えてラジオが
-             「何のボタンか」を答えられなくなる。見た目だけ畳む */
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          overflow: hidden;
-          clip-path: inset(50%);
-          white-space: nowrap;
-      }
+              &.is-error {
+                  color: var(--pop-pink);
+                  opacity: 1;
+              }
+          }
 
-      #blockly-area {
-          flex: 1 1 auto;
-          min-height: 0;
-      }
+          /*
+            閉じるは ✕ だけにして場所を空ける。
+            文字が無いぶん詰まりやすいので、指で押せる大きさは確保する
+          */
+          #editor-close {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 38px;
+              height: 38px;
+              padding: 0;
+              background: #e3e6f5;
+              color: var(--pop-ink);
 
-      /*
-        会話モードではパレットを畳む。読み取り専用でも開けてしまい、
-        しかも何も作れないので、触った人が戸惑う。
+              & svg {
+                  width: 20px;
+                  height: 20px;
+              }
+          }
 
-        押せなくはしない。押されたことが分からないと、切り替え方を
-        知らせることもできないため（app-block-editor.js の
-        TOOLBOX_ITEM_SELECT を参照）。開こうとしたパレットは、
-        こちらで閉じたうえで案内を出す。
+          /*
+            会話モードと編集モードの切り替え。
 
-        !important は、Blockly が開くたびに display:block を style 属性へ
-        直接書くため。インラインの指定は、!important の無いスタイルシートの
-        指定より強い。閉じている間は Blockly も display:none を書くので、
-        付け忘れても効いているように見えてしまう
-      */
-      #block-editor:not(.is-editing) .blocklyToolbox {
-          opacity: 0.35;
-      }
-      #block-editor:not(.is-editing) .blocklyFlyout {
-          display: none !important;
-      }
+            トグルボタンだと、ラベルが「今の状態」なのか「押した結果」なのかが
+            判別できない。2 つ並べて片方を選ばせる形にすると、モードが 2 つある
+            ことも、今どちらなのかも、見ただけで分かる。
 
-      /*
-        試し実行中のブロック列。Scratch と同じく列全体を光らせる。
+            中身は本物のラジオボタン。矢印キーで切り替えられ、読み上げも
+            「2 つのうち 1 つ」と正しく伝わる
+          */
+          #editor-modes {
+              display: flex;
+              flex: 0 0 auto;
+              gap: 2px;
+              padding: 2px;
+              border-radius: 999px;
+              background: #e3e6f5;
 
-        先頭ブロックの <g> にフィルタを 1 回かけるだけで列全体が光る。
-        Blockly は「次のブロック」「C 型の中身」「差し込んだ値ブロック」を、
-        すべて先頭の <g> の子孫として描くため、フィルタが子孫ごと掛かる。
-        Scratch（scratch-blocks の setGlowStack）も同じ仕組みを使っている。
+              & input {
+                  /* 見た目はラベルが受け持つ。display:none にすると
+                     キーボードで到達できなくなるので、隠さずに重ねる */
+                  position: absolute;
+                  width: 1px;
+                  height: 1px;
+                  opacity: 0;
+                  pointer-events: none;
+              }
+              & label {
+                  display: flex;
+                  align-items: center;
+                  gap: 5px;
+                  padding: 6px 12px;
+                  border-radius: 999px;
+                  font-weight: 700;
+                  white-space: nowrap;
+                  color: var(--pop-ink);
+                  opacity: 0.55;
+                  cursor: pointer;
 
-        Scratch はアルファを 1 に均して縁をくっきりさせているが、CSS には
-        同じ指定が無いので、同じ drop-shadow を重ねて近い見え方にしている。
+                  & svg {
+                      width: 1.15em;
+                      height: 1.15em;
+                  }
+              }
+              & input:checked + label {
+                  background: var(--pop-surface);
+                  box-shadow: 0 1px 0 rgba(35, 36, 74, 0.18);
+                  opacity: 1;
+              }
+              /* キーボードで移動してきたことが分かるようにする */
+              & input:focus-visible + label {
+                  outline: 2px solid var(--pop-blue);
+                  outline-offset: 1px;
+              }
+          }
 
-        ぼかし幅はブロックと同じ座標系で効くため、そのままだと拡大で太く、
-        縮小で消える。倍率の逆数を --glow-size に入れて打ち消す
-        （app-block-editor.js が倍率の変化に合わせて書き換える）
-      */
-      .blocklyBlockCanvas .is-running {
-          filter: drop-shadow(0 0 var(--glow-size, 2px) #ff8a00)
-                  drop-shadow(0 0 var(--glow-size, 2px) #ff8a00)
-                  drop-shadow(0 0 var(--glow-size, 2px) #ff8a00)
-                  drop-shadow(0 0 var(--glow-size, 2px) #ff8a00);
-      }
+          /*
+            バーが狭いときは、モードの文字を畳んでアイコンだけにする。
+            畳まないと、先に削られるのは縮んでよい状態表示のほうで、
+            「編集モードです。…」が 1 文字も読めなくなる。
 
-      /* 右端の仕切り。つまんで幅を変える */
-      #editor-splitter {
-          position: absolute;
-          top: 0;
-          right: -4px;
-          width: 10px;
-          height: 100%;
-          cursor: col-resize;
-          touch-action: none;
-      }
-      @media (max-width: 820px) {
-          #editor-splitter { display: none; }
+            狭いかどうかは画面ではなく編集画面の幅で決める（利用者が横幅を
+            変えられるので、広い画面でもバーは狭いことがある）。
+            判定は app-block-editor.js が .is-narrow で伝えてくる
+          */
+          &.is-narrow #editor-modes label span {
+              /* display:none にすると、読み上げ用の名前まで消えてラジオが
+                 「何のボタンか」を答えられなくなる。見た目だけ畳む */
+              position: absolute;
+              width: 1px;
+              height: 1px;
+              overflow: hidden;
+              clip-path: inset(50%);
+              white-space: nowrap;
+          }
+
+          #blockly-area {
+              flex: 1 1 auto;
+              min-height: 0;
+          }
+
+          /*
+            会話モードではパレットを畳む。読み取り専用でも開けてしまい、
+            しかも何も作れないので、触った人が戸惑う。
+
+            この指定は styles/blockly.css へ持っていかない。モードという
+            この画面固有の考え方が前提になっているため。
+
+            押せなくはしない。押されたことが分からないと、切り替え方を
+            知らせることもできないため（app-block-editor.js の
+            TOOLBOX_ITEM_SELECT を参照）。開こうとしたパレットは、
+            こちらで閉じたうえで案内を出す。
+
+            !important は、Blockly が開くたびに display:block を style 属性へ
+            直接書くため。インラインの指定は、!important の無いスタイルシートの
+            指定より強い。閉じている間は Blockly も display:none を書くので、
+            付け忘れても効いているように見えてしまう
+          */
+          &:not(.is-editing) {
+              .blocklyToolbox {
+                  opacity: 0.35;
+              }
+              .blocklyFlyout {
+                  display: none !important;
+              }
+          }
+
+          /* 右端の仕切り。つまんで幅を変える */
+          #editor-splitter {
+              position: absolute;
+              top: 0;
+              right: -4px;
+              width: 10px;
+              height: 100%;
+              cursor: col-resize;
+              touch-action: none;
+
+              @media (max-width: 820px) {
+                  display: none;
+              }
+          }
       }
 
       /*
@@ -590,19 +600,21 @@
           margin-top: 14px;
           padding-top: 14px;
           border-top: 2px dashed #e3e6f5;
+
+          & color-picker {
+              display: block;
+              margin-bottom: 10px;
+
+              &:last-child {
+                  margin-bottom: 0;
+              }
+          }
       }
       .settings-heading {
           margin: 0 0 10px;
           font-size: 0.85em;
           font-weight: 800;
           opacity: 0.6;
-      }
-      .settings-section color-picker {
-          display: block;
-          margin-bottom: 10px;
-      }
-      .settings-section color-picker:last-child {
-          margin-bottom: 0;
       }
       /* キャラクタの名前と性格。見た目は話者の select に合わせる */
       #character-name,
@@ -619,21 +631,20 @@
           font: inherit;
           font-size: var(--ui-font);
           font-weight: 400;
+
+          &::placeholder {
+              color: var(--pop-ink);
+              opacity: 0.4;
+          }
+          &:focus-visible {
+              outline: 3px solid var(--pop-blue);
+              outline-offset: 1px;
+          }
       }
       #character-profile {
           resize: vertical;
           min-height: 4.5em;
           line-height: 1.5;
-      }
-      #character-name::placeholder,
-      #character-profile::placeholder {
-          color: var(--pop-ink);
-          opacity: 0.4;
-      }
-      #character-name:focus-visible,
-      #character-profile:focus-visible {
-          outline: 3px solid var(--pop-blue);
-          outline-offset: 1px;
       }
 
       /* 設定の保存・破棄。場所を取らないよう 1 行に並べる */
@@ -661,13 +672,27 @@
           white-space: nowrap;
           box-shadow: var(--pop-shadow);
           cursor: pointer;
-      }
-      .chip-danger {
-          background: var(--pop-pink);
-      }
-      .chip:active {
-          transform: translateY(2px);
-          box-shadow: 0 2px 0 rgba(35, 36, 74, 0.18);
+
+          &.chip-danger {
+              background: var(--pop-pink);
+          }
+          &:active {
+              transform: translateY(2px);
+              box-shadow: 0 2px 0 rgba(35, 36, 74, 0.18);
+          }
+
+          /* 実行後は一時的にチェックへ差し替える */
+          & .icon-done {
+              display: none;
+          }
+          &[data-done] {
+              & .icon-default {
+                  display: none;
+              }
+              & .icon-done {
+                  display: block;
+              }
+          }
       }
       .chip-icon {
           flex: none;
@@ -678,16 +703,6 @@
           stroke-width: 2;
           stroke-linecap: round;
           stroke-linejoin: round;
-      }
-      /* 実行後は一時的にチェックへ差し替える */
-      .chip .icon-done {
-          display: none;
-      }
-      .chip[data-done] .icon-default {
-          display: none;
-      }
-      .chip[data-done] .icon-done {
-          display: block;
       }
       /*
         VOICEVOX の利用規約でクレジット表記が必須。
@@ -714,14 +729,12 @@
       }
     </style>
     <!--
-      Blockly のスタイルを設定する（上書きする）
+      Blockly の見た目の上書き。他のプロジェクトでも使えるよう、この画面の
+      作りに依存しない指定だけを別ファイルにしてある。色や書体は変数で渡す
+      （#block-editor の中を参照）。
+      モードによってパレットを畳むといった、この画面固有のものは上の <style> 側
     -->
-    <style>
-      /*.blocklyFlyoutBackground { fill: rgba(240, 240, 240, 0.9) !important; }*/
-      .blocklyToolboxCategory { height: 33px; line-height: 33px; }
-      .blocklyToolboxCategoryIcon { width: 4px !important; }
-      .blocklyToolboxCategoryLabel { font: 14px LINESeedJP_Rg !important; }
-    </style>
+    <link rel="stylesheet" href="./styles/blockly.css">
 
     <!--
       three.js / three-vrm の参照先はここだけで管理する。

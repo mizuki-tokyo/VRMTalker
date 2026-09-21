@@ -337,8 +337,9 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
      */
     const GLOW_SIZE = 2;
 
+    // 変数名は styles/blockly.css と合わせること（光らせる指定はあちら側）
     const updateGlowSize = (scale) => {
-        area.style.setProperty("--glow-size", `${GLOW_SIZE / (scale || 1)}px`);
+        area.style.setProperty("--blockly-glow-size", `${GLOW_SIZE / (scale || 1)}px`);
     };
 
     const setHighlight = (block, on) => {
