@@ -1,11 +1,11 @@
 [
-    { "name": "ハート",     "file": "./emotes/ハート.png" },
-    { "name": "ワイワイ",   "file": "./emotes/ワイワイ.png" },
-    { "name": "ワイワイ２", "file": "./emotes/ワイワイ２.png" },
-    { "name": "ひらめいた", "file": "./emotes/ひらめいた.png" },
-    { "name": "ぷんぷん",   "file": "./emotes/ぷんぷん.png" },
-    { "name": "どんより",   "file": "./emotes/どんより.png" },
-    { "name": "ひやあせ",   "file": "./emotes/ひやあせ.png" },
-    { "name": "すやすや",   "file": "./emotes/すやすや.png" },
-    { "name": "んー",       "file": "./emotes/んー.png" }
+    { "name": "ハート",     "file": "./emotes/heart.png" },
+    { "name": "ゲラゲラ",   "file": "./emotes/laughing.png" },
+    { "name": "ワイワイ", "file": "./emotes/lively.png" },
+    { "name": "ひらめいた", "file": "./emotes/light-bulb.png" },
+    { "name": "ぷんぷん",   "file": "./emotes/anger.png" },
+    { "name": "どんより",   "file": "./emotes/feeling-blue.png" },
+    { "name": "ひやあせ",   "file": "./emotes/cold-sweat.png" },
+    { "name": "Zzz",   "file": "./emotes/zzz.png" },
+    { "name": "モヤモヤ",       "file": "./emotes/uneasy.png" }
 ]
