@@ -323,7 +323,7 @@ async def post_action(request: Request) -> dict:
     if not PUBLISH_PASSWORD:
         raise HTTPException(
             status_code=403,
-            detail="このサーバでは公開できません（ACTIONS_PUBLISH_PASSWORD が未設定）。",
+            detail="このサーバーでは公開できません（ACTIONS_PUBLISH_PASSWORD が未設定）。",
         )
 
     # 本文の大きさは、JSON として読む前に見る（読んでから気づいては遅い）

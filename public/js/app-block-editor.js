@@ -224,7 +224,7 @@ const createBlockEditor = ({actionsUrl, getNames, onApply, trial}) => {
     /**
      * サーバにあるものを読み込んだときの ID。手元で組んだものは null。
      *
-     * ファイルの中には書かない。手元へ降ろしたファイルが巡り巡って、他人の
+     * ファイルの中には書かない。ダウンロードしたファイルが巡り巡って、他人の
      * 公開物を黙って上書きする事故を防ぐため。同じ人が同じ流れの中で直して
      * 上書きする、という使い方は、この変数が覚えていれば足りる
      */
@@ -445,7 +445,7 @@ const createBlockEditor = ({actionsUrl, getNames, onApply, trial}) => {
             {name: "password", label: "合言葉", password: true, required: true}
         ], {
             title: target ? "上書きして公開する" : "サーバーに公開する",
-            message: "公開したものは、このサーバを開いた人が読み込めます。",
+            message: "公開したものは、このサーバーを開いた人が読み込めます。",
             okText: "公開する"
         });
         if (values === null) {
@@ -484,7 +484,7 @@ const createBlockEditor = ({actionsUrl, getNames, onApply, trial}) => {
         setStatus("公開しました");
     };
 
-    /** 手元のファイルへ降ろす。 */
+    /** 手元のファイルとして保存する（ブラウザのダウンロードの仕組みを使う）。 */
     const saveToComputer = async () => {
         const name = await dialog.prompt("ファイルの名前", {
             title: "あなたのコンピュータに保存する",
@@ -556,13 +556,13 @@ const createBlockEditor = ({actionsUrl, getNames, onApply, trial}) => {
     const openFileMenu = async () => {
         const chosen = await dialog.choose([
             {value: "load-server", label: "サーバーから読み込む",
-             note: "このサーバに公開されているものを選ぶ"},
+             note: "このサーバーに公開されているものを選ぶ"},
             {value: "publish", label: "サーバーに公開する",
              note: "合言葉が要る。開いた人が読み込めるようになる"},
             {value: "save-local", label: "あなたのコンピュータに保存する",
-             note: "ファイルとして降ろす"},
+             note: "今の内容をファイルにして保存する"},
             {value: "load-local", label: "あなたのコンピュータから読み込む",
-             note: "降ろしたファイルを読む"}
+             note: "保存したファイルを読み込む"}
         ], {title: "ファイル", cancelText: "やめる"});
 
         switch (chosen) {

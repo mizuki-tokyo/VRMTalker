@@ -43,7 +43,7 @@ class SpeechSynthesizer {
                 body: JSON.stringify({text, style_id: this._styleId})
             });
         } catch (error) { // network error
-            throw new Error("音声合成サーバに接続できませんでした");
+            throw new Error("音声合成サーバーに接続できませんでした");
         }
 
         if (! response.ok) {
