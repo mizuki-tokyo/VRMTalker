@@ -9,15 +9,18 @@ localhost は secure context として扱われるため、HTTP のままでも�
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
 import pathlib
+import secrets
 import time
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -185,42 +188,196 @@ async def post_chat(request: ChatRequest) -> StreamingResponse:
 
 
 # ---------------------------------------------------------------- アクション
+#
+# アクション（アバターの動き方の定義）は 1 つ 1 ファイル。
+#
+#   public/actions.json   同梱の見本。書き換えない（読み取り専用で配る）
+#   data/<UUID>.json      公開されたもの。パスワードを知っている人だけが増やせる
+#
+# data/ を public/ の外に置いているのは、静的配信の対象にしないため。
+# 取得は必ず下の API を通り、ファイル名も UUID しか受け付けない。
+#
+# 一覧は、その都度 data/ を走査して組み立てる。索引ファイルを持つと、手で
+# ファイルを足したときや公開が途中で失敗したときに実体とずれる。数十件の
+# 走査は一瞬なので、ずれる余地を作らないほうを選んだ。
 
-#: アバターのアクション定義。編集画面から書き戻す
-ACTIONS_PATH = PUBLIC_DIR / "actions.json"
+#: 同梱の見本。data/ が空でも、これだけは必ず読める
+DEFAULT_ACTIONS_PATH = PUBLIC_DIR / "actions.json"
 
-#: 書き換えを許すか。ACTIONS_EDITABLE=0 で読み取り専用になる。
-#: このアプリをリバースプロキシ等で外部へ公開する場合は必ず 0 にすること。
-#: そうしないと、アクセスできる人が誰でもアバターの動作を書き換えられる
-ACTIONS_EDITABLE = os.environ.get("ACTIONS_EDITABLE", "1") != "0"
+#: 見本を指す ID。UUID と混ざらない名前にしてある
+DEFAULT_ACTION_ID = "default"
+
+#: 公開されたアクションの置き場
+DATA_DIR = pathlib.Path(__file__).parent / "data"
+
+#: 公開に必要な合言葉。空（未設定）なら公開そのものを断る。
+#: 誰でも書き込めると、アバターに何でも喋らせられるため、既定は「公開できない」
+PUBLISH_PASSWORD = os.environ.get("ACTIONS_PUBLISH_PASSWORD", "")
+
+#: 1 件あたりの上限。青天井だとディスクを埋められる
+MAX_ACTION_BYTES = 1024 * 1024
+
+#: 合言葉を間違えたときに待たせる秒数。
+#: 総当たりを現実的でない速さにするための、いちばん簡単な手当て。
+#: 回数で締め出す方式は、嫌がらせで正規の利用者まで閉め出せてしまうので採らない。
+#: 本格的に守るなら、前段のリバースプロキシ側で対策すること
+FAILED_PASSWORD_DELAY = 1.0
+
+
+def _action_properties(action: dict) -> dict:
+    """アクションに書かれている素性を取り出す。
+
+    中身は自己申告で、正しさは保証しない（公開できる人を絞ることで担保する）。
+    欠けていても一覧を組めるよう、無い項目は空文字にする
+    """
+    properties = action.get("properties")
+    if not isinstance(properties, dict):
+        properties = {}
+    return {
+        key: str(properties.get(key, ""))
+        for key in ("name", "description", "author", "created")
+    }
+
+
+def _read_action(path: pathlib.Path) -> dict | None:
+    """1 ファイル読む。壊れていても例外は投げない（一覧全体を巻き込まない）。"""
+    try:
+        action = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        logger.warning("アクション %s を読めませんでした: %s", path.name, error)
+        return None
+    if not isinstance(action, dict) or "blocks" not in action:
+        logger.warning("アクション %s は Blockly の形式ではありません", path.name)
+        return None
+    return action
+
+
+def _action_path(action_id: str) -> pathlib.Path:
+    """ID からファイルの場所を決める。
+
+    UUID として読めない文字列は弾く。これで "../" のような細工が通らない
+    （文字を取り除くのではなく、形が合わないものを断る）
+    """
+    try:
+        identifier = uuid.UUID(str(action_id))
+    except (ValueError, AttributeError, TypeError):
+        raise HTTPException(status_code=400, detail="アクションの ID が不正です。")
+    return DATA_DIR / f"{identifier}.json"
+
+
+@app.get("/api/actions")
+async def get_actions() -> dict:
+    """公開されているアクションの一覧。中身は返さず、素性だけを返す。"""
+    entries = []
+
+    default = _read_action(DEFAULT_ACTIONS_PATH)
+    if default is not None:
+        properties = _action_properties(default)
+        entries.append({
+            "id": DEFAULT_ACTION_ID,
+            # 名前が書かれていない古い形式でも、選べるように名前を補う
+            "name": properties["name"] or "はじめからあるもの",
+            "description": properties["description"],
+            "author": properties["author"],
+            "created": properties["created"],
+            # 見本は上書きさせない。いじり倒しても、ここへ戻ってこられる
+            "readonly": True,
+        })
+
+    # 新しいものから並べる。日時は自己申告なので、当てにせずファイルの更新時刻を見る
+    paths = sorted(DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    for path in paths:
+        action = _read_action(path)
+        if action is None:
+            continue
+        entries.append({
+            "id": path.stem,
+            **_action_properties(action),
+            "readonly": False,
+        })
+
+    return {"actions": entries, "publishable": bool(PUBLISH_PASSWORD)}
+
+
+@app.get("/api/actions/{action_id}")
+async def get_action(action_id: str) -> dict:
+    """アクションを 1 つ返す。"""
+    if action_id == DEFAULT_ACTION_ID:
+        action = _read_action(DEFAULT_ACTIONS_PATH)
+    else:
+        action = _read_action(_action_path(action_id))
+
+    if action is None:
+        raise HTTPException(status_code=404, detail="そのアクションはありません。")
+    return action
 
 
 @app.post("/api/actions")
-async def post_actions(program: dict) -> dict:
-    """アクション定義を保存する。
+async def post_action(request: Request) -> dict:
+    """アクションを公開する。
 
-    書き込み先は public/actions.json の固定で、パスは受け取らない。
-    ディレクトリごとコピーすれば、アクションも一緒に運ばれる。
+    本文は {"password": …, "id": …（上書きするとき）, "action": {…}}。
+    ID を渡さなければ新しく採番する。ID はサーバが決める（利用者が決めた名前を
+    そのままファイル名にすると、パスを混ぜられる）
     """
-    if not ACTIONS_EDITABLE:
+    if not PUBLISH_PASSWORD:
         raise HTTPException(
             status_code=403,
-            detail="アクションの保存は無効になっています（ACTIONS_EDITABLE=0）。",
+            detail="このサーバでは公開できません（ACTIONS_PUBLISH_PASSWORD が未設定）。",
         )
-    if "blocks" not in program:
+
+    # 本文の大きさは、JSON として読む前に見る（読んでから気づいては遅い）
+    body = await request.body()
+    if len(body) > MAX_ACTION_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"アクションが大きすぎます（上限 {MAX_ACTION_BYTES // 1024}KB）。",
+        )
+    try:
+        payload = json.loads(body)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="JSON として読めません。")
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="JSON として読めません。")
+
+    # 合言葉。文字の違いで判定が早く終わらないよう compare_digest を使う。
+    # bytes にしてから渡すこと。str のままだと、ASCII 以外を含む合言葉
+    # （日本語など）で TypeError になる
+    given = str(payload.get("password", "")).encode("utf-8")
+    if not secrets.compare_digest(given, PUBLISH_PASSWORD.encode("utf-8")):
+        await asyncio.sleep(FAILED_PASSWORD_DELAY)
+        raise HTTPException(status_code=403, detail="合言葉が違います。")
+
+    action = payload.get("action")
+    if not isinstance(action, dict) or "blocks" not in action:
         raise HTTPException(
             status_code=400, detail="Blockly の形式ではありません（blocks がありません）。"
         )
 
-    try:
-        ACTIONS_PATH.write_text(
-            json.dumps(program, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
-    except OSError as error:
-        logger.warning("アクションを保存できませんでした: %s", error)
-        raise HTTPException(status_code=500, detail="アクションを保存できませんでした。")
+    action_id = payload.get("id")
+    if action_id in (None, ""):
+        path = DATA_DIR / f"{uuid.uuid4()}.json"
+    elif action_id == DEFAULT_ACTION_ID:
+        raise HTTPException(status_code=403, detail="はじめからあるものは上書きできません。")
+    else:
+        path = _action_path(action_id)
+        if not path.exists():
+            raise HTTPException(status_code=404, detail="上書きする相手がありません。")
 
-    return {"saved": True}
+    # 一時ファイルへ書いてから置き換える。途中で落ちても、壊れた JSON が残らない
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(".writing")
+        temporary.write_text(
+            json.dumps(action, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        os.replace(temporary, path)
+    except OSError as error:
+        logger.warning("アクションを公開できませんでした: %s", error)
+        raise HTTPException(status_code=500, detail="アクションを公開できませんでした。")
+
+    logger.info("アクションを公開しました: %s", path.name)
+    return {"id": path.stem}
 
 
 @app.get("/api/status")
@@ -230,7 +387,8 @@ async def get_status():
         "tts": text_to_speech.ready,
         "llm": chat_model.name if chat_model is not None else None,
         "llama_server": llama.running,
-        "actions_editable": ACTIONS_EDITABLE,
+        # 合言葉そのものは返さない。公開の口があるかどうかだけ
+        "actions_publishable": bool(PUBLISH_PASSWORD),
     }
 
 

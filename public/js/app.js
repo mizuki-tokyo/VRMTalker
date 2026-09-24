@@ -317,8 +317,9 @@ document.addEventListener('DOMContentLoaded', function() {
             soundNames: sounds.names,
             backgroundNames: background.names
         }),
-        // 保存できたら、リロードせずに新しい動作へ差し替える
-        onSave: async (program) => {
+        // 組んだ内容で動かす。会話モードへ戻るたびに呼ばれる。
+        // 保存とは切り離してある（どこかへ残すかは編集画面の「ファイル」の仕事）
+        onApply: async (program) => {
             runner.abortAll();
             await registerActions(runner, avatarActions, program);
         },
@@ -375,18 +376,12 @@ document.addEventListener('DOMContentLoaded', function() {
         blockEditor.open();
     });
 
-    // 編集できないサーバでは項目ごと隠す（外部公開時の運用）
-    fetch("/api/status")
-        .then((response) => response.json())
-        .then((status) => {
-            if (status.actions_editable !== false) {
-                document.querySelector("#editor-section").hidden = false;
-            }
-            if (status.actions_editable !== false && location.hash === "#edit") {
-                blockEditor.open();
-            }
-        })
-        .catch((error) => console.warn("状態を取得できませんでした", error));
+    // 編集は誰でもできる。サーバへ公開できるかどうかだけが、合言葉の設定で
+    // 決まる（編集画面の「ファイル」から公開したときに、サーバが判断する）
+    document.querySelector("#editor-section").hidden = false;
+    if (location.hash === "#edit") {
+        blockEditor.open();
+    }
 
     // 待機中のアクションは、会話が始まったら止める。
     // 止めないと「ずっと」で書いた待機の仕草が会話中も回り続ける

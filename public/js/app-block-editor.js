@@ -40,6 +40,15 @@ const NARROW_BAR_WIDTH = 560;
 
 const STORAGE_KEY = "vrmtalker.editorWidth";
 
+/**
+ * アクションのファイルに書く印。
+ *
+ * 中身は Blockly の保存（blocks / variables）に、こちらの素性（properties）を
+ * 足したもの。形を変えたときに、古いファイルと見分けられるようにしておく
+ */
+const ACTION_FORMAT = "vrmtalker-action";
+const ACTION_VERSION = 1;
+
 
 /** UMD の Blockly を順に読み込む。二度目以降は何もしない。 */
 const loadBlockly = (() => {
@@ -176,7 +185,8 @@ const registerRenderer = (Blockly) => {
  * @param {string} deps.actionsUrl 定義の読み込み元
  * @param {() => {motionNames: string[], emoteNames: string[]}} deps.getNames
  *        ドロップダウンに出す名前。編集画面を開いた時点で読み直す
- * @param {(program: object) => Promise<void>} deps.onSave 保存できたとき
+ * @param {(program: object) => Promise<void>} deps.onApply
+ *        組んだ内容を、動いているアバターへ反映する。会話モードへ戻るたびに呼ぶ
  * @param {object} deps.trial ブロックを試しに動かすための手立て（app.js が渡す）
  * @param {(key: string, action: (api) => Promise<void>) => Promise<void>} deps.trial.run
  * @param {(key: string) => boolean} deps.trial.isRunning
@@ -184,7 +194,7 @@ const registerRenderer = (Blockly) => {
  * @param {(editing: boolean) => void} deps.trial.setEditing
  *        編集モードへ入る／出るとき。イベント実行の停止と再開は app.js 側が行う
  */
-const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
+const createBlockEditor = ({actionsUrl, getNames, onApply, trial}) => {
 
     const root = document.querySelector("#block-editor");
     const area = root.querySelector("#blockly-area");
@@ -201,8 +211,55 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
     };
 
     let workspace = null;
-    let dirty = false;
     let resizeObserver = null;
+
+    /**
+     * 今編集しているアクションの素性。
+     *
+     * ブロックとは別に持つ。Blockly の保存はブロックと変数しか返さないので、
+     * 混ぜておくと保存のたびに消える（読み込むときも先に切り離す）
+     */
+    let properties = {name: "", description: "", author: "", created: ""};
+
+    /**
+     * サーバにあるものを読み込んだときの ID。手元で組んだものは null。
+     *
+     * ファイルの中には書かない。手元へ降ろしたファイルが巡り巡って、他人の
+     * 公開物を黙って上書きする事故を防ぐため。同じ人が同じ流れの中で直して
+     * 上書きする、という使い方は、この変数が覚えていれば足りる
+     */
+    let actionId = null;
+
+    /**
+     * 保存していない編集があるか。
+     *
+     * 立っている間だけ beforeunload を付ける。付けっぱなしにすると、何も
+     * 編集していない人にまで確認が出るうえ、戻るときの高速復元（bfcache）も
+     * 効かなくなる。
+     *
+     * 編集画面を閉じるだけなら確認しない。組んだ内容は会話モードへ戻った
+     * 時点で動きに反映されるので、閉じても失われないため。失われるのは
+     * ページそのものを離れたときで、そこだけを引き止める
+     */
+    let dirty = false;
+
+    const warnBeforeUnload = (event) => {
+        event.preventDefault();
+        // 文言はブラウザが決める。古い実装のために値も入れておく
+        event.returnValue = "";
+    };
+
+    const setDirty = (value) => {
+        if (dirty === value) {
+            return;
+        }
+        dirty = value;
+        if (dirty) {
+            window.addEventListener("beforeunload", warnBeforeUnload);
+        } else {
+            window.removeEventListener("beforeunload", warnBeforeUnload);
+        }
+    };
 
     // 編集モード（true）か会話モード（false）か。開いた直後は会話モードで、
     // ブロックを眺めながら実際の動きを確かめられる
@@ -272,43 +329,248 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
 
     //---------------------------------- 読み書き
 
-    const loadProgram = async () => {
+    /**
+     * アクション 1 つぶんの中身を組み立てる。
+     *
+     * ブロックと変数は Blockly が出す。素性はこちらで足す。
+     * format と version は、後で形を変えたときに見分けるための印
+     */
+    const currentAction = () => ({
+        format: ACTION_FORMAT,
+        version: ACTION_VERSION,
+        properties: {...properties},
+        ...Blockly.serialization.workspaces.save(workspace)
+    });
+
+    /**
+     * 読み込んだ中身をワークスペースへ移す。
+     *
+     * 素性は先に取り分ける。Blockly は知らないキーを黙って捨てるので、
+     * 混ぜたままでは保存し直したときに消える
+     */
+    const applyAction = (action) => {
+        properties = {
+            name: "", description: "", author: "", created: "",
+            ...(action.properties ?? {})
+        };
+        Blockly.serialization.workspaces.load(action, workspace);
+    };
+
+    /** 読み込む前の確認。組みかけを黙って捨てない。 */
+    const confirmDiscard = async () => {
+        if (! dirty) {
+            return true;
+        }
+        return dialog.confirm("組みかけの内容があります。読み込むと消えますが、よろしいですか？", {
+            title: "読み込む",
+            okText: "読み込む",
+            cancelText: "やめる"
+        });
+    };
+
+    const loadProgram = async (url = actionsUrl) => {
         try {
-            const response = await fetch(actionsUrl);
+            const response = await fetch(url);
             if (! response.ok) {
                 throw new Error(`${response.status}`);
             }
-            Blockly.serialization.workspaces.load(await response.json(), workspace);
+            applyAction(await response.json());
             setStatus("読み込みました");
         } catch (error) {
-            console.warn(`${actionsUrl} を読み込めませんでした`, error);
-            setStatus("定義がありません。ブロックを組んで保存してください");
+            console.warn(`${url} を読み込めませんでした`, error);
+            setStatus("定義がありません。ブロックを組んでください");
         }
-        dirty = false;
+        setDirty(false);
     };
 
-    const save = async () => {
-        const program = Blockly.serialization.workspaces.save(workspace);
-        setStatus("保存しています…");
+    /** サーバにあるものから選んで読み込む。 */
+    const loadFromServer = async () => {
+        let list;
+        try {
+            const response = await fetch("/api/actions");
+            if (! response.ok) {
+                throw new Error(`${response.status}`);
+            }
+            list = (await response.json()).actions ?? [];
+        } catch (error) {
+            console.warn(error);
+            await dialog.alert(`一覧を取れませんでした: ${error.message}`,
+                               {title: "サーバーから読み込む"});
+            return;
+        }
+        if (list.length === 0) {
+            await dialog.alert("サーバーにアクションがありません。",
+                               {title: "サーバーから読み込む", icon: ICONS.info});
+            return;
+        }
+
+        // 同じ名前が並ぶことがあるので、作者と説明を手がかりに添える
+        const chosen = await dialog.choose(list.map((item) => ({
+            value: item.id,
+            label: item.name || "（名前なし）",
+            note: [item.author && `作者: ${item.author}`, item.description]
+                .filter(Boolean).join(" / ")
+        })), {title: "サーバーから読み込む", cancelText: "やめる"});
+        if (chosen === null || ! await confirmDiscard()) {
+            return;
+        }
+
+        const entry = list.find((item) => item.id === chosen);
+        await loadProgram(`/api/actions/${encodeURIComponent(chosen)}`);
+        // 読み取り専用のもの（同梱の見本）は上書きの相手にしない
+        actionId = entry?.readonly ? null : chosen;
+    };
+
+    /** 組んだものをサーバへ公開する。合言葉が要る。 */
+    const publishToServer = async () => {
+        // 上書きできるのは、今このまま編集している相手だけ
+        let target = null;
+        if (actionId) {
+            const choice = await dialog.choose([
+                {value: "overwrite", label: "上書きする",
+                 note: `「${properties.name || "名前なし"}」を今の内容で置き換える`},
+                {value: "new", label: "新しく公開する", note: "別のものとして増やす"}
+            ], {title: "サーバーに公開する", cancelText: "やめる"});
+            if (choice === null) {
+                return;
+            }
+            target = (choice === "overwrite") ? actionId : null;
+        }
+
+        const values = await dialog.form([
+            {name: "name", label: "アクション名", value: properties.name, required: true},
+            {name: "description", label: "説明", value: properties.description,
+             multiline: true, placeholder: "どんな動きをするか"},
+            {name: "author", label: "作者", value: properties.author},
+            {name: "password", label: "合言葉", password: true, required: true}
+        ], {
+            title: target ? "上書きして公開する" : "サーバーに公開する",
+            message: "公開したものは、このサーバを開いた人が読み込めます。",
+            okText: "公開する"
+        });
+        if (values === null) {
+            return;
+        }
+
+        properties = {
+            name: values.name.trim(),
+            description: values.description.trim(),
+            author: values.author.trim(),
+            // 作り直したときも、最初に作った日付は残す
+            created: properties.created || new Date().toISOString().slice(0, 10)
+        };
+
+        setStatus("公開しています…");
         try {
             const response = await fetch("/api/actions", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(program)
+                body: JSON.stringify({
+                    password: values.password, id: target, action: currentAction()
+                })
             });
+            const body = await response.json().catch(() => null);
             if (! response.ok) {
-                const detail = await response.json().catch(() => null);
-                throw new Error(detail?.detail || `${response.status}`);
+                throw new Error(body?.detail || `${response.status}`);
             }
+            actionId = body.id;
         } catch (error) {
             console.error(error);
-            setStatus(`保存できませんでした: ${error.message}`, true);
+            setStatus(`公開できませんでした: ${error.message}`, true);
+            await dialog.alert(error.message, {title: "公開できませんでした"});
             return;
         }
-        dirty = false;
-        // リロードせずに新しい動作へ差し替える。これが分割表示の主目的
-        await onSave(program);
-        setStatus("保存しました。すぐ試せます");
+        setDirty(false);
+        setStatus("公開しました");
+    };
+
+    /** 手元のファイルへ降ろす。 */
+    const saveToComputer = async () => {
+        const name = await dialog.prompt("ファイルの名前", {
+            title: "あなたのコンピュータに保存する",
+            defaultValue: properties.name || "アクション",
+            okText: "保存する"
+        });
+        if (name === null) {
+            return;
+        }
+        properties = {
+            ...properties,
+            name: name.trim() || properties.name,
+            created: properties.created || new Date().toISOString().slice(0, 10)
+        };
+
+        // ファイル名に使えない文字は避ける（保存先は利用者のパソコン）
+        const fileName = (properties.name || "アクション").replace(/[\\/:*?"<>|]/g, "_");
+        const blob = new Blob([JSON.stringify(currentAction(), null, 2) + "\n"],
+                              {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${fileName}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        setDirty(false);
+        setStatus(`${fileName}.json に保存しました`);
+    };
+
+    /** 手元のファイルから読み込む。 */
+    const loadFromComputer = async () => {
+        if (! await confirmDiscard()) {
+            return;
+        }
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "application/json,.json";
+        const file = await new Promise((resolve) => {
+            // 取り消されたときは change が来ない。cancel で受ける
+            input.addEventListener("cancel", () => resolve(null), {once: true});
+            input.addEventListener("change", () => resolve(input.files[0] ?? null),
+                                    {once: true});
+            input.click();
+        });
+        if (! file) {
+            return;
+        }
+
+        try {
+            const action = JSON.parse(await file.text());
+            if (! action || typeof action !== "object" || ! action.blocks) {
+                throw new Error("アクションのファイルではありません");
+            }
+            applyAction(action);
+        } catch (error) {
+            console.warn(error);
+            await dialog.alert(`読み込めませんでした: ${error.message}`,
+                               {title: "あなたのコンピュータから読み込む"});
+            return;
+        }
+        // 手元から来たものは、サーバのどれでもない（上書きの相手にしない）
+        actionId = null;
+        setDirty(false);
+        setStatus(`${file.name} を読み込みました`);
+    };
+
+    /** ファイルのメニュー。バーのボタンから開く。 */
+    const openFileMenu = async () => {
+        const chosen = await dialog.choose([
+            {value: "load-server", label: "サーバーから読み込む",
+             note: "このサーバに公開されているものを選ぶ"},
+            {value: "publish", label: "サーバーに公開する",
+             note: "合言葉が要る。開いた人が読み込めるようになる"},
+            {value: "save-local", label: "あなたのコンピュータに保存する",
+             note: "ファイルとして降ろす"},
+            {value: "load-local", label: "あなたのコンピュータから読み込む",
+             note: "降ろしたファイルを読む"}
+        ], {title: "ファイル", cancelText: "やめる"});
+
+        switch (chosen) {
+        case "load-server": await loadFromServer(); break;
+        case "publish":     await publishToServer(); break;
+        case "save-local":  await saveToComputer(); break;
+        case "load-local":  await loadFromComputer(); break;
+        }
     };
 
     //---------------------------------- 編集モードと会話モード
@@ -425,25 +687,10 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
                 setStatus("試し実行を止めてから会話モードへ切り替えてください", true);
                 return;
             }
-            // 画面のブロックと会話中の動きが食い違わないようにする
-            if (dirty) {
-                const willSave = await dialog.confirm(
-                    "保存していない変更があります。\n"
-                        + "保存してから会話モードへ移りますか？", {
-                            title: "保存していない変更があります",
-                            okText: "保存して移る",
-                            cancelText: "変更を捨てる"
-                        });
-                if (willSave) {
-                    await save();
-                    if (dirty) {
-                        showMode(editing);
-                        return;   // 保存に失敗した
-                    }
-                } else {
-                    await loadProgram();   // 保存済みの内容に戻す
-                }
-            }
+            // 画面のブロックと会話中の動きが食い違わないよう、今の内容を渡す。
+            // 保存とは切り離してある。組んだそばから試せることを優先し、
+            // どこかへ残すかどうかは「ファイル」のメニューで決める
+            await onApply(currentAction());
         }
 
         editing = next;
@@ -493,11 +740,11 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
             // dirty を戻した「あと」に届く。放っておくと、何も編集して
             // いないのに未保存の扱いになる
             if (event.type === Blockly.Events.FINISHED_LOADING) {
-                dirty = false;
+                setDirty(false);
                 return;
             }
             if (! event.isUiEvent) {
-                dirty = true;
+                setDirty(true);
             }
             // 会話モードでは読み取り専用なので、そもそもここへ来ない
             if (event.type === Blockly.Events.CLICK && event.targetType === "block") {
@@ -567,14 +814,14 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
         Blockly.svgResize(workspace);
     };
 
+    /**
+     * 閉じる。
+     *
+     * 保存の確認はしない。組んだ内容は会話モードへ戻る時点で動きへ反映される
+     * ので、閉じても失われないため。失われるのはページを離れたときだけで、
+     * そこは beforeunload が引き止める（setDirty を参照）
+     */
     const close = async () => {
-        if (dirty && ! await dialog.confirm("保存していない変更があります。閉じますか？", {
-            title: "保存していない変更があります",
-            okText: "閉じる",
-            cancelText: "やめる"
-        })) {
-            return;
-        }
         // 閉じる＝会話モードへ戻る。試し実行を残したまま画面から消さない
         stopAllTrials();
         if (editing && workspace) {
@@ -583,6 +830,8 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
             showMode(false);
             workspace.getToolbox()?.clearSelection();
             trial.setEditing(false);
+            // 会話モードへ移るときと同じく、今の内容で動かす
+            await onApply(currentAction());
         }
         root.removeAttribute("open");
         document.documentElement.style.removeProperty("--editor-width");
@@ -590,7 +839,7 @@ const createBlockEditor = ({actionsUrl, getNames, onSave, trial}) => {
 
     //---------------------------------- 組み立て
 
-    root.querySelector("#editor-save").addEventListener("click", save);
+    root.querySelector("#editor-file").addEventListener("click", openFileMenu);
     root.querySelector("#editor-close").addEventListener("click", close);
     // ラジオは選ばれた時点で見た目が変わる。切り替えを断る場合は
     // setEditing() の中で showMode() を呼んで選択を戻す
