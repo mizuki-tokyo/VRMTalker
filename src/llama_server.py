@@ -11,6 +11,7 @@ import asyncio
 import logging
 import os
 import pathlib
+import socket
 import subprocess
 import sys
 
@@ -49,6 +50,29 @@ def _find_binary() -> pathlib.Path:
     return candidates[0]
 
 
+def _check_port_free() -> None:
+    """待ち受けたい場所が空いているかを、起動前に確かめる。
+
+    埋まっていると llama-server は起動した直後に終了する。その理由は
+    llama-server 自身の出力に紛れてしまい、「なぜか LLM が使えない」という
+    形でしか見えない。先に断って、直し方まで伝える。
+
+    SO_REUSEADDR を立てるのは、直前まで使っていた後片付け（TIME_WAIT）を
+    「使用中」と誤判定しないため。待ち受けている相手がいる場合は、これを
+    立てても bind は失敗する
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            probe.bind((HOST, PORT))
+        except OSError:
+            raise SetupRequiredError(
+                f"{HOST}:{PORT} は既に使われています。\n"
+                f"LLAMA_PORT で別の番号を指定してください（例: LLAMA_PORT=8099）。\n"
+                f"前回の llama-server が残っている場合は、そちらを止めてください。"
+            )
+
+
 def _find_model() -> pathlib.Path:
     models = sorted((LLAMA_DIR / "models").glob("*.gguf"))
     if not models:
@@ -75,6 +99,7 @@ class LlamaServer:
     async def start(self) -> None:
         binary = _find_binary()
         model = _find_model()
+        _check_port_free()
 
         command = [
             str(binary),
