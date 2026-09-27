@@ -263,18 +263,10 @@
             },
             "next": {
               "block": {
-                "type": "avatar_play_sound_wait",
+                "type": "avatar_play_voice_wait",
                 "id": "[KsvMh(E%BUCZLWwn6dY",
-                "inputs": {
-                  "URL": {
-                    "shadow": {
-                      "type": "text",
-                      "id": "NG~q-QzC[=KB^^zHnDJW",
-                      "fields": {
-                        "TEXT": "./voices/error.mp3"
-                      }
-                    }
-                  }
+                "fields": {
+                  "VOICE": "error-occurred"
                 }
               }
             }

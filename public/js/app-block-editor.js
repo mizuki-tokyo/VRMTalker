@@ -343,17 +343,149 @@ const createBlockEditor = ({actionsUrl, getNames, onApply, trial}) => {
     });
 
     /**
+     * 知らないブロックを取り除く。
+     *
+     * Blockly は知らない型に当たると例外を投げ、そこで読み込みをやめてしまう。
+     * 公開されたファイルは、こちらの都合で作り直せない。ブロックを入れ替えた
+     * 後でも、読める分だけは読めるようにしておく。
+     *
+     * 文のつながりの途中が消えたときは、後ろを詰める（1 つ使えないブロックが
+     * あったせいで、その先が丸ごと消えるほうが困る）。
+     *
+     * @returns {{state: object, removed: string[]}} 外した型の名前つき
+     */
+    const withoutUnknownBlocks = (action) => {
+        const removed = [];
+        const known = (type) => Boolean(Blockly.Blocks[type]);
+
+        // つながりの先頭を返す。全部知らない型なら null
+        const pruneStack = (block) => {
+            while (block && ! known(block.type)) {
+                removed.push(block.type);
+                block = block.next?.block ?? null;
+            }
+            if (! block) {
+                return null;
+            }
+            pruneInputs(block);
+
+            const next = pruneStack(block.next?.block ?? null);
+            if (next) {
+                block.next = {block: next};
+            } else {
+                delete block.next;
+            }
+            return block;
+        };
+
+        // 差し込み口の中身。値ブロックも、C 型の中の列も同じように見る
+        const pruneInputs = (block) => {
+            for (const [name, input] of Object.entries(block.inputs ?? {})) {
+                if (input.block) {
+                    const kept = pruneStack(input.block);
+                    if (kept) {
+                        input.block = kept;
+                    } else {
+                        delete input.block;
+                    }
+                }
+                if (input.shadow && ! known(input.shadow.type)) {
+                    removed.push(input.shadow.type);
+                    delete input.shadow;
+                }
+                if (! input.block && ! input.shadow) {
+                    delete block.inputs[name];
+                }
+            }
+        };
+
+        const state = structuredClone(action);
+        const tops = state.blocks?.blocks ?? [];
+        state.blocks = {
+            ...state.blocks,
+            blocks: tops.map((block) => pruneStack(block)).filter(Boolean)
+        };
+        return {state, removed};
+    };
+
+    /**
+     * ワークスペースへ流し込む。
+     *
+     * まとめて読むのが本筋だが、それが失敗したら 1 列ずつ読み直す。
+     * 型は知っていても中身の形が変わっている（入力の名前が違うなど）ことが
+     * あり、その 1 列のために全部が読めなくなるのを避ける
+     *
+     * @returns {number} 読めなかった列の数
+     */
+    const loadBlocks = (state) => {
+        try {
+            Blockly.serialization.workspaces.load(state, workspace);
+            return 0;
+        } catch (error) {
+            console.warn("まとめて読み込めませんでした。1 列ずつ読み直します", error);
+        }
+
+        // 変数だけ先に入れてから、列を 1 つずつ足す
+        workspace.clear();
+        try {
+            Blockly.serialization.workspaces.load(
+                {variables: state.variables ?? [], blocks: {languageVersion: 0, blocks: []}},
+                workspace);
+        } catch (error) {
+            console.warn("変数を読み込めませんでした", error);
+        }
+
+        let failed = 0;
+        for (const block of state.blocks?.blocks ?? []) {
+            try {
+                Blockly.serialization.blocks.append(block, workspace);
+            } catch (error) {
+                failed += 1;
+                console.warn(`ブロックの列を読み込めませんでした（${block?.type}）`, error);
+            }
+        }
+        return failed;
+    };
+
+    /**
      * 読み込んだ中身をワークスペースへ移す。
      *
      * 素性は先に取り分ける。Blockly は知らないキーを黙って捨てるので、
      * 混ぜたままでは保存し直したときに消える
+     *
+     * @returns {{removed: string[], failed: number}} 欠けたものの覚え書き
      */
     const applyAction = (action) => {
         properties = {
             name: "", description: "", author: "", created: "",
             ...(action.properties ?? {})
         };
-        Blockly.serialization.workspaces.load(action, workspace);
+        const {state, removed} = withoutUnknownBlocks(action);
+        const failed = loadBlocks(state);
+        return {removed, failed};
+    };
+
+    /** 欠けたものがあれば知らせる。黙って減らさない。 */
+    const reportMissing = async ({removed, failed}) => {
+        if (removed.length === 0 && failed === 0) {
+            return;
+        }
+        const lines = [];
+        if (removed.length > 0) {
+            const counted = [...new Set(removed)]
+                  .map((type) => `${type} × ${removed.filter((t) => t === type).length}`);
+            lines.push(`今のバージョンに無いブロックを外しました。\n${counted.join("\n")}`);
+        }
+        if (failed > 0) {
+            // 途中まで並ぶこともあるので「読めなかった」と言い切らない
+            lines.push(`形が変わっているブロックがあり、${failed} 本の列は`
+                       + `一部しか読み込めていません。`);
+        }
+        console.warn(lines.join("\n"));
+        await dialog.alert(
+            `${lines.join("\n\n")}\n\n読める部分だけを開いています。`
+                + "このまま保存すると、外れたものは元に戻りません。",
+            {title: "読み込めなかったブロックがあります"});
     };
 
     /** 読み込む前の確認。組みかけを黙って捨てない。 */
@@ -369,18 +501,22 @@ const createBlockEditor = ({actionsUrl, getNames, onApply, trial}) => {
     };
 
     const loadProgram = async (url = actionsUrl) => {
+        let missing = null;
         try {
             const response = await fetch(url);
             if (! response.ok) {
                 throw new Error(`${response.status}`);
             }
-            applyAction(await response.json());
+            missing = applyAction(await response.json());
             setStatus("読み込みました");
         } catch (error) {
             console.warn(`${url} を読み込めませんでした`, error);
             setStatus("定義がありません。ブロックを組んでください");
         }
         setDirty(false);
+        if (missing) {
+            await reportMissing(missing);
+        }
     };
 
     /** サーバにあるものから選んで読み込む。 */
@@ -534,12 +670,13 @@ const createBlockEditor = ({actionsUrl, getNames, onApply, trial}) => {
             return;
         }
 
+        let missing;
         try {
             const action = JSON.parse(await file.text());
             if (! action || typeof action !== "object" || ! action.blocks) {
                 throw new Error("アクションのファイルではありません");
             }
-            applyAction(action);
+            missing = applyAction(action);
         } catch (error) {
             console.warn(error);
             await dialog.alert(`読み込めませんでした: ${error.message}`,
@@ -550,6 +687,7 @@ const createBlockEditor = ({actionsUrl, getNames, onApply, trial}) => {
         actionId = null;
         setDirty(false);
         setStatus(`${file.name} を読み込みました`);
+        await reportMissing(missing);
     };
 
     /** ファイルのメニュー。バーのボタンから開く。 */

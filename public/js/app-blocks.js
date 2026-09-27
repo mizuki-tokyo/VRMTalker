@@ -53,7 +53,7 @@ const EVENT_LABELS = Object.freeze({
  * 差し込み口（保存時は inputs に入る）。インタプリタはどちらでも読める
  */
 const buildBlockUi = ({motionNames = [], emoteNames = [], soundNames = [],
-                       backgroundNames = []} = {}) => {
+                       backgroundNames = [], voiceChoices = []} = {}) => {
     // 読み込みが終わる前に編集画面を開くと空になる。選べないことが伝わる
     // 見出しを 1 つ出しておく（空のドロップダウンは Blockly が嫌う）
     const choices = (names, empty) =>
@@ -63,6 +63,15 @@ const buildBlockUi = ({motionNames = [], emoteNames = [], soundNames = [],
     const emotes = choices(emoteNames, "（エモートがありません）");
     const sounds = choices(soundNames, "（効果音がありません）");
     const backgrounds = choices(backgroundNames, "（背景がありません）");
+
+    /*
+      ボイスデータだけは、出す文字（name）と覚える値（id）を分ける。
+      名前は「こんにちは！」のような文そのもので、後から直したくなる。
+      直したときに、保存済みのアクションの選択が外れないようにするため
+    */
+    const voices = (voiceChoices.length > 0)
+          ? voiceChoices.map((voice) => [voice.name, voice.id])
+          : [["（ボイスデータがありません）", ""]];
 
     const text = (name) => ({type: "input_value", name});
     const number = (name) => ({type: "input_value", name, check: "Number"});
@@ -79,13 +88,15 @@ const buildBlockUi = ({motionNames = [], emoteNames = [], soundNames = [],
             message0: "%1 と話して終わるまで待つ",
             args0: [text("TEXT")], style: "looks_blocks"
         },
-        avatar_play_sound: {
-            message0: "音声ファイル %1 を再生する",
-            args0: [text("URL")], style: "sound_blocks"
+        avatar_play_voice: {
+            message0: "ボイスデータ %1 を再生する",
+            args0: [dropdown("VOICE", voices)], style: "sound_blocks",
+            tooltip: "録っておいた声を、アバターが口を動かして喋る。終わるのを待たない。"
+                   + "鳴らせるものは voices/voices.json で決める"
         },
-        avatar_play_sound_wait: {
-            message0: "音声ファイル %1 を再生して終わるまで待つ",
-            args0: [text("URL")], style: "sound_blocks"
+        avatar_play_voice_wait: {
+            message0: "ボイスデータ %1 を再生して終わるまで待つ",
+            args0: [dropdown("VOICE", voices)], style: "sound_blocks"
         },
         avatar_stop_speaking: {
             message0: "話すのをやめる", args0: [], style: "sound_blocks"
@@ -277,6 +288,8 @@ const checkAgainstTables = (ui) => {
  * @param {string[]} names.emoteNames  ドロップダウンに出すエモート名
  * @param {string[]} names.soundNames  ドロップダウンに出す効果音名
  * @param {string[]} names.backgroundNames ドロップダウンに出す背景名
+ * @param {Array<{id: string, name: string}>} names.voiceChoices
+ *        ドロップダウンに出すボイスデータ。出す文字と覚える値が違う
  * @returns {string[]} 表とずれている箇所の警告
  */
 export const defineBlocks = (Blockly, names = {}) => {
@@ -396,10 +409,8 @@ export const createToolbox = () => {
                     {kind: "block", type: "avatar_show_emote_wait",
                      inputs: {SECONDS: shadowNumber(2)}},
                     {kind: "block", type: "avatar_clear_emote"},
-                    {kind: "block", type: "avatar_play_sound",
-                     inputs: {URL: shadowText("./voices/konnichiwa.mp3")}},
-                    {kind: "block", type: "avatar_play_sound_wait",
-                     inputs: {URL: shadowText("./voices/konnichiwa.mp3")}},
+                    {kind: "block", type: "avatar_play_voice"},
+                    {kind: "block", type: "avatar_play_voice_wait"},
                     {kind: "block", type: "avatar_stop_speaking"}
                 ]
             },

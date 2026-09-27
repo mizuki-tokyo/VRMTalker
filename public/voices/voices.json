@@ -1,0 +1,8 @@
+[
+    { "id": "hello",               "name": "こんにちは！",           "file": "./voices/hello.mp3" },
+    { "id": "good-morning",        "name": "おはようございます！",   "file": "./voices/good-morning.mp3" },
+    { "id": "hows-everyone-doing", "name": "みんな元気？",           "file": "./voices/hows-everyone-doing.mp3" },
+    { "id": "good-night",          "name": "おやすみなさい",         "file": "./voices/good-night.mp3" },
+    { "id": "congratulations",     "name": "おめでとうございます！", "file": "./voices/congratulations.mp3" },
+    { "id": "error-occurred",      "name": "エラーが発生しました",   "file": "./voices/error-occurred.mp3" }
+]

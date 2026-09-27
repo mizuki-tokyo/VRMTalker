@@ -80,6 +80,6 @@ export default {
     /** どこかで失敗した。phase は "recognize" | "chat" | "speak"。 */
     error: async (api, {phase, message}) => {
         api.showBubble(SPEAKER.character, message);
-        await api.playSoundAndWait("./voices/error.mp3");
+        await api.playVoiceAndWait("error-occurred");
     }
 };

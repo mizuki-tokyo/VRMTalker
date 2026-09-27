@@ -46,8 +46,8 @@ export const CALL_BLOCKS = Object.freeze({
     // アバター
     avatar_speak:             {fn: "speak",                   args: ["TEXT"]},
     avatar_speak_and_wait:    {fn: "speakAndWait",            args: ["TEXT"]},
-    avatar_play_sound:        {fn: "playSound",               args: ["URL"]},
-    avatar_play_sound_wait:   {fn: "playSoundAndWait",        args: ["URL"]},
+    avatar_play_voice:        {fn: "playVoice",               args: ["VOICE"]},
+    avatar_play_voice_wait:   {fn: "playVoiceAndWait",        args: ["VOICE"]},
     avatar_stop_speaking:     {fn: "stopSpeaking",            args: []},
     avatar_play_motion:       {fn: "playMotion",              args: ["NAME"]},
     avatar_play_motion_wait:  {fn: "playMotionAndWait",       args: ["NAME"]},

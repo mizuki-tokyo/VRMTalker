@@ -3,6 +3,7 @@
 import ChatClient from "./chat-client.js";
 import SpeechSynthesizer from "./speech-synthesizer.js";
 import SoundPlayer from "./sound-player.js";
+import VoiceLibrary from "./voices.js";
 import Background from "./background.js";
 import Toast from "./web-ui/toast.js";
 import WebSpeechRecognizer from "./web-speech-recognizer.js";
@@ -179,6 +180,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const sounds = new SoundPlayer();
     const soundsLoaded = sounds.load();
 
+    // ボイスデータ（録っておいた声）。効果音と同じく、一覧は先に読んでおく
+    const voices = new VoiceLibrary();
+    const voicesLoaded = voices.load();
+
     const screenElement = document.querySelector("#screen");
 
     // 背景。最初に出す絵は index.html が決める（#screen の style）。
@@ -272,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const runner = createActionRunner({
         conversation,
         createApi: (signal) => createAvatarApi({
-            avatar, emote, chatFlow, speechSynthesizer, sounds, background, toast,
+            avatar, emote, chatFlow, speechSynthesizer, sounds, voices, background, toast,
             conversation, signal
         }),
         // アクションが終わったら入力待ちへ移す。
@@ -315,7 +320,8 @@ document.addEventListener('DOMContentLoaded', function() {
             motionNames: avatar.motionNames,
             emoteNames: emote.emoteNames,
             soundNames: sounds.names,
-            backgroundNames: background.names
+            backgroundNames: background.names,
+            voiceChoices: voices.choices
         }),
         // 組んだ内容で動かす。会話モードへ戻るたびに呼ばれる。
         // 保存とは切り離してある（どこかへ残すかは編集画面の「ファイル」の仕事）
@@ -476,6 +482,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loadMotions(avatar),
             emote.ready.catch(() => {}),
             soundsLoaded,
+            voicesLoaded,
             backgroundsLoaded
         ]))
         // アクションの登録を待ってから ready を出す。

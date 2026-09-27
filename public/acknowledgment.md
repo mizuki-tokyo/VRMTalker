@@ -35,6 +35,15 @@
 
 詳細は `public/emotes/README.txt` を参照してください。
 
+## ボイスデータ
+
+**Irodori-TTS** — <https://github.com/Aratako/Irodori-TTS>（MIT License, Copyright (c) 2024 Aratako）
+
+同梱の声は、このソフトウェアで生成したものです。シードによるランダム生成で
+最初に出力された「架空の声」を参照音声としてバリエーションを増やしており、
+実在する人物の声は参照していません
+（`public/voices/README.txt` に詳細があります）。
+
 ## 効果音
 
 すべて **freesound.org** で CC0 として公開されているものです

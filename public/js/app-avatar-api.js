@@ -35,12 +35,13 @@ export const SPEAKER = Object.freeze({
  * @param {Element}     deps.chatFlow          <chat-flow>
  * @param {object}      deps.speechSynthesizer SpeechSynthesizer
  * @param {object}      deps.sounds            SoundPlayer
+ * @param {object}      deps.voices            VoiceLibrary
  * @param {object}      deps.background        Background
  * @param {object}      deps.toast             画面に短い知らせを出すもの
  * @param {object}      deps.conversation      Conversation
  * @param {AbortSignal} deps.signal            中断の合図
  */
-const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds,
+const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, voices,
                           background, toast, conversation, signal}) => {
 
     const stopIfAborted = () => {
@@ -103,15 +104,30 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds,
             await guard(() => speakText(text), "発話");
         },
 
-        /** 音声ファイルを再生する。終わるのを待たない。 */
-        playSound(url) {
-            guard(() => avatar.speak(String(url)), "音声の再生").catch(() => {});
+        /**
+         * ボイスデータを再生する。終わるのを待たない。
+         *
+         * アバターの発話として鳴らすので口が動く（効果音との違い）。
+         * 受け取るのは voices/voices.json の id
+         */
+        playVoice(id) {
+            const file = voices.fileOf(id);
+            if (! file) {
+                console.warn(`ボイスデータ "${id}" がありません`);
+                return;
+            }
+            guard(() => avatar.speak(file), "ボイスデータの再生").catch(() => {});
         },
 
-        /** 音声ファイルを再生して、終わるまで待つ。 */
-        async playSoundAndWait(url) {
+        /** ボイスデータを再生して、終わるまで待つ。 */
+        async playVoiceAndWait(id) {
             stopIfAborted();
-            await guard(() => avatar.speak(String(url)), "音声の再生");
+            const file = voices.fileOf(id);
+            if (! file) {
+                console.warn(`ボイスデータ "${id}" がありません`);
+                return;
+            }
+            await guard(() => avatar.speak(file), "ボイスデータの再生");
         },
 
         /** 話している音声を止める。 */
