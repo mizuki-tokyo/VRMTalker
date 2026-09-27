@@ -111,7 +111,15 @@ uv run python scripts/setup_llama.py --model-repo <HFリポジトリ> --model-fi
 （LFM2.5 での実測: 有効だと最初のトークンまで 5〜14 秒、無効なら 0.3〜0.5 秒）。
 思考を使いたい場合は `LLAMA_REASONING_BUDGET=-1` を指定する。
 
-その他の調整用の環境変数は `LLAMA_CTX_SIZE` / `LLAMA_THREADS` / `LLAMA_PORT`。
+同梱の llama-server は既定で `127.0.0.1:8080` を使う。**8080 が他のもので
+埋まっている環境では `LLAMA_PORT` で変える**（アプリが繋ぎに行く先も一緒に
+変わるので、指定はこれ 1 つで足りる）。
+
+```bash
+LLAMA_PORT=8099 ./start.sh
+```
+
+その他の調整用の環境変数は `LLAMA_CTX_SIZE` / `LLAMA_THREADS` / `LLAMA_HOST`。
 
 ## 設定
 
