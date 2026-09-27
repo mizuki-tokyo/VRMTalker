@@ -25,3 +25,6 @@ node_modules/
 
 # llama.cpp のバイナリと GGUF モデル（scripts/setup_llama.py で取得する。約 1.6GB）
 /llama/
+
+# 合言葉や API キー（環境ごとの設定。見本は .env.example）
+.env
