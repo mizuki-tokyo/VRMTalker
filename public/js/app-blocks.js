@@ -52,26 +52,24 @@ const EVENT_LABELS = Object.freeze({
  * field_* はドロップダウン（保存時は fields に入る）、input_value は
  * 差し込み口（保存時は inputs に入る）。インタプリタはどちらでも読める
  */
-const buildBlockUi = ({motionNames = [], emoteNames = [], soundNames = [],
-                       backgroundNames = [], voiceChoices = []} = {}) => {
-    // 読み込みが終わる前に編集画面を開くと空になる。選べないことが伝わる
-    // 見出しを 1 つ出しておく（空のドロップダウンは Blockly が嫌う）
-    const choices = (names, empty) =>
-          (names.length > 0) ? names.map((name) => [name, name]) : [[empty, ""]];
-
-    const motions = choices(motionNames, "（モーションがありません）");
-    const emotes = choices(emoteNames, "（エモートがありません）");
-    const sounds = choices(soundNames, "（効果音がありません）");
-    const backgrounds = choices(backgroundNames, "（背景がありません）");
-
+const buildBlockUi = ({motionChoices = [], emoteChoices = [], soundChoices = [],
+                       backgroundChoices = [], voiceChoices = []} = {}) => {
     /*
-      ボイスデータだけは、出す文字（name）と覚える値（id）を分ける。
-      名前は「こんにちは！」のような文そのもので、後から直したくなる。
-      直したときに、保存済みのアクションの選択が外れないようにするため
+      ドロップダウンは「出す文字（name）」と「覚える値（id）」を分けて持つ。
+      名前は画面に出す文字なので後から直したくなるが、直したときに保存済みの
+      アクションの選択が外れないようにするため。
+
+      読み込みが終わる前に編集画面を開くと空になる。選べないことが伝わる
+      見出しを 1 つ出しておく（空のドロップダウンは Blockly が嫌う）
     */
-    const voices = (voiceChoices.length > 0)
-          ? voiceChoices.map((voice) => [voice.name, voice.id])
-          : [["（ボイスデータがありません）", ""]];
+    const choices = (items, empty) =>
+          (items.length > 0) ? items.map((item) => [item.name, item.id]) : [[empty, ""]];
+
+    const motions = choices(motionChoices, "（モーションがありません）");
+    const emotes = choices(emoteChoices, "（エモートがありません）");
+    const sounds = choices(soundChoices, "（効果音がありません）");
+    const backgrounds = choices(backgroundChoices, "（背景がありません）");
+    const voices = choices(voiceChoices, "（ボイスデータがありません）");
 
     const text = (name) => ({type: "input_value", name});
     const number = (name) => ({type: "input_value", name, check: "Number"});
@@ -284,12 +282,14 @@ const checkAgainstTables = (ui) => {
  *
  * @param {object} Blockly
  * @param {object}   names
- * @param {string[]} names.motionNames ドロップダウンに出すモーション名
- * @param {string[]} names.emoteNames  ドロップダウンに出すエモート名
- * @param {string[]} names.soundNames  ドロップダウンに出す効果音名
- * @param {string[]} names.backgroundNames ドロップダウンに出す背景名
+ * ドロップダウンに出すものは、どれも {id, name} の並びで受け取る。
+ * 画面には name を出し、アクションには id を覚えさせる。
+ *
+ * @param {Array<{id: string, name: string}>} names.motionChoices
+ * @param {Array<{id: string, name: string}>} names.emoteChoices
+ * @param {Array<{id: string, name: string}>} names.soundChoices
+ * @param {Array<{id: string, name: string}>} names.backgroundChoices
  * @param {Array<{id: string, name: string}>} names.voiceChoices
- *        ドロップダウンに出すボイスデータ。出す文字と覚える値が違う
  * @returns {string[]} 表とずれている箇所の警告
  */
 export const defineBlocks = (Blockly, names = {}) => {

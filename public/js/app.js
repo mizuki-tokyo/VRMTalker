@@ -47,7 +47,7 @@ const avatar = document.querySelector("vrm-avatar");
 // エモートのブロックが何もしないだけで、ほかの機能はそのまま動く
 const emote = document.querySelector("vrm-emote") ?? {
     ready: Promise.resolve(null),
-    emoteNames: [],
+    emoteChoices: [],
     current: null,
     show: () => {},
     clear: () => {}
@@ -184,6 +184,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const voices = new VoiceLibrary();
     const voicesLoaded = voices.load();
 
+    /** モーションの選択肢（{id, name} の並び）。読み込めた時点で入る。 */
+    let motionChoices = [];
+
     const screenElement = document.querySelector("#screen");
 
     // 背景。最初に出す絵は index.html が決める（#screen の style）。
@@ -317,10 +320,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const blockEditor = createBlockEditor({
         actionsUrl: ACTIONS_URL,
         getNames: () => ({
-            motionNames: avatar.motionNames,
-            emoteNames: emote.emoteNames,
-            soundNames: sounds.names,
-            backgroundNames: background.names,
+            motionChoices,
+            emoteChoices: emote.emoteChoices,
+            soundChoices: sounds.choices,
+            backgroundChoices: background.choices,
             voiceChoices: voices.choices
         }),
         // 組んだ内容で動かす。会話モードへ戻るたびに呼ばれる。
@@ -479,7 +482,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // モーション以外は失敗しても続ける（無くても会話はできる）
     avatar.ready
         .then(() => Promise.all([
-            loadMotions(avatar),
+            loadMotions(avatar).then((loaded) => {
+                // ブロックの選択肢に使う。<vrm-avatar> は id しか覚えないので、
+                // 画面に出す名前はここで持っておく
+                motionChoices = loaded;
+            }),
             emote.ready.catch(() => {}),
             soundsLoaded,
             voicesLoaded,

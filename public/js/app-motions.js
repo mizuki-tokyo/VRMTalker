@@ -1,16 +1,19 @@
 /**
  * 使えるモーションの定義を読み込む。
  *
- * 定義は animations/motions.json に置く。画面に出す名前とファイルの対応を
- * ここで決めるので、アクションを書く人はファイル名を知らなくてよい。
+ * 定義は animations/motions.json に置く。名前とファイルの対応をここで決める
+ * ので、アクションを書く人はファイル名を知らなくてよい。
  *
  *   [
- *     {"name": "立ち姿",     "file": "./animations/vrma/standard_idle.vrma",
- *      "default": true},
- *     {"name": "手を挙げる", "file": "./animations/fbx/Hand Raising.fbx"}
+ *     {"id": "idle",         "name": "立ち姿",     "default": true,
+ *      "file": "./animations/vrma/standard_idle.vrma"},
+ *     {"id": "hand-raising", "name": "手を挙げる",
+ *      "file": "./animations/fbx/Hand Raising.fbx"}
  *   ]
  *
- *   name    画面に出す名前。api.playMotion() に渡す名前でもある
+ *   id      アクションが覚える名札。api.playMotion() に渡すのもこれ。
+ *           後から変えないこと（保存済みのアクションが外れる）
+ *   name    画面に出す文字。変えても保存済みのアクションに響かない
  *   file    モーションファイル（FBX / VRMA）
  *   default ループする待機モーション。1 つだけ指定する
  *
@@ -34,7 +37,7 @@ export const MOTIONS_URL = "./animations/motions.json";
  *
  * @param {Element} avatar <vrm-avatar>
  * @param {string} [url]
- * @returns {Promise<string[]>} 登録できたモーション名
+ * @returns {Promise<Array<{id: string, name: string}>>} 登録できたもの
  */
 const loadMotions = async (avatar, url = MOTIONS_URL) => {
     let definitions;
@@ -58,25 +61,28 @@ const loadMotions = async (avatar, url = MOTIONS_URL) => {
     let hasDefault = false;
 
     for (const definition of definitions) {
-        const name = definition?.name;
+        const id = definition?.id;
         const file = definition?.file;
-        if (! name || ! file) {
-            console.warn("モーションの定義に name か file がありません", definition);
+        if (! id || ! file) {
+            console.warn("モーションの定義に id か file がありません", definition);
             continue;
         }
+        // 名前が無ければ id で代用する（選べなくなるよりはよい）
+        const name = String(definition.name ?? id);
 
         // 既定モーションは 1 つだけ。2 つめ以降は通常のモーションとして扱う
         const isDefault = Boolean(definition.default) && ! hasDefault;
         if (definition.default && hasDefault) {
-            console.warn(`既定のモーションが複数あります。"${name}" は通常のモーションにします`);
+            console.warn(`既定のモーションが複数あります。"${id}" は通常のモーションにします`);
         }
 
         try {
-            await avatar.loadMotion(file, isDefault, name);
-            loaded.push(name);
+            // <vrm-avatar> には id で覚えさせる。api.playMotion() が渡すのも id
+            await avatar.loadMotion(file, isDefault, String(id));
+            loaded.push({id: String(id), name});
             hasDefault = hasDefault || isDefault;
         } catch (error) {
-            console.warn(`モーション "${name}" (${file}) を読み込めませんでした`, error);
+            console.warn(`モーション "${id}" (${file}) を読み込めませんでした`, error);
         }
     }
 

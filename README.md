@@ -210,6 +210,48 @@ VRM 仕様には `overrideBlink` / `overrideLookAt` / `overrideMouth` という�
 uv run python scripts/setup_voicevox.py --models-pattern "*"
 ```
 
+## 素材を入れ替える
+
+アバターの動き・アイコン・音・背景・声は、それぞれ定義ファイル（JSON）で
+「何が使えるか」を決める。ブロックのドロップダウンに並ぶのもこの中身なので、
+**ファイルを置いて JSON に 1 行足せば、その場で選べるようになる**。
+
+| 種類 | 定義ファイル | 置き場所 |
+|---|---|---|
+| モーション | `public/animations/motions.json` | `animations/vrma/` `animations/fbx/` |
+| エモート（頭の上のアイコン） | `public/emotes/emotes.json` | `public/emotes/` |
+| 効果音 | `public/sounds/sounds.json` | `public/sounds/` |
+| ボイスデータ | `public/voices/voices.json` | `public/voices/` |
+| 背景 | `public/img/backgrounds.json` | `public/img/` |
+
+どれも同じ形をしている。
+
+```json
+[
+    { "id": "applause", "name": "拍手", "file": "./sounds/applause.mp3" }
+]
+```
+
+| 項目 | 内容 |
+|---|---|
+| `id` | アクションが覚える名札。**後から変えないこと**（保存済みのアクションの選択が外れる） |
+| `name` | 画面に出す文字。こちらは後から変えてよい |
+| `file` | ファイルの場所。`public/` から見た相対パス |
+
+`id` は半角英数とハイフンで付けておくと扱いやすい（ファイル名に合わせるのが楽）。
+
+種類ごとの違いは次のとおり。
+
+- **モーション**は、どれか 1 つに `"default": true` を付ける。それが待機中の
+  動きになる。ここに書いたものは起動時にすべて読み込むので、使うものだけを載せる
+- **ボイスデータ**はアバターの発話として鳴る。口が動き、「話すのをやめる」で止まる
+- **効果音**は場面の音。口は動かず、重ねて鳴らせる
+- **背景**は切り替えるときに 0.6 秒かけて溶け込む。最初に出す絵は
+  `index.html` の `#screen` が決める
+
+素材の出典は `public/acknowledgment.md` に書く。メニューの「リソースの出典」に
+そのまま出るので、差し替えたらここも直すこと。
+
 ## API
 
 | メソッド | パス | 内容 |
@@ -352,16 +394,36 @@ src/
     openai_compat.py        OpenAI 互換 API の実装
     echo.py                 LLM 無しで動かすダミー実装
     __init__.py             環境変数から実装を組み立てる
+data/                       公開されたアクション（配布物には含めない）
 public/
   index.html
+  actions.json              同梱のアクション（読み取り専用の見本）
+  acknowledgment.md         素材とソフトウェアの出典
+  animations/  emotes/  sounds/  voices/  img/  models/   素材と、その定義ファイル
+  styles/
+    blockly.css             Blockly の見た目（他のプロジェクトでも使える分）
   js/
-    main.js                 アプリ全体の組み立て
-    three-world-element.js  <three-world>  three.js の描画環境
-    vrm-avatar-element.js   <vrm-avatar>   VRM モデルの配置と制御
-    vrm-avatar-element/     VRM 固有の処理（ローダ、モーション、リップシンク）
-    speech-recognition-element.js  <speech-recognition>  音声認識ボタン
+    app.js                  アプリ全体の組み立て
+    app-conversation.js     会話の進行（節目をイベントで出す）
+    app-avatar-actions.js   節目ごとの動き（手書き。JSON が無いときの控え）
+    app-avatar-api.js       アクションから呼べる関数（＝ブロック 1 個ぶん）
+    app-action-program.js   ブロックの JSON を読んで動かす
+    app-action-runner.js    アクションの実行と中断
+    app-blocks.js           ブロックの文言・形・パレット
+    app-block-editor.js     編集画面（Blockly の組み立てと読み書き）
+    app-motions.js          motions.json の読み込み
+    sound-player.js         効果音
+    voices.js               ボイスデータの一覧
+    background.js           背景の切り替え
+    app-settings.js         設定ウインドウの中身
+    app-credits.js          謝辞（出典とモデル情報）
     speech-synthesizer.js   /api/tts のクライアント
     chat-client.js          /api/chat のクライアント（文単位で返す）
     split-sentence.js       文の分割
-    progress-bar-element.js <progress-bar>
+    three-ui/               3D まわりのカスタム要素
+      three-world-element.js  <three-world>  three.js の描画環境
+      vrm-avatar-element.js   <vrm-avatar>   VRM モデルの配置と制御
+      vrm-avatar-element/     VRM 固有の処理（ローダ、モーション、リップシンク）
+      vrm-emote-element.js    <vrm-emote>    頭の上のアイコン
+    web-ui/                 画面部品のカスタム要素（吹き出し・設定・ダイアログ等）
 ```

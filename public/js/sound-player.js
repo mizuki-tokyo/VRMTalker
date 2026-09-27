@@ -3,15 +3,15 @@
  *
  *   const sounds = new SoundPlayer();
  *   await sounds.load();               // sounds/sounds.json を読む
- *   sounds.play("拍手");               // 鳴らし始めて、すぐ次へ進む
- *   await sounds.playAndWait("拍手");  // 鳴り終わるまで待つ
+ *   sounds.play("applause");           // 鳴らし始めて、すぐ次へ進む
+ *   await sounds.playAndWait("applause");  // 鳴り終わるまで待つ
  *   sounds.stop();                     // 鳴っているものを全部止める
  *
  * 鳴らすたびに新しい再生を始める（ワンショット）。前の音を待たないので、
  * 同じ音でも重なって鳴る。拍手の上に正解音を重ねる、といった使い方ができる。
  *
- * 知らない名前を渡しても例外は投げない。アクションが途中で止まらないよう、
- * 警告を出して何もしない（呼び出し側の app-avatar-api.js の約束）。
+ * 渡すのは定義の id。知らない id でも例外は投げない。アクションが途中で
+ * 止まらないよう、警告を出して何もしない（呼び出し側の app-avatar-api.js の約束）。
  *
  * 音声合成の発話とは別系統で、互いに止め合わない。発話は <vrm-avatar> が
  * 口の動きと一緒に面倒を見る
@@ -23,8 +23,8 @@ export const SOUNDS_URL = "./sounds/sounds.json";
 
 export default class SoundPlayer {
 
-    /** 名前 → 音のファイル。 */
-    _files = new Map();
+    /** id → {name, file}。 */
+    _sounds = new Map();
 
     /**
      * 先読み用の <audio>。捨てると読み込みも止まるので持っておく。
@@ -35,26 +35,30 @@ export default class SoundPlayer {
     /** 今鳴っているもの。{audio, settle} の集まり。 */
     _playing = new Set();
 
-    /** 鳴らせる音の名前。ブロックの選択肢に使う。 */
-    get names() {
-        return [...this._files.keys()];
+    /**
+     * 鳴らせる音。ブロックの選択肢に使う。
+     * @returns {Array<{id: string, name: string}>}
+     */
+    get choices() {
+        return [...this._sounds].map(([id, sound]) => ({id, name: sound.name}));
     }
 
     /**
      * 定義を読み込む。
      *
      *   [
-     *     {"name": "拍手", "file": "./sounds/applause.mp3"}
+     *     {"id": "applause", "name": "拍手", "file": "./sounds/applause.mp3"}
      *   ]
      *
-     *   name  画面に出す名前。play() に渡す名前でもある
+     *   id    アクションが覚える名札。play() に渡すのもこれ。後から変えないこと
+     *   name  画面に出す文字
      *   file  音のファイル
      *
      * 読めなくても、定義の一部が壊れていても例外は投げない。効果音が無くても
      * アプリは会話できるため、警告にとどめて動かし続ける。
      *
      * @param {string} [url]
-     * @returns {Promise<string[]>} 登録できた名前
+     * @returns {Promise<Array<{id: string, name: string}>>} 登録できたもの
      */
     async load(url = SOUNDS_URL) {
         let definitions;
@@ -75,21 +79,24 @@ export default class SoundPlayer {
         }
 
         for (const definition of definitions) {
-            const name = definition?.name;
+            const id = definition?.id;
             const file = definition?.file;
-            if (! name || ! file) {
-                console.warn("効果音の定義に name か file がありません", definition);
+            if (! id || ! file) {
+                console.warn("効果音の定義に id か file がありません", definition);
                 continue;
             }
-            this._files.set(String(name), String(file));
-            this._preload(String(name), String(file));
+            // 名前が無ければ id で代用する（選べなくなるよりはよい）
+            this._sounds.set(String(id), {
+                name: String(definition.name ?? id), file: String(file)
+            });
+            this._preload(String(id), String(file));
         }
-        return this.names;
+        return this.choices;
     }
 
     /** 鳴らす。鳴り終わるのを待たない。 */
-    play(name) {
-        this._start(name);
+    play(id) {
+        this._start(id);
     }
 
     /**
@@ -99,8 +106,8 @@ export default class SoundPlayer {
      *
      * @returns {Promise<void>}
      */
-    async playAndWait(name) {
-        const started = this._start(name);
+    async playAndWait(id) {
+        const started = this._start(id);
         if (started) {
             await started.finished;
         }
@@ -119,11 +126,11 @@ export default class SoundPlayer {
      * ファイルをあらかじめ取りに行く。押した瞬間に鳴ってほしいため。
      * ついでに、置き忘れたファイルをここで見つけられる
      */
-    _preload(name, file) {
+    _preload(id, file) {
         const audio = new Audio(file);
         audio.preload = "auto";
         audio.addEventListener("error", () => {
-            console.warn(`効果音 "${name}" (${file}) を読み込めませんでした`);
+            console.warn(`効果音 "${id}" (${file}) を読み込めませんでした`);
         }, {once: true});
         this._preloaded.push(audio);
     }
@@ -132,10 +139,10 @@ export default class SoundPlayer {
      * 1 つ鳴らし始める。
      * @returns {{audio: HTMLAudioElement, finished: Promise<void>}|null}
      */
-    _start(name) {
-        const file = this._files.get(String(name));
+    _start(id) {
+        const file = this._sounds.get(String(id))?.file;
         if (! file) {
-            console.warn(`効果音 "${name}" がありません`);
+            console.warn(`効果音 "${id}" がありません`);
             return null;
         }
 
@@ -150,7 +157,7 @@ export default class SoundPlayer {
         audio.addEventListener("ended", () => this._finish(entry), {once: true});
         audio.addEventListener("error", () => this._finish(entry), {once: true});
         audio.play().catch((error) => {
-            console.warn(`効果音 "${name}" を鳴らせませんでした`, error);
+            console.warn(`効果音 "${id}" を鳴らせませんでした`, error);
             this._finish(entry);
         });
 

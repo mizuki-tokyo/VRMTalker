@@ -183,8 +183,9 @@ const registerRenderer = (Blockly) => {
 /**
  * @param {object} deps
  * @param {string} deps.actionsUrl 定義の読み込み元
- * @param {() => {motionNames: string[], emoteNames: string[]}} deps.getNames
- *        ドロップダウンに出す名前。編集画面を開いた時点で読み直す
+ * @param {() => object} deps.getNames
+ *        ドロップダウンに出すもの（{id, name} の並び）。編集画面を開いた
+ *        時点で読み直す。中身は app-blocks.js の buildBlockUi を参照
  * @param {(program: object) => Promise<void>} deps.onApply
  *        組んだ内容を、動いているアバターへ反映する。会話モードへ戻るたびに呼ぶ
  * @param {object} deps.trial ブロックを試しに動かすための手立て（app.js が渡す）

@@ -148,7 +148,12 @@ export default class VrmAvatarElement extends HTMLElement {
         return this._humanoid.loadAnimation(url, isDefault, name);
     }
 
-    /** 読み込み済みのモーション名。画面の選択肢を組み立てるのに使う。 */
+    /**
+     * 読み込み済みのモーションの名札。
+     *
+     * loadMotion() に渡した名前がそのまま返る。このアプリでは
+     * animations/motions.json の id を渡しているので、返るのも id
+     */
     get motionNames() {
         return this._humanoid ? this._humanoid.getActionNames() : [];
     }

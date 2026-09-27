@@ -11,6 +11,10 @@ import "./vrm-avatar-element.js";
  *     <vrm-emote src="./emotes/emotes.json"></vrm-emote>
  *   </vrm-avatar>
  *
+ * 一覧の JSON は次の形。id が名札で、name は画面に出す文字。
+ *
+ *   [ {"id": "heart", "name": "ハート", "file": "./emotes/heart.png"} ]
+ *
  * 属性
  *   src    : アイコン一覧の JSON の URL。既定 "./emotes/emotes.json"
  *   size   : アイコンの高さ（メートル）。既定 0.28
@@ -100,14 +104,17 @@ export default class VrmEmoteElement extends HTMLElement {
         return this._ready;
     }
 
-    /** 使えるアイコンの名前。ブロックの選択肢に使う。 */
-    get emoteNames() {
-        return [...this._icons.keys()];
+    /**
+     * 使えるアイコン。ブロックの選択肢に使う。
+     * @returns {Array<{id: string, name: string}>}
+     */
+    get emoteChoices() {
+        return [...this._icons].map(([id, icon]) => ({id, name: icon.name}));
     }
 
-    /** 今出ているアイコンの名前。出ていなければ null。 */
+    /** 今出ているアイコンの id。出ていなければ null。 */
     get current() {
-        return this._sprite?.visible ? (this._sprite.userData.name ?? null) : null;
+        return this._sprite?.visible ? (this._sprite.userData.id ?? null) : null;
     }
 
     /**
@@ -116,21 +123,21 @@ export default class VrmEmoteElement extends HTMLElement {
      * seconds を指定すると、その秒数だけ出して自動で消える。0 以下なら
      * clear() を呼ぶまで出しっぱなしにする。
      *
-     *   await emote.show("ハート", 2);
+     *   await emote.show("heart", 2);
      *
-     * 知らない名前を渡しても例外は投げない（警告して何もしない）。
+     * 渡すのは定義の id。知らない id でも例外は投げない（警告して何もしない）。
      * アクションの途中で止まらないようにするため。
      *
-     * @param {string} name
+     * @param {string} id
      * @param {number} [seconds] 出しておく秒数
      * @returns {Promise<void>} 消え終わった時点で解決する
      */
-    async show(name, seconds = 0) {
+    async show(id, seconds = 0) {
         await this._ready.catch(() => {});
 
-        const icon = this._icons.get(String(name));
+        const icon = this._icons.get(String(id));
         if (! icon) {
-            console.warn(`<vrm-emote>: エモート "${name}" がありません。`
+            console.warn(`<vrm-emote>: エモート "${id}" がありません。`
                          + `${EMOTES_URL} に定義してください`);
             return;
         }
@@ -146,7 +153,7 @@ export default class VrmEmoteElement extends HTMLElement {
         sprite.material.map = icon.texture;
         sprite.material.needsUpdate = true;
         sprite.scale.set(size * icon.aspect, size, 1);
-        sprite.userData.name = name;
+        sprite.userData.id = id;
 
         // 出る前に頭の位置へ移しておく。前のアイコンの位置から飛んでこない
         this._updateOffset();
@@ -264,12 +271,14 @@ export default class VrmEmoteElement extends HTMLElement {
         const loader = new THREE.TextureLoader();
 
         for (const definition of definitions) {
-            const name = definition?.name;
+            const id = definition?.id;
             const file = definition?.file;
-            if (! name || ! file) {
-                console.warn("エモートの定義に name か file がありません", definition);
+            if (! id || ! file) {
+                console.warn("エモートの定義に id か file がありません", definition);
                 continue;
             }
+            // 名前が無ければ id で代用する（選べなくなるよりはよい）
+            const name = String(definition.name ?? id);
             try {
                 const texture = await loader.loadAsync(file);
                 // 付けないと色が褪せる（<three-world> の出力が sRGB のため）
@@ -277,10 +286,10 @@ export default class VrmEmoteElement extends HTMLElement {
 
                 const image = texture.image;
                 const aspect = (image?.height > 0) ? (image.width / image.height) : 1;
-                this._icons.set(String(name), {texture, aspect});
+                this._icons.set(String(id), {texture, aspect, name});
 
             } catch (error) {
-                console.warn(`エモート "${name}" (${file}) を読み込めませんでした`, error);
+                console.warn(`エモート "${id}" (${file}) を読み込めませんでした`, error);
             }
         }
     }

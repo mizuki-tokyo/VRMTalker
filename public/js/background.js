@@ -3,7 +3,7 @@
  *
  *   const background = new Background(document.querySelector("#screen"));
  *   await background.load();        // img/backgrounds.json を読む
- *   background.set("ビーチ");       // 読み込めた時点で切り替わる
+ *   background.set("beach");        // 読み込めた時点で切り替わる
  *
  * 最初に出す絵は index.html が決める（#screen の style）。起動してから
  * JavaScript で決めると、読み込みが終わるまで背景の無い画面が見えてしまう。
@@ -17,8 +17,8 @@
  * 変え、変わり切ったところで #screen 自身の背景へ移す。速さと見え方は
  * index.html の CSS が決めるので、ここでは終わりの合図を待つだけにする。
  *
- * 知らない名前を渡しても例外は投げない。アクションが途中で止まらないよう、
- * 警告を出して何もしない（呼び出し側の app-avatar-api.js の約束）。
+ * 渡すのは定義の id。知らない id でも例外は投げない。アクションが途中で
+ * 止まらないよう、警告を出して何もしない（呼び出し側の app-avatar-api.js の約束）。
  */
 
 /** 背景の定義の既定の場所。 */
@@ -39,8 +39,8 @@ const FADE_TIMEOUT = 10000;
 
 export default class Background {
 
-    /** 名前 → 絵のファイル。 */
-    _files = new Map();
+    /** id → {name, file}。 */
+    _backgrounds = new Map();
 
     /** 切り替えの途中にある絵。終わったら null に戻す。 */
     _fading = null;
@@ -52,26 +52,30 @@ export default class Background {
         this._element = element;
     }
 
-    /** 選べる背景の名前。ブロックの選択肢に使う。 */
-    get names() {
-        return [...this._files.keys()];
+    /**
+     * 選べる背景。ブロックの選択肢に使う。
+     * @returns {Array<{id: string, name: string}>}
+     */
+    get choices() {
+        return [...this._backgrounds].map(([id, item]) => ({id, name: item.name}));
     }
 
     /**
      * 定義を読み込む。
      *
      *   [
-     *     {"name": "ビーチ", "file": "./img/beach.png"}
+     *     {"id": "beach", "name": "ビーチ", "file": "./img/beach.png"}
      *   ]
      *
-     *   name  画面に出す名前。set() に渡す名前でもある
+     *   id    アクションが覚える名札。set() に渡すのもこれ。後から変えないこと
+     *   name  画面に出す文字
      *   file  絵のファイル
      *
      * 読めなくても、定義の一部が壊れていても例外は投げない。背景を替えられ
      * なくてもアプリは会話できるため、警告にとどめて動かし続ける。
      *
      * @param {string} [url]
-     * @returns {Promise<string[]>} 登録できた名前
+     * @returns {Promise<Array<{id: string, name: string}>>} 登録できたもの
      */
     async load(url = BACKGROUNDS_URL) {
         let definitions;
@@ -92,15 +96,18 @@ export default class Background {
         }
 
         for (const definition of definitions) {
-            const name = definition?.name;
+            const id = definition?.id;
             const file = definition?.file;
-            if (! name || ! file) {
-                console.warn("背景の定義に name か file がありません", definition);
+            if (! id || ! file) {
+                console.warn("背景の定義に id か file がありません", definition);
                 continue;
             }
-            this._files.set(String(name), String(file));
+            // 名前が無ければ id で代用する（選べなくなるよりはよい）
+            this._backgrounds.set(String(id), {
+                name: String(definition.name ?? id), file: String(file)
+            });
         }
-        return this.names;
+        return this.choices;
     }
 
     /**
@@ -109,20 +116,20 @@ export default class Background {
      * 絵を読み込んでから、溶け込ませて切り替える。読み込めなければ今の背景の
      * ままにする（消えた画面を見せるより、替わらないほうがまだ分かる）。
      *
-     * @param {string} name
+     * @param {string} id
      * @returns {Promise<void>} 切り替わり切った時点で解決する
      */
-    async set(name) {
-        const file = this._files.get(String(name));
+    async set(id) {
+        const file = this._backgrounds.get(String(id))?.file;
         if (! file) {
-            console.warn(`背景 "${name}" がありません`);
+            console.warn(`背景 "${id}" がありません`);
             return;
         }
 
         try {
             await this._preload(file);
         } catch (error) {
-            console.warn(`背景 "${name}" (${file}) を読み込めませんでした`);
+            console.warn(`背景 "${id}" (${file}) を読み込めませんでした`);
             return;
         }
         await this._fadeTo(file);

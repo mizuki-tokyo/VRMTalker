@@ -5,6 +5,8 @@
  * そのため次の制約を守ること。
  *
  *   - 引数はプリミティブだけ（文字列・数値・真偽）。オブジェクトを受け取らない
+ *   - モーション・エモート・効果音・背景・ボイスデータは、定義ファイルの id で
+ *     受け取る（画面に出す名前は後から変わりうるため）
  *   - 1 関数 = 1 ブロック。オプションの入れ物（{a, b}）を使わない
  *   - 例外を投げない。失敗は警告を出して続ける（利用者の画面を壊さない）
  *   - 「終わるまで待つ」版は関数名を分ける（…AndWait）
@@ -135,15 +137,15 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
             avatar.stopSpeaking();
         },
 
-        /** モーションを再生する。終わるのを待たない。 */
-        playMotion(name) {
-            guard(() => avatar.playMotion(String(name)), "モーションの再生").catch(() => {});
+        /** モーションを再生する。終わるのを待たない。渡すのは定義の id。 */
+        playMotion(id) {
+            guard(() => avatar.playMotion(String(id)), "モーションの再生").catch(() => {});
         },
 
         /** モーションを再生して、終わるまで待つ。 */
-        async playMotionAndWait(name) {
+        async playMotionAndWait(id) {
             stopIfAborted();
-            await guard(() => avatar.playMotion(String(name)), "モーションの再生");
+            await guard(() => avatar.playMotion(String(id)), "モーションの再生");
         },
 
         /** 表情を即座に変える。value は 0-1。 */
@@ -186,15 +188,15 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
          * 話しながらアイコンを出す使い方が主なので、こちらが既定。
          * seconds が 0 以下なら clearEmote() を呼ぶまで出したままにする
          */
-        showEmote(name, seconds) {
-            guard(() => emote.show(String(name), Number(seconds)), "エモートの表示")
+        showEmote(id, seconds) {
+            guard(() => emote.show(String(id), Number(seconds)), "エモートの表示")
                 .catch(() => {});
         },
 
         /** 感情アイコンを出して、消えるまで待つ。 */
-        async showEmoteAndWait(name, seconds) {
+        async showEmoteAndWait(id, seconds) {
             stopIfAborted();
-            await guard(() => emote.show(String(name), Number(seconds)), "エモートの表示");
+            await guard(() => emote.show(String(id), Number(seconds)), "エモートの表示");
         },
 
         /** 感情アイコンを消す。 */
@@ -210,14 +212,14 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
          * 鳴らすたびに新しい再生が始まるので、続けて呼べば重なって鳴る。
          * 発話とは別系統で、互いに止め合わない
          */
-        playSoundEffect(name) {
-            sounds.play(String(name));
+        playSoundEffect(id) {
+            sounds.play(String(id));
         },
 
         /** 効果音を鳴らして、鳴り終わるまで待つ。 */
-        async playSoundEffectAndWait(name) {
+        async playSoundEffectAndWait(id) {
             stopIfAborted();
-            await guard(() => sounds.playAndWait(String(name)), "効果音の再生");
+            await guard(() => sounds.playAndWait(String(id)), "効果音の再生");
         },
 
         /** 鳴っている効果音を全部止める。発話は止まらない。 */
@@ -256,8 +258,8 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
          * 絵を読み込めた時点で替わる。待たないので、続けて書いたブロックは
          * 替わる前に動き出す（替わるまで待つ必要がある使い方は想定していない）
          */
-        setBackground(name) {
-            guard(() => background.set(String(name)), "背景の変更").catch(() => {});
+        setBackground(id) {
+            guard(() => background.set(String(id)), "背景の変更").catch(() => {});
         },
 
         //---------------------------------- 会話

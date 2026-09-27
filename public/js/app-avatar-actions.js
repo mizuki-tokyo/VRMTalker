@@ -35,7 +35,7 @@ export default {
         // while (true) {
         //     await api.wait(api.random(5, 15));
         //     if (api.random(1, 100) <= 30) {
-        //         await api.playMotionAndWait("おじぎ");
+        //         await api.playMotionAndWait("bow");
         //     }
         // }
 
@@ -44,7 +44,7 @@ export default {
     /** 音声認識が始まった。 */
     listenstart: async (api) => {
         // 聞く姿勢をここに書く
-        //await api.playMotionAndWait("おじぎ");
+        //await api.playMotionAndWait("bow");
     },
 
     /** ユーザが話し始めた。音声認識の実装によっては呼ばれない。 */
@@ -64,7 +64,7 @@ export default {
     listenend: async (api, {text}) => {
         // 返事を待つ間もアバターを動かしておく。await を付けないので並行して進む。
         // モーション名は animations/motions.json で決める
-        api.playMotion("手を挙げる");
+        api.playMotion("hand-raising");
         api.changeExpression("happy", 1.0, 0.3);
 
         // 返事は文が完成した順に届く。全部できあがるのを待たずに話し始められる
