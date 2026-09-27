@@ -30,6 +30,23 @@ const EXPRESSIONS = [
 /** 注視点にできるボーン。VRM の仕様で必ず存在するものを選ぶ。 */
 const BONES = [["頭", "head"], ["胸", "chest"], ["腰", "hips"]];
 
+/**
+ * 視線を向ける先。画面から見た向きで書く（アバターから見た左右ではない）。
+ * 向きの符号は <vrm-avatar> の gazeTo() が吸収する
+ */
+const GAZE_DIRECTIONS = [
+    ["右", "right"], ["左", "left"], ["上", "up"], ["下", "down"], ["正面", "front"]
+];
+
+/**
+ * 視線を動かす量。
+ *
+ * 度数で書かせない。VRM の視線はモデル側の範囲へ圧縮されるため、45 度と
+ * 指定しても目が動くのは 7 度ほどで、しかもモデルごとに違う。数字を見せると
+ * 「45 度にしたのに動かない」という誤解になる
+ */
+const GAZE_AMOUNTS = [["ちらっと", "20"], ["しっかり", "60"]];
+
 /** 吹き出しの出し手。app-avatar-api.js の SPEAKER と合わせる。 */
 const SPEAKERS = [["キャラクタ", "キャラクタ"], ["あなた", "あなた"]];
 
@@ -129,8 +146,26 @@ const buildBlockUi = ({motionChoices = [], emoteChoices = [], soundChoices = [],
                    + "まばたきと口の形はそのまま"
         },
         avatar_look_at: {
-            message0: "%1 を見る",
-            args0: [dropdown("BONE", BONES)], style: "motion_blocks"
+            message0: "カメラを %1 に向ける",
+            args0: [dropdown("BONE", BONES)], style: "motion_blocks",
+            tooltip: "画面に映る位置を変える。アバターの視線ではない"
+        },
+        avatar_gaze_to: {
+            message0: "視線を %1 に %2 向ける",
+            args0: [dropdown("DIRECTION", GAZE_DIRECTIONS),
+                    dropdown("DEGREES", GAZE_AMOUNTS)],
+            style: "motion_blocks", inputsInline: true,
+            tooltip: "動くのは目だけで、頭は回らない。向きは画面から見たほう。"
+                   + "「正面」で真っすぐに戻る（カメラは追いかけない）"
+        },
+        avatar_gaze_camera: {
+            message0: "視線をカメラに向ける", args0: [], style: "motion_blocks",
+            tooltip: "一度だけ向けて、そこで止まる。カメラが動いても付いていかない"
+        },
+        avatar_gaze_follow: {
+            message0: "視線をカメラに向けたままにする（はじめの状態）",
+            args0: [], style: "motion_blocks",
+            tooltip: "カメラを目で追いかける。動かした視線を元に戻すのもこれ"
         },
         avatar_show_emote: {
             message0: "%1 のエモートを %2 秒出す",
@@ -404,6 +439,9 @@ export const createToolbox = () => {
                      inputs: {VALUE: shadowNumber(0), SECONDS: shadowNumber(0.5)}},
                     {kind: "block", type: "avatar_clear_expression"},
                     {kind: "block", type: "avatar_look_at"},
+                    {kind: "block", type: "avatar_gaze_to"},
+                    {kind: "block", type: "avatar_gaze_camera"},
+                    {kind: "block", type: "avatar_gaze_follow"},
                     {kind: "block", type: "avatar_show_emote",
                      inputs: {SECONDS: shadowNumber(2)}},
                     {kind: "block", type: "avatar_show_emote_wait",

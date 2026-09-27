@@ -313,11 +313,17 @@ document.addEventListener('DOMContentLoaded', function() {
      *
      * 待機へ入るのは「準備ができたとき」のアクションが終わってからなので、
      * そのアクションが登録されていないと誰も待機へ移してくれない。
-     * その場合は ready を飛ばして直接待機へ入る
+     * その場合は ready を飛ばして直接待機へ入る。
+     *
+     * 見た目は読み込んだ直後の状態へ戻す。表情や視線は、ブロックで変えたら
+     * ブロックで戻す作りなので、戻し忘れたまま「はじめから」を押すと、
+     * 前の続きの顔で始まってしまう
      *
      * @param {boolean} [fireReady] 「準備ができたとき」から動かすか
      */
     const startConversation = (fireReady = true) => {
+        avatar.clearExpressions();
+        avatar.gazeFollowCamera();
         conversation.restart(fireReady && runner.types.includes("ready"));
     };
 

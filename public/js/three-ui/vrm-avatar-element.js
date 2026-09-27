@@ -473,8 +473,62 @@ export default class VrmAvatarElement extends HTMLElement {
     }
 
     /**
+     * 視線（目の向き）。
+     *
+     * 動かすのは目だけで、頭は回らない（VRM の lookAt はそう決まっている）。
+     * 指定した角度はモデル側の範囲へ圧縮されるため、見た目の角度とは一致しない
+     * ことに注意。同梱のモデルでは、45 度を指定して目は 7 度ほど動く
+     */
+    get _lookAt() {
+        const lookAt = this._humanoid?.vrm?.lookAt;
+        // 滑らかに動かす版に差し替わっていなければ、視線は触らない
+        return (typeof lookAt?.setGaze === "function") ? lookAt : null;
+    }
+
+    /** 視線でカメラを追いかける（読み込んだ直後の状態）。 */
+    gazeFollowCamera() {
+        this._lookAt?.follow(this._world?.camera ?? null);
+    }
+
+    /** 視線をカメラへ向けて、そこで止める。カメラが動いても付いていかない。 */
+    gazeAtCamera() {
+        const camera = this._world?.camera;
+        if (! camera) {
+            return;
+        }
+        this._lookAt?.gazeAt(camera.getWorldPosition(new THREE.Vector3()));
+    }
+
+    /**
+     * 視線を向ける。向きは**画面から見た**ほう。
+     *
+     *   avatar.gazeTo("right", 45);   // 画面の右へ
+     *
+     * @param {string} direction "right" | "left" | "up" | "down" | "front"
+     * @param {number} [degrees] 見込みの角度。front のときは使わない
+     */
+    gazeTo(direction, degrees = 30) {
+        const amount = Math.abs(Number(degrees)) || 0;
+        // three-vrm の決まりに合わせる（yaw＋が画面の右、pitch＋が下）
+        const angles = {
+            right: [amount, 0],
+            left: [-amount, 0],
+            up: [0, -amount],
+            down: [0, amount],
+            front: [0, 0]
+        }[String(direction)];
+
+        if (! angles) {
+            console.warn(`<vrm-avatar>: 視線の向き "${direction}" は扱えません。`);
+            return;
+        }
+        this._lookAt?.setGaze(angles[0], angles[1]);
+    }
+
+    /**
      * カメラの注視点をモデルに合わせる。
      *
+     * これはカメラの話で、視線（gazeTo など）とは別。
      * VRM 仕様では head などのヒューマノイドボーンが必須なので、
      * ボーン名で指定すればモデルを差し替えても同じ位置を狙える。
      *

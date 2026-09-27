@@ -177,9 +177,33 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
             avatar.clearExpressions();
         },
 
-        /** カメラの注視点をボーンに合わせる。 */
+        /** カメラの注視点をボーンに合わせる。視線（gaze…）とは別の話。 */
         lookAt(boneName) {
             avatar.focusCamera(String(boneName));
+        },
+
+        /**
+         * 視線をカメラへ向けて、そこで止める。
+         *
+         * 動くのは目だけで、頭は回らない（VRM の視線はそう決まっている）
+         */
+        gazeAtCamera() {
+            avatar.gazeAtCamera();
+        },
+
+        /** 視線でカメラを追いかける。読み込んだ直後の状態へ戻す。 */
+        gazeFollowCamera() {
+            avatar.gazeFollowCamera();
+        },
+
+        /**
+         * 視線を向ける。向きは画面から見たほう。
+         *
+         * @param {string} direction "right" | "left" | "up" | "down" | "front"
+         * @param {number} degrees   見込みの角度
+         */
+        gazeTo(direction, degrees) {
+            avatar.gazeTo(String(direction), Number(degrees));
         },
 
         /**
