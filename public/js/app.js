@@ -10,7 +10,7 @@ import WebSpeechRecognizer from "./web-speech-recognizer.js";
 import Conversation from "./app-conversation.js";
 
 // 会話の節目でアバターが何をするか
-import loadMotions from "./app-motions.js";
+import {readMotions, registerMotions} from "./app-motions.js";
 import createAvatarApi, {ActionStopped} from "./app-avatar-api.js";
 import createActionRunner from "./app-action-runner.js";
 import createActionProgram from "./app-action-program.js";
@@ -47,6 +47,7 @@ const avatar = document.querySelector("vrm-avatar");
 // エモートのブロックが何もしないだけで、ほかの機能はそのまま動く
 const emote = document.querySelector("vrm-emote") ?? {
     ready: Promise.resolve(null),
+    iconsReady: Promise.resolve(),
     emoteChoices: [],
     current: null,
     show: () => {},
@@ -184,8 +185,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const voices = new VoiceLibrary();
     const voicesLoaded = voices.load();
 
-    /** モーションの選択肢（{id, name} の並び）。読み込めた時点で入る。 */
+    /**
+     * モーションの選択肢（{id, name} の並び）。
+     *
+     * 定義を読んだ時点で入る。実体（クリップ）はモデルが要るので後から作るが、
+     * 「何が選べるか」はそれを待たずに分かる
+     */
     let motionChoices = [];
+    const motionsRead = readMotions().then((motions) => {
+        motionChoices = motions.map(({id, name}) => ({id, name}));
+        return motions;
+    });
 
     const screenElement = document.querySelector("#screen");
 
@@ -319,6 +329,16 @@ document.addEventListener('DOMContentLoaded', function() {
     //----------------------------------
     const blockEditor = createBlockEditor({
         actionsUrl: ACTIONS_URL,
+        /*
+          ドロップダウンの中身が揃うまでの合図。
+
+          編集画面はブロックの定義を「最初に開いたとき 1 回だけ」作るので、
+          その時点で一覧が空だと、空のまま焼き付く（保存済みの選択も外れる）。
+          待つのは定義ファイルを読むところまでで、モデルの読み込みは待たない
+        */
+        namesReady: Promise.all([
+            motionsRead, emote.iconsReady, soundsLoaded, voicesLoaded, backgroundsLoaded
+        ]).catch((error) => console.warn("一覧を読み込めませんでした", error)),
         getNames: () => ({
             motionChoices,
             emoteChoices: emote.emoteChoices,
@@ -482,11 +502,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // モーション以外は失敗しても続ける（無くても会話はできる）
     avatar.ready
         .then(() => Promise.all([
-            loadMotions(avatar).then((loaded) => {
-                // ブロックの選択肢に使う。<vrm-avatar> は id しか覚えないので、
-                // 画面に出す名前はここで持っておく
-                motionChoices = loaded;
-            }),
+            motionsRead
+                .then((motions) => registerMotions(avatar, motions))
+                // 読み込めなかったものは選択肢から外す（一覧は先に出してある）
+                .then((loaded) => {
+                    motionChoices = loaded;
+                }),
             emote.ready.catch(() => {}),
             soundsLoaded,
             voicesLoaded,

@@ -30,16 +30,20 @@ export const MOTIONS_URL = "./animations/motions.json";
 
 
 /**
- * 定義を読み込んで <vrm-avatar> に登録する。
+ * 定義を読むだけ。モデルの読み込みを待たない。
+ *
+ * ブロックのドロップダウンは、この一覧（id と name）さえあれば組み立てられる。
+ * 実体（クリップ）を作るのはモデルが要るので、そちらは registerMotions() に
+ * 分けてある。分けないと、編集画面がモデルの読み込みを待つことになり、
+ * 先に開かれたときに選択肢が空のまま焼き付いてしまう。
  *
  * 読めなくても、定義の一部が壊れていても例外は投げない。モーションが
  * 無くてもアプリは会話できるため、警告にとどめて動かし続ける。
  *
- * @param {Element} avatar <vrm-avatar>
  * @param {string} [url]
- * @returns {Promise<Array<{id: string, name: string}>>} 登録できたもの
+ * @returns {Promise<Array<{id: string, name: string, file: string, default: boolean}>>}
  */
-const loadMotions = async (avatar, url = MOTIONS_URL) => {
+export const readMotions = async (url = MOTIONS_URL) => {
     let definitions;
     try {
         const response = await fetch(url);
@@ -57,9 +61,7 @@ const loadMotions = async (avatar, url = MOTIONS_URL) => {
         return [];
     }
 
-    const loaded = [];
-    let hasDefault = false;
-
+    const motions = [];
     for (const definition of definitions) {
         const id = definition?.id;
         const file = definition?.file;
@@ -67,22 +69,46 @@ const loadMotions = async (avatar, url = MOTIONS_URL) => {
             console.warn("モーションの定義に id か file がありません", definition);
             continue;
         }
-        // 名前が無ければ id で代用する（選べなくなるよりはよい）
-        const name = String(definition.name ?? id);
+        motions.push({
+            id: String(id),
+            // 名前が無ければ id で代用する（選べなくなるよりはよい）
+            name: String(definition.name ?? id),
+            file: String(file),
+            default: Boolean(definition.default)
+        });
+    }
+    return motions;
+};
 
+
+/**
+ * 読んだ定義を <vrm-avatar> に登録する。
+ *
+ * ここはモデルが要る。モーションのファイルは「骨の動き」でしかなく、読み込む
+ * 時点でそのモデルの骨格へ合わせて作り変えるため（animation-loader.js を参照）。
+ *
+ * @param {Element} avatar <vrm-avatar>
+ * @param {Array<object>} motions readMotions() が返したもの
+ * @returns {Promise<Array<{id: string, name: string}>>} 実際に登録できたもの
+ */
+export const registerMotions = async (avatar, motions) => {
+    const loaded = [];
+    let hasDefault = false;
+
+    for (const motion of motions) {
         // 既定モーションは 1 つだけ。2 つめ以降は通常のモーションとして扱う
-        const isDefault = Boolean(definition.default) && ! hasDefault;
-        if (definition.default && hasDefault) {
-            console.warn(`既定のモーションが複数あります。"${id}" は通常のモーションにします`);
+        const isDefault = motion.default && ! hasDefault;
+        if (motion.default && hasDefault) {
+            console.warn(`既定のモーションが複数あります。"${motion.id}" は通常のモーションにします`);
         }
 
         try {
             // <vrm-avatar> には id で覚えさせる。api.playMotion() が渡すのも id
-            await avatar.loadMotion(file, isDefault, String(id));
-            loaded.push({id: String(id), name});
+            await avatar.loadMotion(motion.file, isDefault, motion.id);
+            loaded.push({id: motion.id, name: motion.name});
             hasDefault = hasDefault || isDefault;
         } catch (error) {
-            console.warn(`モーション "${id}" (${file}) を読み込めませんでした`, error);
+            console.warn(`モーション "${motion.id}" (${motion.file}) を読み込めませんでした`, error);
         }
     }
 
@@ -92,5 +118,10 @@ const loadMotions = async (avatar, url = MOTIONS_URL) => {
     }
     return loaded;
 };
+
+
+/** 読んで登録する。一覧だけが欲しいときは readMotions() を使う。 */
+const loadMotions = async (avatar, url = MOTIONS_URL) =>
+      registerMotions(avatar, await readMotions(url));
 
 export default loadMotions;

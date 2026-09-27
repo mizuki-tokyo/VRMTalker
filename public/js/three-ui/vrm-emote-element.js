@@ -83,6 +83,10 @@ export default class VrmEmoteElement extends HTMLElement {
     _resolveReady = null;
     _rejectReady = null;
 
+    // アイコンの一覧が揃ったかどうか。モデルとは関わりが無いので別に持つ
+    _iconsReady = null;
+    _resolveIcons = null;
+
     // 頭の位置を毎フレーム受け取る入れ物。フレームごとに作らない
     _worldPosition = new THREE.Vector3();
 
@@ -97,11 +101,26 @@ export default class VrmEmoteElement extends HTMLElement {
         });
         // error イベントだけを使う場合に unhandled rejection にならないようにする
         this._ready.catch(() => {});
+
+        this._iconsReady = new Promise((resolve) => {
+            this._resolveIcons = resolve;
+        });
     }
 
     /** 読み込みが完了すると解決する Promise。値はこの要素自身。 */
     get ready() {
         return this._ready;
+    }
+
+    /**
+     * アイコンの一覧が揃うと解決する Promise。失敗しても解決する。
+     *
+     * ready はモデルに貼り付けるところまで待つが、こちらは一覧だけ。
+     * 「何が選べるか」を知りたいだけの側（ブロックの編集画面）が、モデルの
+     * 読み込みに付き合わなくて済むように分けてある
+     */
+    get iconsReady() {
+        return this._iconsReady;
     }
 
     /**
@@ -219,11 +238,17 @@ export default class VrmEmoteElement extends HTMLElement {
                 throw new Error("<vrm-emote> は <vrm-avatar> の子要素として配置してください。");
             }
 
-            // 頭のボーンはモデルを読み終えるまで存在しない
-            await this._avatar.ready;
-
+            // 一覧と絵はモデルと関わりが無いので、先に用意する。
+            // ここでモデルを待つと、選択肢を知りたいだけの側まで待たされる
             const url = this.getAttribute("src") || EMOTES_URL;
-            await this._loadIcons(url);
+            try {
+                await this._loadIcons(url);
+            } finally {
+                this._resolveIcons();
+            }
+
+            // ここから先はモデルが要る。頭のボーンは読み終えるまで存在しない
+            await this._avatar.ready;
 
             this._sprite = new THREE.Sprite(new THREE.SpriteMaterial({
                 transparent: true,
@@ -245,6 +270,8 @@ export default class VrmEmoteElement extends HTMLElement {
             this.dispatchEvent(new CustomEvent("load"));
 
         } catch (error) {
+            // 一覧を待っている側を取り残さない（失敗しても解決させる）
+            this._resolveIcons();
             this._rejectReady(error);
             this.dispatchEvent(new CustomEvent("error", {detail: {error}}));
             console.warn("<vrm-emote> の読み込みに失敗しました", error);

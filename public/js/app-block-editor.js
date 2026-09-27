@@ -186,6 +186,9 @@ const registerRenderer = (Blockly) => {
  * @param {() => object} deps.getNames
  *        ドロップダウンに出すもの（{id, name} の並び）。編集画面を開いた
  *        時点で読み直す。中身は app-blocks.js の buildBlockUi を参照
+ * @param {Promise} [deps.namesReady]
+ *        その一覧が揃うまでの合図。ブロックの定義は最初に開いたとき 1 回だけ
+ *        作るので、空の一覧で作ってしまわないよう、ここで待つ
  * @param {(program: object) => Promise<void>} deps.onApply
  *        組んだ内容を、動いているアバターへ反映する。会話モードへ戻るたびに呼ぶ
  * @param {object} deps.trial ブロックを試しに動かすための手立て（app.js が渡す）
@@ -195,7 +198,7 @@ const registerRenderer = (Blockly) => {
  * @param {(editing: boolean) => void} deps.trial.setEditing
  *        編集モードへ入る／出るとき。イベント実行の停止と再開は app.js 側が行う
  */
-const createBlockEditor = ({actionsUrl, getNames, onApply, trial}) => {
+const createBlockEditor = ({actionsUrl, getNames, namesReady, onApply, trial}) => {
 
     const root = document.querySelector("#block-editor");
     const area = root.querySelector("#blockly-area");
@@ -858,6 +861,10 @@ const createBlockEditor = ({actionsUrl, getNames, onApply, trial}) => {
         if (! Blockly) {
             throw new Error("Blockly を読み込めませんでした");
         }
+        // 選択肢が揃うのを待つ。定義を作れるのは 1 回きりなので、
+        // 空の一覧で作ってしまうと直せない（保存済みの選択まで外れる）
+        await namesReady;
+
         for (const warning of defineBlocks(Blockly, getNames())) {
             console.warn(`ブロック定義: ${warning}`);
         }
