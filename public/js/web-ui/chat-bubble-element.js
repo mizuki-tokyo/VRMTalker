@@ -60,6 +60,9 @@ _ChatBubbleElementStyle_.replaceSync(`
 }
 .bubble-container {
    position: relative;
+   /* 大きさは採寸して決めている。<chat-bubble> は flex になることがあり、
+      縮められると高さは採寸のまま文字だけが折り返してしまう */
+   flex-shrink: 0;
    margin: 0;
    padding: 0;
    border: none;
@@ -192,7 +195,17 @@ class ChatBubbleElement extends HTMLElement {
         const pad1 = (_BUBBLE_CORNER_RADIUS * 0.5) * SCALE;
         const pad2 = (_BUBBLE_CORNER_RADIUS * 0.5 + _BUBBLE_TAIL_WIDTH) * SCALE;
 
-        const max_width = Math.min(this._max_width, this.parentElement.offsetWidth);
+        // 吹き出しを置ける幅は、親の余白（padding）とスクロールバーを除いた内側。
+        // offsetWidth は余白込みなので、それを使うと実際より広いと見積もってしまう
+        const parentStyles = window.getComputedStyle(this.parentElement);
+        const available = this.parentElement.clientWidth
+              - parseFloat(parentStyles.paddingLeft)
+              - parseFloat(parentStyles.paddingRight);
+        const max_width = Math.min(this._max_width, available);
+
+        // 文字の幅の上限。吹き出しの幅は「文字 + 左右の padding（尻尾側が広い）+ 1」に
+        // なるので（下の textWidth を参照）、その合計が max_width に収まるようにする
+        const textMaxWidth = max_width - (pad1 + pad2) - 1;
 
         const styles = window.getComputedStyle(this);
         const cssText = `
@@ -207,7 +220,7 @@ class ChatBubbleElement extends HTMLElement {
                  `${pad1}px ${pad2}px ${pad1}px ${pad1}px` :
                  `${pad1}px ${pad1}px ${pad1}px ${pad2}px`} !important;
             border: none;
-            max-width: ${max_width - pad1 * 2}px;
+            max-width: ${textMaxWidth}px;
         `;
         // テキストのサイズを測定するための仮要素を作成
         const measurer = document.createElement('div');
