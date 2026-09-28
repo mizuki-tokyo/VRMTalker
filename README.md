@@ -7,7 +7,7 @@ VRM 3D モデルを使った音声対話のテンプレートプロジェクト�
 
 - 応答生成は **llama.cpp** をローカルで実行する（ビルド不要。サーバ側 LLM にも切替可）
 - 音声合成は **VOICEVOX CORE** をローカルで実行する（インストーラ不要）
-- Mac / Windows で動作する
+- Mac / Windows / Linux で動作する
 - サーバは Python + FastAPI、フロントは素の Web Components
 
 ## 必要なもの
@@ -15,6 +15,22 @@ VRM 3D モデルを使った音声対話のテンプレートプロジェクト�
 - Python 3.10 以上
 - [uv](https://docs.astral.sh/uv/)
 - Google Chrome（音声認識に Web Speech API を使用）
+
+同梱の llama.cpp は、どの環境でも **CPU 版**を取得する。GPU 版
+（CUDA / Vulkan / ROCm / SYCL）は、どれが使えるかを自動で決められないため
+選んでいない。使いたい場合は
+[リリースページ](https://github.com/ggml-org/llama.cpp/releases)から対応する
+ものを取って `llama/bin` を置き換えること。
+
+| 環境 | 取得するもの |
+|---|---|
+| macOS | `llama-<版>-bin-macos-arm64 / x64.tar.gz` |
+| Windows | `llama-<版>-bin-win-cpu-arm64 / x64.zip` |
+| Linux | `llama-<版>-bin-ubuntu-arm64 / x64.tar.gz` |
+
+Linux 向けは Ubuntu でビルドされたものが配られている。ほかの
+ディストリビューションでも動くことが多いが、glibc が古い環境では動かない
+ことがある。
 
 ## セットアップ
 

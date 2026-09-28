@@ -34,7 +34,17 @@ DEFAULT_MODEL_FILE = "LFM2.5-2.6B-Q4_K_M.gguf"
 
 
 def detect_asset() -> str:
-    """実行環境に対応する llama.cpp のリリースアセット名を返す。"""
+    """実行環境に対応する llama.cpp のリリースアセット名を返す。
+
+    どの環境でも CPU 版を取る。GPU 版（CUDA / Vulkan / ROCm / SYCL）は、
+    どれが使えるかを実行環境から自動で決めるのが難しいため選ばない。
+    GPU を使いたい場合は、リリースページから対応するものを取って
+    llama/bin へ置き換えること。
+
+    Linux 向けのバイナリは Ubuntu でビルドされたものが配られている。
+    ほかのディストリビューションでも動くことが多いが、確かめてはいない
+    （glibc が古い環境では動かないことがある）
+    """
     machine = platform.machine().lower()
     is_arm = machine in ("arm64", "aarch64")
 
@@ -42,6 +52,8 @@ def detect_asset() -> str:
         return f"llama-{LLAMA_CPP_RELEASE}-bin-macos-{'arm64' if is_arm else 'x64'}.tar.gz"
     if sys.platform == "win32":
         return f"llama-{LLAMA_CPP_RELEASE}-bin-win-cpu-{'arm64' if is_arm else 'x64'}.zip"
+    if sys.platform.startswith("linux"):
+        return f"llama-{LLAMA_CPP_RELEASE}-bin-ubuntu-{'arm64' if is_arm else 'x64'}.tar.gz"
     raise SystemExit(
         f"このスクリプトは {sys.platform} に対応していません。"
         f"https://github.com/ggml-org/llama.cpp/releases から手動で取得し、"
