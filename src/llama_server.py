@@ -131,6 +131,46 @@ class LlamaServer:
             self.stop()
             raise
 
+    def _died_message(self) -> str:
+        """終了した理由を、分かる範囲で言葉にする。
+
+        強制終了された場合、llama-server は何も出力できない。「上のログを
+        確認してください」と言っても何も残っていないので、終了コードから
+        推し量れることを添える。
+
+        POSIX では、シグナルで終わると returncode が負（-9 なら SIGKILL）。
+        シェル経由では 128 + シグナル番号になることがあるため、両方を見る
+        """
+        code = self._process.returncode if self._process else None
+        killed = code in (-9, 137)
+        illegal = code in (-4, 132)
+
+        if killed:
+            model = _find_model()
+            size = model.stat().st_size / (1024 ** 3)
+            return (
+                f"llama-server が強制終了されました（終了コード {code}）。\n"
+                f"メモリ不足の可能性が高いです。モデルの読み込みだけで "
+                f"{size:.1f}GB を使い、文脈（LLAMA_CTX_SIZE）のぶんが上に乗ります。\n"
+                f"空きを確かめて（free -h）、足りなければ次のどれかを試してください。\n"
+                f"  - LLAMA_CTX_SIZE を小さくする（例: 1024）\n"
+                f"  - もっと小さいモデルに替える"
+                f"（scripts/setup_llama.py --model-repo … --model-file …）\n"
+                f"  - LLM_BACKEND=remote にして、別のサーバの LLM を使う"
+            )
+        if illegal:
+            return (
+                f"llama-server が異常終了しました（終了コード {code}）。\n"
+                f"この CPU では動かせない命令が使われている可能性があります。"
+                f"別のビルドを "
+                f"https://github.com/ggml-org/llama.cpp/releases から取得して、"
+                f"{LLAMA_DIR / 'bin'} を差し替えてください。"
+            )
+        return (
+            f"llama-server が起動直後に終了しました（終了コード {code}）。\n"
+            f"上のログに理由が出ていないか確認してください。"
+        )
+
     async def _wait_until_ready(self) -> None:
         """/health が応答するまで待つ。"""
         deadline = asyncio.get_running_loop().time() + STARTUP_TIMEOUT
@@ -139,9 +179,7 @@ class LlamaServer:
         async with httpx.AsyncClient(timeout=5.0) as client:
             while asyncio.get_running_loop().time() < deadline:
                 if not self.running:
-                    raise SetupRequiredError(
-                        "llama-server が起動直後に終了しました。上のログを確認してください。"
-                    )
+                    raise SetupRequiredError(self._died_message())
                 try:
                     response = await client.get(health_url)
                     if response.status_code == 200:
