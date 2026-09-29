@@ -38,6 +38,15 @@ class ActionManager {
         return this._actionMap[name];
     }
 
+    /**
+     * 一覧に載せずに使う action を作る（その場で作るポーズなど）。
+     * 同じクリップからは同じ action が返る（AnimationMixer が覚えている）。
+     * @param {THREE.AnimationClip} clip
+     */
+    createAction(clip) {
+        return this._animationMixer.clipAction(clip);
+    }
+
     /** 登録済みのモーション名。画面の選択肢を組み立てるのに使う。 */
     getActionNames() {
         return Object.keys(this._actionMap);

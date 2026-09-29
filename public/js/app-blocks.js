@@ -47,6 +47,12 @@ const GAZE_DIRECTIONS = [
  */
 const GAZE_AMOUNTS = [["ちらっと", "20"], ["しっかり", "60"]];
 
+/**
+ * ジェスチャーをする手。アバター自身から見た左右（画面では逆に見える）。
+ * 利き手の多い右手を先に置く（ドロップダウンの既定になる）
+ */
+const HANDS = [["右手", "right"], ["左手", "left"]];
+
 /** 吹き出しの出し手。app-avatar-api.js の SPEAKER と合わせる。 */
 const SPEAKERS = [["キャラクタ", "キャラクタ"], ["あなた", "あなた"]];
 
@@ -69,7 +75,8 @@ const EVENT_LABELS = Object.freeze({
  * field_* はドロップダウン（保存時は fields に入る）、input_value は
  * 差し込み口（保存時は inputs に入る）。インタプリタはどちらでも読める
  */
-const buildBlockUi = ({motionChoices = [], emoteChoices = [], soundChoices = [],
+const buildBlockUi = ({motionChoices = [], poseChoices = [], gestureChoices = [],
+                       emoteChoices = [], soundChoices = [],
                        backgroundChoices = [], voiceChoices = []} = {}) => {
     /*
       ドロップダウンは「出す文字（name）」と「覚える値（id）」を分けて持つ。
@@ -83,6 +90,8 @@ const buildBlockUi = ({motionChoices = [], emoteChoices = [], soundChoices = [],
           (items.length > 0) ? items.map((item) => [item.name, item.id]) : [[empty, ""]];
 
     const motions = choices(motionChoices, "（モーションがありません）");
+    const poses = choices(poseChoices, "（ポーズがありません）");
+    const gestures = choices(gestureChoices, "（ジェスチャーがありません）");
     const emotes = choices(emoteChoices, "（エモートがありません）");
     const sounds = choices(soundChoices, "（効果音がありません）");
     const backgrounds = choices(backgroundChoices, "（背景がありません）");
@@ -124,6 +133,44 @@ const buildBlockUi = ({motionChoices = [], emoteChoices = [], soundChoices = [],
         avatar_play_motion_wait: {
             message0: "%1 のモーションを再生して終わるまで待つ",
             args0: [dropdown("NAME", motions)], style: "motion_blocks"
+        },
+        avatar_take_pose: {
+            message0: "%1 のポーズをとる",
+            args0: [dropdown("NAME", poses)], style: "motion_blocks",
+            tooltip: "全身の姿勢を変えて、次の指示までそのまま保つ。待機モーションの代わりに"
+                   + "なり、モーションを再生し終えるとこのポーズへ戻る。"
+                   + "選べるポーズは animations/poses.json で決める"
+        },
+        avatar_take_pose_for: {
+            message0: "%1 のポーズを %2 秒とる",
+            args0: [dropdown("NAME", poses), number("SECONDS")],
+            style: "motion_blocks", inputsInline: true,
+            tooltip: "秒数がたったら待機モーションへ戻る。戻るのを待たない"
+        },
+        avatar_take_pose_for_wait: {
+            message0: "%1 のポーズを %2 秒とって終わるまで待つ",
+            args0: [dropdown("NAME", poses), number("SECONDS")],
+            style: "motion_blocks", inputsInline: true
+        },
+        avatar_stop_pose: {
+            message0: "ポーズをやめる", args0: [], style: "motion_blocks",
+            tooltip: "待機モーションへ戻る"
+        },
+        avatar_play_gesture: {
+            message0: "%1 で %2 のジェスチャーを %3 秒する",
+            args0: [dropdown("HAND", HANDS), dropdown("NAME", gestures), number("SECONDS")],
+            style: "motion_blocks", inputsInline: true,
+            tooltip: "腕と手だけの身ぶり。モーションやポーズの上から重ねる。"
+                   + "右手・左手はアバターから見たほうで、画面では逆に見える。"
+                   + "戻るのを待たない。選べるものは animations/gestures.json で決める"
+        },
+        avatar_play_gesture_wait: {
+            message0: "%1 で %2 のジェスチャーを %3 秒して終わるまで待つ",
+            args0: [dropdown("HAND", HANDS), dropdown("NAME", gestures), number("SECONDS")],
+            style: "motion_blocks", inputsInline: true
+        },
+        avatar_stop_gesture: {
+            message0: "ジェスチャーをやめる", args0: [], style: "motion_blocks"
         },
         avatar_set_expression: {
             message0: "表情 %1 を %2 にする",
@@ -431,6 +478,17 @@ export const createToolbox = () => {
                      inputs: {TEXT: shadowText("こんにちは")}},
                     {kind: "block", type: "avatar_play_motion"},
                     {kind: "block", type: "avatar_play_motion_wait"},
+                    {kind: "block", type: "avatar_take_pose"},
+                    {kind: "block", type: "avatar_take_pose_for",
+                     inputs: {SECONDS: shadowNumber(5)}},
+                    {kind: "block", type: "avatar_take_pose_for_wait",
+                     inputs: {SECONDS: shadowNumber(5)}},
+                    {kind: "block", type: "avatar_stop_pose"},
+                    {kind: "block", type: "avatar_play_gesture",
+                     inputs: {SECONDS: shadowNumber(3)}},
+                    {kind: "block", type: "avatar_play_gesture_wait",
+                     inputs: {SECONDS: shadowNumber(3)}},
+                    {kind: "block", type: "avatar_stop_gesture"},
                     {kind: "block", type: "avatar_set_expression",
                      inputs: {VALUE: shadowNumber(1)}},
                     {kind: "block", type: "avatar_change_expression",

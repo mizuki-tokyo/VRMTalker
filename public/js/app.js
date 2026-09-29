@@ -4,6 +4,7 @@ import ChatClient from "./chat-client.js";
 import SpeechSynthesizer from "./speech-synthesizer.js";
 import SoundPlayer from "./sound-player.js";
 import VoiceLibrary from "./voices.js";
+import PoseLibrary, {POSES_URL, GESTURES_URL} from "./poses.js";
 import Background from "./background.js";
 import Toast from "./web-ui/toast.js";
 import WebSpeechRecognizer from "./web-speech-recognizer.js";
@@ -36,7 +37,7 @@ import "./web-ui/speech-recognition-element.js";
 
 // 3D 表示
 import "./three-ui/three-world-element.js";
-import "./three-ui/vrm-avatar-element.js";
+import VrmAvatarElement from "./three-ui/vrm-avatar-element.js";
 import "./three-ui/vrm-emote-element.js";
 
 // モデルの読み込みと <three-world> への配置は <vrm-avatar> が行う（index.html を参照）
@@ -185,6 +186,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const voices = new VoiceLibrary();
     const voicesLoaded = voices.load();
 
+    // ポーズとジェスチャー。動き（骨の角度）は <vrm-avatar> が持っていて、
+    // ここで読むのは選択肢の一覧だけ。モデルを待たずに読める
+    const poses = new PoseLibrary("ポーズ", VrmAvatarElement.poseNames);
+    const posesLoaded = poses.load(POSES_URL);
+    const gestures = new PoseLibrary("ジェスチャー", VrmAvatarElement.gestureNames);
+    const gesturesLoaded = gestures.load(GESTURES_URL);
+
     /**
      * モーションの選択肢（{id, name} の並び）。
      *
@@ -290,8 +298,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const runner = createActionRunner({
         conversation,
         createApi: (signal) => createAvatarApi({
-            avatar, emote, chatFlow, speechSynthesizer, sounds, voices, background, toast,
-            conversation, signal
+            avatar, emote, chatFlow, speechSynthesizer, sounds, voices, poses, gestures,
+            background, toast, conversation, signal
         }),
         // アクションが終わったら入力待ちへ移す。
         //
@@ -315,15 +323,17 @@ document.addEventListener('DOMContentLoaded', function() {
      * そのアクションが登録されていないと誰も待機へ移してくれない。
      * その場合は ready を飛ばして直接待機へ入る。
      *
-     * 見た目は読み込んだ直後の状態へ戻す。表情や視線は、ブロックで変えたら
-     * ブロックで戻す作りなので、戻し忘れたまま「はじめから」を押すと、
-     * 前の続きの顔で始まってしまう
+     * 見た目は読み込んだ直後の状態へ戻す。表情・視線・ポーズ・ジェスチャーは、
+     * ブロックで変えたらブロックで戻す作りなので、戻し忘れたまま「はじめから」を
+     * 押すと、前の続きの顔や姿勢で始まってしまう
      *
      * @param {boolean} [fireReady] 「準備ができたとき」から動かすか
      */
     const startConversation = (fireReady = true) => {
         avatar.clearExpressions();
         avatar.gazeFollowCamera();
+        avatar.takePose(null).catch(() => {});
+        avatar.stopGesture();
         conversation.restart(fireReady && runner.types.includes("ready"));
     };
 
@@ -343,10 +353,13 @@ document.addEventListener('DOMContentLoaded', function() {
           待つのは定義ファイルを読むところまでで、モデルの読み込みは待たない
         */
         namesReady: Promise.all([
-            motionsRead, emote.iconsReady, soundsLoaded, voicesLoaded, backgroundsLoaded
+            motionsRead, posesLoaded, gesturesLoaded, emote.iconsReady,
+            soundsLoaded, voicesLoaded, backgroundsLoaded
         ]).catch((error) => console.warn("一覧を読み込めませんでした", error)),
         getNames: () => ({
             motionChoices,
+            poseChoices: poses.choices,
+            gestureChoices: gestures.choices,
             emoteChoices: emote.emoteChoices,
             soundChoices: sounds.choices,
             backgroundChoices: background.choices,

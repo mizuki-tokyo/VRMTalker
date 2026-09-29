@@ -1,0 +1,12 @@
+[
+    { "id": "straight", "name": "まっすぐ立つ",         "template": "straight" },
+    { "id": "side",     "name": "片足に体重をかけて立つ", "template": "side" },
+    { "id": "hip",      "name": "腰に手を当てて立つ",     "template": "hip" },
+    { "id": "wide",     "name": "足を開いて立つ",         "template": "wide" },
+    { "id": "turn",     "name": "体を斜めに向ける",       "template": "turn" },
+    { "id": "back",     "name": "振り返る",               "template": "back" },
+    { "id": "bend",     "name": "前にかがむ",             "template": "bend" },
+    { "id": "oneknee",  "name": "片ひざをつく",           "template": "oneknee" },
+    { "id": "kneel",    "name": "ひざまずく",             "template": "kneel" },
+    { "id": "sitting",  "name": "床に座る",               "template": "sitting" }
+]

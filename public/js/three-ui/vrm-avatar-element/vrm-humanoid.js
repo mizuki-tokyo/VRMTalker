@@ -9,11 +9,16 @@ import {
 import ActionManager from "./action-manager.js"
 import VRMSmoothLookAt from './vrm-smooth-lookat.js';
 import AudioPlayer from "./audio-player.js";
+import GestureLayer from "./gesture-layer.js";
 
 import registFaceExpression from "./vrm-expression-editor.js";
 
 //const FADE_TIME = 0.2;
 const FADE_TIME = 0.5;
+
+// ポーズへ移る・ポーズから戻るのにかける時間（秒）。
+// 全身の姿勢が変わるので、モーションの切り替えより長めにとる
+const POSE_FADE_TIME = 1.0;
 
 // リップシンク: 推定した母音と VRM の口形状プリセットの対応
 const LIP_SYNC_PRESETS = Object.freeze({
@@ -36,6 +41,13 @@ class VrmHumanoid {
     _defaultAction = undefined;
     _audioPlayer = undefined;
 
+    // とっているポーズ（止まったモーション）。無ければ null。
+    // モーションを再生し終えたら、既定モーションではなくここへ戻る
+    _poseAction = null;
+
+    // ジェスチャー（腕や手だけの上書き）
+    _gestureLayer = undefined;
+
     // リップシンクの現在の重み。急に切り替わらないよう毎回目標値へ補間する
     _lipSyncWeights = {a: 0, i: 0, u: 0, e: 0, o: 0};
     _currentVowel = "a";
@@ -49,6 +61,7 @@ class VrmHumanoid {
     constructor(vrm) {
         this._currentVrm = vrm;
         this._actionManager = new ActionManager(vrm);
+        this._gestureLayer = new GestureLayer(vrm);
 
         this._audioPlayer = new AudioPlayer();
         this._audioPlayer.onPlayStart = this._onPlayStart.bind(this);
@@ -125,6 +138,9 @@ class VrmHumanoid {
             this._actionManager.update(deltaTime);
         }
 
+        // モーションが骨を動かした後、VRM へ反映する前に上書きする
+        this._gestureLayer?.update(deltaTime);
+
         // update vrm
         if (this._currentVrm) {
             this._currentVrm.update(deltaTime);
@@ -140,6 +156,7 @@ class VrmHumanoid {
         this._actionManager.onFinish = null;
         this._settleAction();
         this._settleSound();
+        this._gestureLayer.clear();
 
         if (this._currentVrm) {
             VRMUtils.deepDispose(this._currentVrm.scene);
@@ -191,8 +208,8 @@ class VrmHumanoid {
         action.fadeIn(FADE_TIME);
         action.clampWhenFinished = true;
 
-        if (action === this._defaultAction) {
-            // 既定モーションはループするので "finished" が発火しない
+        if (action === this._defaultAction || action === this._poseAction) {
+            // 既定モーションとポーズはループするので "finished" が発火しない
             action.setLoop(THREE.LoopRepeat);
             action.play();
             this._actionManager.onFinish = null;
@@ -220,12 +237,79 @@ class VrmHumanoid {
         });
     }
 
-    /** 既定モーションへ戻す。 */
-    _returnToDefaultAction() {
-        if (! this._defaultAction) {
+    /** 基本の姿勢を返す。ポーズをとっていればそのポーズ、無ければ既定モーション。 */
+    get _baseAction() {
+        return this._poseAction ?? this._defaultAction;
+    }
+
+    /**
+     * ポーズ（止まったモーション）をとる。次に setPose(null) するまで保つ。
+     *
+     *   vrmHumanoid.setPose(vrmHumanoid.createAction(clip));
+     *   vrmHumanoid.setPose(null);   // 既定モーションへ戻る
+     *
+     * ポーズの間に再生したモーションは、終わるとこのポーズへ戻る。
+     * モーションの再生中にポーズをとると、モーションは打ち切る（待っている
+     * 呼び出し元は解決する）。再生中に setPose(null) したときは打ち切らず、
+     * 終わったら既定モーションへ戻るようにだけする
+     *
+     * @param {THREE.AnimationAction|null} action
+     */
+    setPose(action) {
+        const isBase = (this._activeAction === this._baseAction);
+        this._poseAction = action ?? null;
+        if (! action && ! isBase) {
+            return; // モーションの途中。終わったら既定モーションへ戻る
+        }
+
+        const next = this._baseAction;
+        if (! next || next === this._activeAction) {
             return;
         }
-        this._activeAction = this._defaultAction;
+
+        // 再生中のモーションを待っている呼び出し元を解放する
+        this._actionManager.onFinish = null;
+        this._settleAction();
+
+        const lastAction = this._activeAction;
+        this._activeAction = next;
+        if (lastAction) {
+            lastAction.fadeOut(POSE_FADE_TIME);
+        }
+        next.reset();
+        next.setLoop(THREE.LoopRepeat);
+        next.fadeIn(POSE_FADE_TIME);
+        next.play();
+    }
+
+    /**
+     * モーションの一覧に載せずに使う AnimationAction を作る（ポーズなど）。
+     * 同じクリップからは同じ action が返る。
+     * @param {THREE.AnimationClip} clip
+     */
+    createAction(clip) {
+        return this._actionManager.createAction(clip);
+    }
+
+    /**
+     * ジェスチャーを始める。詳しくは GestureLayer#play() を参照。
+     * @returns {Promise<void>} 戻し終えた（または置き換えられた）時点で解決する
+     */
+    playGesture(rotations, seconds, fadeTime) {
+        return this._gestureLayer.play(rotations, seconds, fadeTime);
+    }
+
+    /** ジェスチャーをやめる（ゆっくり戻す）。 */
+    stopGesture() {
+        this._gestureLayer.stop();
+    }
+
+    /** 既定モーション（ポーズをとっていればそのポーズ）へ戻す。 */
+    _returnToDefaultAction() {
+        if (! this._baseAction) {
+            return;
+        }
+        this._activeAction = this._baseAction;
         this._activeAction.setLoop(THREE.LoopRepeat);
         this._activeAction.reset();
         this._activeAction.fadeIn(FADE_TIME);

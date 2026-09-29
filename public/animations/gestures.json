@@ -1,0 +1,10 @@
+[
+    { "id": "handup",    "name": "手を挙げる",       "template": "handup" },
+    { "id": "index",     "name": "人差し指を立てる", "template": "index" },
+    { "id": "ok",        "name": "OK サイン",        "template": "ok" },
+    { "id": "thumbup",   "name": "親指を立てる",     "template": "thumbup" },
+    { "id": "thumbdown", "name": "親指を下に向ける", "template": "thumbdown" },
+    { "id": "side",      "name": "手を差し出す",     "template": "side" },
+    { "id": "shrug",     "name": "肩をすくめる",     "template": "shrug" },
+    { "id": "namaste",   "name": "手を合わせる",     "template": "namaste" }
+]

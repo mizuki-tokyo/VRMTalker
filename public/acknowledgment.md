@@ -58,6 +58,15 @@
 | パワーアップ | [JustInvoke](https://freesound.org/people/JustInvoke/sounds/138485) |
 | パワーダウン | [JustInvoke](https://freesound.org/people/JustInvoke/sounds/138488) |
 
+## ポーズとジェスチャー
+
+**TalkingHead** — <https://github.com/met4citizen/TalkingHead>（MIT License, Copyright (c) 2023-2024 Mika Suominen）
+
+ポーズ（全身の姿勢）とジェスチャー（腕と手の身ぶり）の角度の定義は、
+このソフトウェアのものを使っています。VRM で使えるように変換する処理は
+このアプリで書いたものです（`public/js/three-ui/vrm-avatar-element/talkinghead-templates.js`
+に、許諾表示とともに定義の写しがあります）。
+
 ## 3D モデル
 
 同梱のモデルの作者・利用許諾は、モデル自身に埋め込まれています。

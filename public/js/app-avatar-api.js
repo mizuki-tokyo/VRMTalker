@@ -5,7 +5,7 @@
  * そのため次の制約を守ること。
  *
  *   - 引数はプリミティブだけ（文字列・数値・真偽）。オブジェクトを受け取らない
- *   - モーション・エモート・効果音・背景・ボイスデータは、定義ファイルの id で
+ *   - モーション・ポーズ・ジェスチャー・エモート・効果音・背景・ボイスデータは、定義ファイルの id で
  *     受け取る（画面に出す名前は後から変わりうるため）
  *   - 1 関数 = 1 ブロック。オプションの入れ物（{a, b}）を使わない
  *   - 例外を投げない。失敗は警告を出して続ける（利用者の画面を壊さない）
@@ -38,13 +38,15 @@ export const SPEAKER = Object.freeze({
  * @param {object}      deps.speechSynthesizer SpeechSynthesizer
  * @param {object}      deps.sounds            SoundPlayer
  * @param {object}      deps.voices            VoiceLibrary
+ * @param {object}      deps.poses             PoseLibrary（ポーズ）
+ * @param {object}      deps.gestures          PoseLibrary（ジェスチャー）
  * @param {object}      deps.background        Background
  * @param {object}      deps.toast             画面に短い知らせを出すもの
  * @param {object}      deps.conversation      Conversation
  * @param {AbortSignal} deps.signal            中断の合図
  */
 const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, voices,
-                          background, toast, conversation, signal}) => {
+                          poses, gestures, background, toast, conversation, signal}) => {
 
     const stopIfAborted = () => {
         if (signal.aborted) {
@@ -146,6 +148,86 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
         async playMotionAndWait(id) {
             stopIfAborted();
             await guard(() => avatar.playMotion(String(id)), "モーションの再生");
+        },
+
+        /**
+         * ポーズをとる。別のポーズをとるか、stopPose() するまで保つ。
+         *
+         * ポーズは待機モーションの代わりになる。ポーズの間に再生したモーションは、
+         * 終わるとポーズへ戻る。受け取るのは animations/poses.json の id
+         */
+        takePose(id) {
+            const template = poses.templateOf(id);
+            if (! template) {
+                console.warn(`ポーズ "${id}" がありません`);
+                return;
+            }
+            guard(() => avatar.takePose(template), "ポーズ").catch(() => {});
+        },
+
+        /** ポーズを決めた秒数だけとって、待機モーションへ戻る。戻るのを待たない。 */
+        takePoseFor(id, seconds) {
+            const template = poses.templateOf(id);
+            if (! template) {
+                console.warn(`ポーズ "${id}" がありません`);
+                return;
+            }
+            guard(() => avatar.takePose(template, Math.max(0, Number(seconds) || 0)), "ポーズ")
+                .catch(() => {});
+        },
+
+        /** ポーズを決めた秒数だけとって、戻り始めるまで待つ。 */
+        async takePoseForAndWait(id, seconds) {
+            stopIfAborted();
+            const template = poses.templateOf(id);
+            if (! template) {
+                console.warn(`ポーズ "${id}" がありません`);
+                return;
+            }
+            await guard(() => avatar.takePose(template, Math.max(0, Number(seconds) || 0)),
+                        "ポーズ");
+        },
+
+        /** ポーズをやめて、待機モーションへ戻る。 */
+        stopPose() {
+            guard(() => avatar.takePose(null), "ポーズ").catch(() => {});
+        },
+
+        /**
+         * ジェスチャー（腕と手の身ぶり）をする。戻るのを待たない。
+         *
+         * モーションやポーズの上から重ねる。1 秒かけて寄せ、始めてから seconds 秒
+         * たったら 1 秒かけて戻す。受け取るのは animations/gestures.json の id
+         *
+         * @param {string} hand "right" | "left"。アバター自身から見た手
+         */
+        playGesture(hand, id, seconds) {
+            const template = gestures.templateOf(id);
+            if (! template) {
+                console.warn(`ジェスチャー "${id}" がありません`);
+                return;
+            }
+            guard(() => avatar.playGesture(template, {
+                hand: String(hand), seconds: Math.max(0, Number(seconds) || 0)
+            }), "ジェスチャー").catch(() => {});
+        },
+
+        /** ジェスチャーをして、戻し終えるまで待つ。 */
+        async playGestureAndWait(hand, id, seconds) {
+            stopIfAborted();
+            const template = gestures.templateOf(id);
+            if (! template) {
+                console.warn(`ジェスチャー "${id}" がありません`);
+                return;
+            }
+            await guard(() => avatar.playGesture(template, {
+                hand: String(hand), seconds: Math.max(0, Number(seconds) || 0)
+            }), "ジェスチャー");
+        },
+
+        /** ジェスチャーをやめる（1 秒かけて戻す）。 */
+        stopGesture() {
+            avatar.stopGesture();
         },
 
         /** 表情を即座に変える。value は 0-1。 */

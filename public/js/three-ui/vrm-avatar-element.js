@@ -5,6 +5,10 @@ import VrmHumanoid from "./vrm-avatar-element/vrm-humanoid.js";
 import clampExpressionMorphs from "./vrm-avatar-element/morph-clamp.js";
 import createMouthMaskedExpressions from "./vrm-avatar-element/mouth-morph-mask.js";
 import resolveExpressionName from "./vrm-avatar-element/expression-name.js";
+import { poseTemplates, gestureTemplates } from "./vrm-avatar-element/talkinghead-templates.js";
+import {
+    readTemplate, mirrorRotations, toVrmRotations, toVrmHipsPosition, createPoseClip
+} from "./vrm-avatar-element/talkinghead-pose.js";
 
 /**
  * <vrm-avatar> : VRM モデルを <three-world> に配置するカスタム要素。
@@ -90,6 +94,12 @@ export default class VrmAvatarElement extends HTMLElement {
     // tweenExpression() で動かしたことのある表情名。
     // clearExpressions() がまとめて止めるために覚えておく
     _tweenedExpressions = new Set();
+
+    // ポーズの名前 → そのポーズの AnimationAction（モデルごとに一度だけ作る）
+    _poseActions = new Map();
+
+    // 秒数を決めてとっているポーズの、戻るまでのタイマーと待っている resolve
+    _poseWait = null;
 
     _ready = null;
     _resolveReady = null;
@@ -389,6 +399,8 @@ export default class VrmAvatarElement extends HTMLElement {
         this._restoreMorphClamp = null;
         this._maskedExpressions = new Map();
         this._tweenedExpressions.clear();
+        this._settlePose();
+        this._poseActions = new Map();
         // 光源はモデルの scene に入れてあるので、モデルと一緒に消える
         this._fillLight = null;
         this._humanoid?.dispose();
@@ -523,6 +535,132 @@ export default class VrmAvatarElement extends HTMLElement {
             return;
         }
         this._lookAt?.setGaze(angles[0], angles[1]);
+    }
+
+    /**
+     * ポーズとジェスチャー。
+     *
+     * 定義は TalkingHead（https://github.com/met4citizen/TalkingHead）のもので、
+     * 名前もその名前で指定する（talkinghead-templates.js）。
+     *
+     *   ポーズ        全身の姿勢（立ち方・座り方）。待機モーションの代わりになる
+     *   ジェスチャー  腕と手だけの身ぶり。モーションやポーズの上から重ねる
+     */
+
+    /** 使えるポーズの名前。 */
+    static get poseNames() {
+        return Object.keys(poseTemplates);
+    }
+
+    /** 使えるジェスチャーの名前。 */
+    static get gestureNames() {
+        return Object.keys(gestureTemplates);
+    }
+
+    /**
+     * ポーズをとる。
+     *
+     *   await avatar.takePose("sitting");   // 次の指示まで座ったまま
+     *   await avatar.takePose("hip", 5);    // 5 秒たったら待機モーションへ戻る
+     *   await avatar.takePose(null);        // 待機モーションへ戻る
+     *
+     * ポーズの間に再生したモーションは、終わるとポーズへ戻る。
+     * 秒数を決めてとっている途中で別のポーズをとると、前のほうの待ちは解決する。
+     *
+     * @param {string|null} name ポーズの名前。null なら待機モーションへ戻る
+     * @param {number} [seconds] 保つ秒数。省略するとずっと
+     * @returns {Promise<void>} 秒数を決めたときは、戻り始めた時点で解決する。
+     *          決めないときは、ポーズへ移り始めた時点で解決する
+     */
+    async takePose(name, seconds = Infinity) {
+        await this._ready;
+        this._settlePose();
+
+        if (name === null || name === undefined) {
+            this._humanoid.setPose(null);
+            return;
+        }
+        this._humanoid.setPose(this._poseAction(String(name)));
+
+        if (! Number.isFinite(Number(seconds))) {
+            return;
+        }
+        return new Promise((resolve) => {
+            const timer = setTimeout(() => {
+                this._poseWait = null;
+                this._humanoid?.setPose(null);
+                resolve();
+            }, Math.max(0, Number(seconds)) * 1000);
+            this._poseWait = {timer, resolve};
+        });
+    }
+
+    /** 秒数を決めたポーズのタイマーを止め、待っている呼び出し元を解決する。 */
+    _settlePose() {
+        if (! this._poseWait) {
+            return;
+        }
+        const {timer, resolve} = this._poseWait;
+        this._poseWait = null;
+        clearTimeout(timer);
+        resolve();
+    }
+
+    /** ポーズの action を返す。初めてのポーズなら、このモデル用に作る。 */
+    _poseAction(name) {
+        let action = this._poseActions.get(name);
+        if (action) {
+            return action;
+        }
+        const template = poseTemplates[name];
+        if (! template) {
+            throw new Error(`ポーズ "${name}" はありません。`);
+        }
+        const vrm = this._humanoid.vrm;
+        const {rotations, hipsPosition} = readTemplate(template.props);
+        const clip = createPoseClip(
+            `pose:${name}`,
+            toVrmRotations(rotations, vrm),
+            hipsPosition ? toVrmHipsPosition(hipsPosition, vrm) : null,
+            vrm);
+        action = this._humanoid.createAction(clip);
+        this._poseActions.set(name, action);
+        return action;
+    }
+
+    /**
+     * ジェスチャーをする。
+     *
+     *   await avatar.playGesture("thumbup", {hand: "right", seconds: 3});
+     *
+     * 1 秒かけて寄せ、始めてから seconds 秒たったら 1 秒かけて戻す。
+     * 範囲で決められた値は、そのたびにばらつかせる（毎回少し違う動きになる）。
+     *
+     * @param {string} name ジェスチャーの名前
+     * @param {object} [options]
+     * @param {string} [options.hand] "right" | "left"。アバター自身から見た手
+     *        （画面では左右が逆に見える）。両手のジェスチャーでは左右が入れ替わる
+     * @param {number} [options.seconds] 始めてから戻し始めるまでの秒数
+     * @returns {Promise<void>} 戻し終えた時点で解決する。別のジェスチャーに
+     *          置き換えられたときも解決する
+     */
+    async playGesture(name, {hand = "right", seconds = 3} = {}) {
+        await this._ready;
+        const template = gestureTemplates[String(name)];
+        if (! template) {
+            throw new Error(`ジェスチャー "${name}" はありません。`);
+        }
+        let {rotations} = readTemplate(template);
+        // 片手のジェスチャーは左手で定義されているので、右手は左右を入れ替えて作る
+        if (hand === "right") {
+            rotations = mirrorRotations(rotations);
+        }
+        return this._humanoid.playGesture(toVrmRotations(rotations, this._humanoid.vrm), seconds);
+    }
+
+    /** ジェスチャーをやめる（1 秒かけて戻す）。 */
+    stopGesture() {
+        this._humanoid?.stopGesture();
     }
 
     /**

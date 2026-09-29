@@ -51,6 +51,14 @@ export const CALL_BLOCKS = Object.freeze({
     avatar_stop_speaking:     {fn: "stopSpeaking",            args: []},
     avatar_play_motion:       {fn: "playMotion",              args: ["NAME"]},
     avatar_play_motion_wait:  {fn: "playMotionAndWait",       args: ["NAME"]},
+    avatar_take_pose:         {fn: "takePose",                args: ["NAME"]},
+    avatar_take_pose_for:     {fn: "takePoseFor",             args: ["NAME", "SECONDS"]},
+    avatar_take_pose_for_wait:
+                              {fn: "takePoseForAndWait",      args: ["NAME", "SECONDS"]},
+    avatar_stop_pose:         {fn: "stopPose",                args: []},
+    avatar_play_gesture:      {fn: "playGesture",             args: ["HAND", "NAME", "SECONDS"]},
+    avatar_play_gesture_wait: {fn: "playGestureAndWait",      args: ["HAND", "NAME", "SECONDS"]},
+    avatar_stop_gesture:      {fn: "stopGesture",             args: []},
     avatar_set_expression:    {fn: "setExpression",           args: ["NAME", "VALUE"]},
     avatar_change_expression: {fn: "changeExpression",        args: ["NAME", "VALUE", "SECONDS"]},
     avatar_change_expression_wait:

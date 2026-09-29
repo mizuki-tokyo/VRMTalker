@@ -243,6 +243,7 @@ uv run python scripts/setup_voicevox.py --models-pattern "*"
 | 種類 | 定義ファイル | 置き場所 |
 |---|---|---|
 | モーション | `public/animations/motions.json` | `animations/vrma/` `animations/fbx/` |
+| ポーズ・ジェスチャー | `public/animations/poses.json` `public/animations/gestures.json` | （ファイルは無い。下を参照） |
 | エモート（頭の上のアイコン） | `public/emotes/emotes.json` | `public/emotes/` |
 | 効果音 | `public/sounds/sounds.json` | `public/sounds/` |
 | ボイスデータ | `public/voices/voices.json` | `public/voices/` |
@@ -272,6 +273,17 @@ uv run python scripts/setup_voicevox.py --models-pattern "*"
 - **効果音**は場面の音。口は動かず、重ねて鳴らせる
 - **背景**は切り替えるときに 0.6 秒かけて溶け込む。最初に出す絵は
   `index.html` の `#screen` が決める
+- **ポーズ**（全身の姿勢）と**ジェスチャー**（腕と手の身ぶり）は、ファイルを
+  置く代わりに `file` の欄が `template` になっている。値は
+  [TalkingHead](https://github.com/met4citizen/TalkingHead) の動きの名前で、
+  ポーズは `straight` `side` `hip` `turn` `back` `wide` `bend` `oneknee` `kneel`
+  `sitting`、ジェスチャーは `handup` `index` `ok` `thumbup` `thumbdown` `side`
+  `shrug` `namaste` から選ぶ。並べ替えや名前の変更、選択肢から外すのは自由
+  ```json
+  { "id": "sitting", "name": "床に座る", "template": "sitting" }
+  ```
+  ポーズは待機モーションの代わりになり、ポーズの間に再生したモーションは
+  終わるとポーズへ戻る。ジェスチャーはモーションやポーズの上から重ねる
 
 素材の出典は `public/acknowledgment.md` に書く。メニューの「リソースの出典」に
 そのまま出るので、差し替えたらここも直すこと。
@@ -393,6 +405,9 @@ VOICEVOX の利用規約により、生成した音声を利用する際は **VO
 
 - VOICEVOX CORE 0.16 以降のビルド済みコアライブラリ: MIT License
   （0.16 未満は別ライセンスなので注意）
+- ポーズとジェスチャーの定義（`talkinghead-templates.js`）:
+  [TalkingHead](https://github.com/met4citizen/TalkingHead) の MIT License
+  （Copyright (c) 2023-2024 Mika Suominen）。許諾表示はファイルの先頭にある
 - 音声モデル・音声ライブラリ: 上記「クレジット表記について」を参照
 
 ## 構成
@@ -436,6 +451,7 @@ public/
     app-blocks.js           ブロックの文言・形・パレット
     app-block-editor.js     編集画面（Blockly の組み立てと読み書き）
     app-motions.js          motions.json の読み込み
+    poses.js                poses.json / gestures.json の読み込み
     sound-player.js         効果音
     voices.js               ボイスデータの一覧
     background.js           背景の切り替え
@@ -447,7 +463,8 @@ public/
     three-ui/               3D まわりのカスタム要素
       three-world-element.js  <three-world>  three.js の描画環境
       vrm-avatar-element.js   <vrm-avatar>   VRM モデルの配置と制御
-      vrm-avatar-element/     VRM 固有の処理（ローダ、モーション、リップシンク）
+      vrm-avatar-element/     VRM 固有の処理（ローダ、モーション、リップシンク、
+                              ポーズとジェスチャー）
       vrm-emote-element.js    <vrm-emote>    頭の上のアイコン
     web-ui/                 画面部品のカスタム要素（吹き出し・設定・ダイアログ等）
 ```
