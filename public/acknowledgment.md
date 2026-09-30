@@ -68,10 +68,13 @@
 に、許諾表示とともに定義の写しがあります）。
 
 ## モーション
-# おじぎ
+
+### おじぎ
+
 [virtual-avatar-sdk プロジェクト](https://github.com/hirokazuniimoto/virtual-avatar-sdk)に含まれているモーションです（MIT ライセンス）。
 
-# 歩く、軽く走る、走る
+### 歩く、軽く走る、走る
+
 Josie - Character Model のモーション（CC0）を
 sashii さんが VRM にリターゲティングしたモーション（CC0）です。
 
