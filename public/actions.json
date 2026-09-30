@@ -104,10 +104,22 @@
             },
             "next": {
               "block": {
-                "type": "avatar_play_motion",
+                "type": "avatar_play_gesture",
                 "id": "(rXOsp0!D^ik:V+yvfpY",
                 "fields": {
-                  "NAME": "hand-raising"
+                  "HAND": "right",
+                  "NAME": "handup"
+                },
+                "inputs": {
+                  "SECONDS": {
+                    "shadow": {
+                      "type": "math_number",
+                      "id": "hG3#vQ9pL2]xT7mWz!aK",
+                      "fields": {
+                        "NUM": 3
+                      }
+                    }
+                  }
                 },
                 "next": {
                   "block": {
