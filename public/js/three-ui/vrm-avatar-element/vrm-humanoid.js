@@ -7,6 +7,7 @@ import {
 } from "@pixiv/three-vrm";
 
 import ActionManager from "./action-manager.js"
+import ActionBlender from "./action-blender.js";
 import VRMSmoothLookAt from './vrm-smooth-lookat.js';
 import AudioPlayer from "./audio-player.js";
 import GestureLayer from "./gesture-layer.js";
@@ -14,6 +15,7 @@ import PoseSway from "./pose-sway.js";
 
 import registFaceExpression from "./vrm-expression-editor.js";
 
+// モーションを切り替えるのにかける時間（秒）。重みは緩急を付けて変える（action-blender.js）
 //const FADE_TIME = 0.2;
 const FADE_TIME = 0.5;
 
@@ -43,6 +45,9 @@ const LIP_SYNC_MIN_CONFIDENCE = 0.25; // 5 母音が等距離だと 0.2。それ
 class VrmHumanoid {
     _currentVrm = undefined;
     _actionManager = undefined;
+
+    // モーションの重みの切り替え。three.js の fadeIn() / fadeOut() は使わない
+    _blender = new ActionBlender();
     _activeAction = undefined;
     _defaultAction = undefined;
     _audioPlayer = undefined;
@@ -160,10 +165,8 @@ class VrmHumanoid {
         const lastAction = this._activeAction;
         this._activeAction = action;
         action.reset();
-        if (lastAction) {
-            lastAction.fadeOut(POSE_FADE_TIME);
-            action.fadeIn(POSE_FADE_TIME);
-        }
+        // 初めて決めるときは、その場で（読み込み直後の T ポーズから切り替える意味は無い）
+        this._blender.crossfadeTo(action, lastAction ? POSE_FADE_TIME : 0);
         action.play();
     }
 
@@ -178,6 +181,7 @@ class VrmHumanoid {
 
     update(deltaTime, elapsedTime) {
         this._clock += deltaTime;
+        this._blender.update(deltaTime);
         if (this._actionManager) {
             this._actionManager.update(deltaTime);
         }
@@ -253,18 +257,13 @@ class VrmHumanoid {
 
         const lastAction = this._activeAction;
         this._activeAction = action;
-        if (lastAction === action) {
-            // 終わったばかりの同じモーションをもう一度。切り替えずに頭から続ける。
-            // くり返し用のモーション（loop）は最後と最初が同じ姿勢なので、
-            // 切れ目なく続いて見える
-            action.reset();
-        } else {
-            if (lastAction) {
-                lastAction.fadeOut(FADE_TIME);
-            }
-            action.reset();
-            action.fadeIn(FADE_TIME);
+        action.reset();
+        if (lastAction !== action) {
+            this._blender.crossfadeTo(action, FADE_TIME);
         }
+        // 同じなら、終わったばかりの同じモーションをもう一度。切り替えずに頭から
+        // 続ける。くり返し用のモーション（loop）は最後と最初が同じ姿勢なので、
+        // 切れ目なく続いて見える
         action.clampWhenFinished = true;
 
         if (action === this._defaultAction || action === this._poseAction) {
@@ -331,14 +330,10 @@ class VrmHumanoid {
         this._actionManager.onFinish = null;
         this._settleAction();
 
-        const lastAction = this._activeAction;
         this._activeAction = next;
-        if (lastAction) {
-            lastAction.fadeOut(POSE_FADE_TIME);
-        }
         next.reset();
         next.setLoop(THREE.LoopRepeat);
-        next.fadeIn(POSE_FADE_TIME);
+        this._blender.crossfadeTo(next, POSE_FADE_TIME);
         next.play();
     }
 
@@ -369,9 +364,9 @@ class VrmHumanoid {
     /**
      * 既定モーション（ポーズをとっていればそのポーズ）へ戻す。
      *
-     * 終わったモーションは弱めて外す。最後のコマで止めてある（clampWhenFinished）
-     * ので、外さないと重み 1 のまま残り、この先のモーションとずっと混ざり続ける
-     * （次に再生したモーションの動きが半分ほどに弱まって見える）
+     * 終わったモーションは弱めて外す（crossfadeTo() がほかの action をすべて
+     * 弱める）。最後のコマで止めてある（clampWhenFinished）ので、外さないと
+     * 重み 1 のまま残り、この先のモーションとずっと混ざり続ける
      *
      * @param {THREE.AnimationAction} [finishedAction] 終わったモーション
      */
@@ -380,20 +375,20 @@ class VrmHumanoid {
             return;
         }
         if (finishedAction && finishedAction !== this._baseAction) {
-            finishedAction.fadeOut(FADE_TIME);
             this._returning = {finished: finishedAction, base: this._baseAction, at: this._clock};
         }
-        this._activeAction = this._baseAction;
-        this._activeAction.setLoop(THREE.LoopRepeat);
-        this._activeAction.reset();
-        this._activeAction.fadeIn(FADE_TIME);
-        this._activeAction.play();
+        const base = this._baseAction;
+        this._activeAction = base;
+        base.setLoop(THREE.LoopRepeat);
+        base.reset();
+        this._blender.crossfadeTo(base, FADE_TIME);
+        base.play();
     }
 
     /**
      * モーションが終わった直後なら、待機へ戻すのを取りやめる。
      *
-     * 終わったモーションを元の重みに戻し、戻り始めた待機の姿勢を外す。
+     * 終わったモーションだけが効いている状態に戻し、戻り始めた待機の姿勢を外す。
      * 取りやめたら、終わったモーションを今のモーションに戻して返す。
      * そうでなければ（時間がたっている・戻していない）null を返す
      *
@@ -406,9 +401,7 @@ class VrmHumanoid {
             || this._activeAction !== returning.base) {
             return null;
         }
-        returning.base.stopFading();
-        returning.base.enabled = false; // 次に戻すときは reset() で有効に戻る
-        returning.finished.setEffectiveWeight(1); // 弱め始めたのを取りやめる
+        this._blender.snapTo(returning.finished);
         this._activeAction = returning.finished;
         return returning.finished;
     }
