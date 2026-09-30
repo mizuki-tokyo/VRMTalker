@@ -10,6 +10,7 @@ import ActionManager from "./action-manager.js"
 import VRMSmoothLookAt from './vrm-smooth-lookat.js';
 import AudioPlayer from "./audio-player.js";
 import GestureLayer from "./gesture-layer.js";
+import PoseSway from "./pose-sway.js";
 
 import registFaceExpression from "./vrm-expression-editor.js";
 
@@ -48,6 +49,9 @@ class VrmHumanoid {
     // ジェスチャー（腕や手だけの上書き）
     _gestureLayer = undefined;
 
+    // ポーズの間の呼吸と小さな揺れ
+    _poseSway = undefined;
+
     // リップシンクの現在の重み。急に切り替わらないよう毎回目標値へ補間する
     _lipSyncWeights = {a: 0, i: 0, u: 0, e: 0, o: 0};
     _currentVowel = "a";
@@ -62,6 +66,7 @@ class VrmHumanoid {
         this._currentVrm = vrm;
         this._actionManager = new ActionManager(vrm);
         this._gestureLayer = new GestureLayer(vrm);
+        this._poseSway = new PoseSway(vrm);
 
         this._audioPlayer = new AudioPlayer();
         this._audioPlayer.onPlayStart = this._onPlayStart.bind(this);
@@ -138,7 +143,11 @@ class VrmHumanoid {
             this._actionManager.update(deltaTime);
         }
 
-        // モーションが骨を動かした後、VRM へ反映する前に上書きする
+        // モーションが骨を動かした後、VRM へ反映する前に足す・上書きする。
+        // 揺れはポーズをとっている間だけ（モーションの再生中は弱めて消す）。
+        // ジェスチャーは揺れより後にして、腕と手はジェスチャーを優先する
+        const isPosing = (this._poseAction !== null && this._activeAction === this._poseAction);
+        this._poseSway?.update(deltaTime, isPosing);
         this._gestureLayer?.update(deltaTime);
 
         // update vrm
