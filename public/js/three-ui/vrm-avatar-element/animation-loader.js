@@ -112,4 +112,80 @@ async function loadAnimation(url, vrm) {
     throw new Error("unknown format");
 }
 
+/**
+ * くり返し再生するモーション（歩く・走るなど）の、最後から最初へのつなぎ目を
+ * 滑らかにする。元のクリップは書き換えず、新しいクリップを返す。
+ *
+ * くり返し用のモーションは「一歩分の周期」だけを収めたものが多いが、最後の
+ * コマは最初のコマの 1 コマ手前で終わっている。そのままくり返すと、最後から
+ * 最初へ一瞬で跳ぶ。そこで、最初のコマの写しを 1 コマ分の間隔を空けて最後に
+ * 足し、最後から最初へも補間されるようにする。
+ *
+ * 先頭の 2 コマが全く同じ（書き出し時の重複）なら、先に 1 つ落とす。落とさないと
+ * くり返すたびに一瞬止まって見える。
+ *
+ * @param {THREE.AnimationClip} clip
+ * @returns {THREE.AnimationClip}
+ */
+function closeLoop(clip) {
+    // 基準にするのは、いちばんコマの多いトラックの時刻
+    const reference = clip.tracks.reduce(
+        (longest, track) => (track.times.length > (longest?.times.length ?? 0)) ? track : longest,
+        null);
+    if (! reference || reference.times.length < 3) {
+        return clip;
+    }
+    const times = reference.times;
+
+    // 1 コマの間隔。途中の間隔の中央値をとる（端の乱れに引きずられないように）
+    const intervals = [];
+    for (let i = 1; i < times.length; i++) {
+        intervals.push(times[i] - times[i - 1]);
+    }
+    intervals.sort((a, b) => a - b);
+    const frame = intervals[Math.floor(intervals.length / 2)];
+
+    // 動いているトラック（2 コマ以上）が、どれも基準と同じ時刻で並んでいるか。
+    // 揃っていないものは、落とす・足すを正しく揃えられないので手を付けない
+    const moving = clip.tracks.filter((track) => track.times.length >= 2);
+    const aligned = moving.every((track) => track.times.length === times.length
+                                 && track.times[0] === times[0] && track.times[1] === times[1]);
+    if (! aligned) {
+        console.warn(`<vrm-avatar>: "${clip.name}" は時刻の揃わないトラックがあるため、`
+                     + "つなぎ目を整えずにくり返します");
+        return clip;
+    }
+
+    const EPSILON = 1e-5;
+    const duplicatedHead = moving.every((track) => {
+        const size = track.getValueSize();
+        for (let k = 0; k < size; k++) {
+            if (Math.abs(track.values[k] - track.values[size + k]) > EPSILON) {
+                return false;
+            }
+        }
+        return true;
+    });
+
+    const tracks = clip.tracks.map((track) => {
+        if (track.times.length < 2) {
+            return track; // 動かないトラック
+        }
+        const size = track.getValueSize();
+        let trackTimes = Array.from(track.times);
+        let values = Array.from(track.values);
+        if (duplicatedHead) {
+            const start = trackTimes[1];
+            trackTimes = trackTimes.slice(1).map((t) => t - start);
+            values = values.slice(size);
+        }
+        trackTimes.push(trackTimes[trackTimes.length - 1] + frame);
+        values.push(...values.slice(0, size));
+        return new track.constructor(track.name, trackTimes, values);
+    });
+
+    return new THREE.AnimationClip(clip.name, -1, tracks); // -1 で長さを測り直す
+}
+
+export { closeLoop };
 export default loadAnimation;

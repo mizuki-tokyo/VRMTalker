@@ -152,10 +152,13 @@ export default class VrmAvatarElement extends HTMLElement {
      * @param {string}  url
      * @param {boolean} [isDefault] 既定（ループする待機）モーションにする
      * @param {string}  [name] 登録する名前。省略するとファイル名から作る
+     * @param {object}  [options]
+     * @param {boolean} [options.loop] くり返し再生するモーション（歩く・走るなど）。
+     *        最後から最初へのつなぎ目を滑らかにする。続けて再生すると切れ目なく続く
      */
-    async loadMotion(url, isDefault = false, name = "") {
+    async loadMotion(url, isDefault = false, name = "", {loop = false} = {}) {
         await this._ready;
-        return this._humanoid.loadAnimation(url, isDefault, name);
+        return this._humanoid.loadAnimation(url, isDefault, name, {loop});
     }
 
     /**
@@ -623,9 +626,24 @@ export default class VrmAvatarElement extends HTMLElement {
             toVrmRotations(rotations, vrm),
             hipsPosition ? toVrmHipsPosition(hipsPosition, vrm) : null,
             vrm);
-        action = this._humanoid.createAction(clip);
+        action = this._humanoid.createPoseAction(clip);
         this._poseActions.set(name, action);
         return action;
+    }
+
+    /**
+     * 何もしていないときの姿勢を、ポーズにする（呼吸と小さな揺れが付く）。
+     *
+     *   await avatar.setDefaultPose("straight");
+     *
+     * 待機モーション（motions.json の default）の代わりに使う。モーションが
+     * 終わったとき・ポーズをやめたときに戻るのがこの姿勢になる
+     *
+     * @param {string} name ポーズの名前
+     */
+    async setDefaultPose(name) {
+        await this._ready;
+        this._humanoid.setDefaultAction(this._poseAction(String(name)));
     }
 
     /**

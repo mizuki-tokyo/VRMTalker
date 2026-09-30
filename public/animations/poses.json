@@ -1,5 +1,5 @@
 [
-    { "id": "straight", "name": "まっすぐ立つ",         "template": "straight" },
+    { "id": "straight", "name": "まっすぐ立つ",         "template": "straight", "default": true },
     { "id": "side",     "name": "片足に体重をかけて立つ", "template": "side" },
     { "id": "hip",      "name": "腰に手を当てて立つ",     "template": "hip" },
     { "id": "wide",     "name": "足を開いて立つ",         "template": "wide" },

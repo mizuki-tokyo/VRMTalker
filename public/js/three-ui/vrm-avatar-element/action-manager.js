@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import loadAnimation from "./animation-loader.js";
+import loadAnimation, { closeLoop } from "./animation-loader.js";
 
 
 class ActionManager {
@@ -58,12 +58,15 @@ class ActionManager {
      * @param {string} animationUrl
      * @param {string} [name] 登録する名前。省略するとファイル名から作る。
      *                        画面に出す名前で呼びたい場合に指定する
+     * @param {object} [options]
+     * @param {boolean} [options.loop] くり返し用のモーション。つなぎ目を滑らかにする
      */
-    loadAnimation(animationUrl, name) {
+    loadAnimation(animationUrl, name, {loop = false} = {}) {
         return new Promise((resolve, reject) => {
             // Load animation
             loadAnimation(animationUrl, this._vrm)
-                .then((clip) => {
+                .then((loaded) => {
+                    const clip = loop ? closeLoop(loaded) : loaded;
                     // Apply the loaded animation to mixer and play
                     const action = this._animationMixer.clipAction(clip);
                     this._actionMap[name || this._getName(animationUrl)] = action;

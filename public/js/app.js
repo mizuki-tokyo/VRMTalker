@@ -519,10 +519,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // モーション・エモート・効果音・背景の読み込みを先に済ませるのは、ready の
     // アクションから、すぐ playMotion() や showEmote() を呼べるようにするため。
     // モーション以外は失敗しても続ける（無くても会話はできる）
+    //
+    // 何もしていないときの姿勢は、poses.json に default のポーズがあればそれ
+    // （呼吸と揺れ付き）、無ければ motions.json の default のモーション。
+    // ポーズはモーションの読み込みを待たずに決める（読み込み中に T ポーズで
+    // 立ち尽くす時間を短くするため）
+    Promise.all([avatar.ready, posesLoaded])
+        .then(() => poses.defaultTemplate && avatar.setDefaultPose(poses.defaultTemplate))
+        .catch((error) => console.warn("既定のポーズを使えませんでした", error));
+
     avatar.ready
         .then(() => Promise.all([
-            motionsRead
-                .then((motions) => registerMotions(avatar, motions))
+            Promise.all([motionsRead, posesLoaded])
+                .then(([motions]) => registerMotions(avatar, motions, {
+                    useDefault: ! poses.defaultTemplate
+                }))
                 // 読み込めなかったものは選択肢から外す（一覧は先に出してある）
                 .then((loaded) => {
                     motionChoices = loaded;

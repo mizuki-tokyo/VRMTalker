@@ -1,13 +1,7 @@
 [
-    {
-        "id": "idle",
-        "name": "立ち姿",
-        "file": "./animations/vrma/standard_idle.vrma",
-        "default": true
-    },
     { "id": "hand-raising", "name": "手を挙げる", "file": "./animations/fbx/Hand Raising.fbx" },
     { "id": "bow",          "name": "おじぎ",     "file": "./animations/vrma/quick_formal_bow.vrma" },
-    { "id": "walk",         "name": "歩く",       "file": "./animations/vrma/CC0-walk.vrma" },
-    { "id": "slow-run",     "name": "軽く走る",   "file": "./animations/vrma/CC0-slowrun.vrma" },
-    { "id": "run",          "name": "走る",       "file": "./animations/vrma/CC0-run.vrma" }
+    { "id": "walk",         "name": "歩く",       "file": "./animations/vrma/CC0-walk.vrma",    "loop": true },
+    { "id": "slow-run",     "name": "軽く走る",   "file": "./animations/vrma/CC0-slowrun.vrma", "loop": true },
+    { "id": "run",          "name": "走る",       "file": "./animations/vrma/CC0-run.vrma",     "loop": true }
 ]

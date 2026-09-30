@@ -21,6 +21,11 @@ const FADE_TIME = 0.5;
 // 全身の姿勢が変わるので、モーションの切り替えより長めにとる
 const POSE_FADE_TIME = 1.0;
 
+// モーションが終わってからこの時間（秒）のうちに次のモーションが来たら、
+// 待機へ戻すのを取りやめて、終わったモーションから直接つなぐ。
+// 「再生して終わるまで待つ」をくり返すと、次の再生は終わった直後に来る
+const CONTINUE_WINDOW = 0.1;
+
 // リップシンク: 推定した母音と VRM の口形状プリセットの対応
 const LIP_SYNC_PRESETS = Object.freeze({
     a: VRMExpressionPresetName.Aa,
@@ -51,6 +56,16 @@ class VrmHumanoid {
 
     // ポーズの間の呼吸と小さな揺れ
     _poseSway = undefined;
+
+    // ポーズとして作った action。揺れを足すかどうかの判定に使う
+    _poseActions = new WeakSet();
+
+    // 経過時間（秒）。モーションが終わってからの時間を測るのに使う
+    _clock = 0;
+
+    // モーションが終わって待機へ戻し始めたところ。{finished, base, at}。
+    // この間に次のモーションが来たら、戻すのを取りやめる（_cancelReturn()）
+    _returning = null;
 
     // リップシンクの現在の重み。急に切り替わらないよう毎回目標値へ補間する
     _lipSyncWeights = {a: 0, i: 0, u: 0, e: 0, o: 0};
@@ -109,9 +124,12 @@ class VrmHumanoid {
      * @param {string}  url
      * @param {boolean} [defaultAction] 既定（ループする待機）モーションにする
      * @param {string}  [name] 登録する名前。省略するとファイル名から作る
+     * @param {object}  [options]
+     * @param {boolean} [options.loop] くり返し再生するモーション（歩く・走るなど）。
+     *        最後から最初へのつなぎ目を滑らかにする
      */
-    async loadAnimation(url, defaultAction=false, name="") {
-        const action = await this._actionManager.loadAnimation(url, name);
+    async loadAnimation(url, defaultAction=false, name="", {loop = false} = {}) {
+        const action = await this._actionManager.loadAnimation(url, name, {loop});
         if (defaultAction === true) {
             this.setDefaultAction(action);
         }
@@ -122,10 +140,30 @@ class VrmHumanoid {
         return this._actionManager.getActionNames();
     }
 
+    /**
+     * 既定の姿勢（何もしていないときの動き）を決める。ループするモーションか、
+     * ポーズ（createPoseAction() で作ったもの）を渡す。
+     *
+     * 今この姿勢でいるなら、新しいほうへ滑らかに切り替える。モーションの再生中や
+     * ポーズをとっている間は切り替えず、そこから戻るときに新しいほうへ戻る
+     *
+     * @param {THREE.AnimationAction} action
+     */
     setDefaultAction(action) {
+        const isBase = (! this._activeAction || this._activeAction === this._baseAction);
         this._defaultAction = action;
-        this._defaultAction.setLoop(THREE.LoopRepeat);
+        action.setLoop(THREE.LoopRepeat);
+        if (! isBase || this._baseAction !== action || this._activeAction === action) {
+            return;
+        }
+
+        const lastAction = this._activeAction;
         this._activeAction = action;
+        action.reset();
+        if (lastAction) {
+            lastAction.fadeOut(POSE_FADE_TIME);
+            action.fadeIn(POSE_FADE_TIME);
+        }
         action.play();
     }
 
@@ -139,6 +177,7 @@ class VrmHumanoid {
     }
 
     update(deltaTime, elapsedTime) {
+        this._clock += deltaTime;
         if (this._actionManager) {
             this._actionManager.update(deltaTime);
         }
@@ -146,7 +185,7 @@ class VrmHumanoid {
         // モーションが骨を動かした後、VRM へ反映する前に足す・上書きする。
         // 揺れはポーズをとっている間だけ（モーションの再生中は弱めて消す）。
         // ジェスチャーは揺れより後にして、腕と手はジェスチャーを優先する
-        const isPosing = (this._poseAction !== null && this._activeAction === this._poseAction);
+        const isPosing = this._poseActions.has(this._activeAction);
         this._poseSway?.update(deltaTime, isPosing);
         this._gestureLayer?.update(deltaTime);
 
@@ -200,7 +239,11 @@ class VrmHumanoid {
             return Promise.reject(new Error(
                 `モーション "${name}" が見つかりません。読み込み済みか確認してください。`));
         }
-        if (action === this._activeAction) {
+
+        // 終わった直後なら、待機へ戻すのを取りやめて、終わったモーションからつなぐ
+        const continued = this._cancelReturn();
+
+        if (action === this._activeAction && ! continued) {
             return Promise.resolve();
         }
 
@@ -210,11 +253,18 @@ class VrmHumanoid {
 
         const lastAction = this._activeAction;
         this._activeAction = action;
-        if (lastAction) {
-            lastAction.fadeOut(FADE_TIME);
+        if (lastAction === action) {
+            // 終わったばかりの同じモーションをもう一度。切り替えずに頭から続ける。
+            // くり返し用のモーション（loop）は最後と最初が同じ姿勢なので、
+            // 切れ目なく続いて見える
+            action.reset();
+        } else {
+            if (lastAction) {
+                lastAction.fadeOut(FADE_TIME);
+            }
+            action.reset();
+            action.fadeIn(FADE_TIME);
         }
-        action.reset();
-        action.fadeIn(FADE_TIME);
         action.clampWhenFinished = true;
 
         if (action === this._defaultAction || action === this._poseAction) {
@@ -265,6 +315,7 @@ class VrmHumanoid {
      * @param {THREE.AnimationAction|null} action
      */
     setPose(action) {
+        this._returning = null;
         const isBase = (this._activeAction === this._baseAction);
         this._poseAction = action ?? null;
         if (! action && ! isBase) {
@@ -292,12 +343,14 @@ class VrmHumanoid {
     }
 
     /**
-     * モーションの一覧に載せずに使う AnimationAction を作る（ポーズなど）。
-     * 同じクリップからは同じ action が返る。
+     * ポーズ（止まったモーション）の AnimationAction を作る。
+     * 同じクリップからは同じ action が返る。ポーズの間は呼吸と揺れが足される
      * @param {THREE.AnimationClip} clip
      */
-    createAction(clip) {
-        return this._actionManager.createAction(clip);
+    createPoseAction(clip) {
+        const action = this._actionManager.createAction(clip);
+        this._poseActions.add(action);
+        return action;
     }
 
     /**
@@ -328,12 +381,36 @@ class VrmHumanoid {
         }
         if (finishedAction && finishedAction !== this._baseAction) {
             finishedAction.fadeOut(FADE_TIME);
+            this._returning = {finished: finishedAction, base: this._baseAction, at: this._clock};
         }
         this._activeAction = this._baseAction;
         this._activeAction.setLoop(THREE.LoopRepeat);
         this._activeAction.reset();
         this._activeAction.fadeIn(FADE_TIME);
         this._activeAction.play();
+    }
+
+    /**
+     * モーションが終わった直後なら、待機へ戻すのを取りやめる。
+     *
+     * 終わったモーションを元の重みに戻し、戻り始めた待機の姿勢を外す。
+     * 取りやめたら、終わったモーションを今のモーションに戻して返す。
+     * そうでなければ（時間がたっている・戻していない）null を返す
+     *
+     * @returns {THREE.AnimationAction|null}
+     */
+    _cancelReturn() {
+        const returning = this._returning;
+        this._returning = null;
+        if (! returning || this._clock - returning.at > CONTINUE_WINDOW
+            || this._activeAction !== returning.base) {
+            return null;
+        }
+        returning.base.stopFading();
+        returning.base.enabled = false; // 次に戻すときは reset() で有効に戻る
+        returning.finished.setEffectiveWeight(1); // 弱め始めたのを取りやめる
+        this._activeAction = returning.finished;
+        return returning.finished;
     }
 
     /** モーション待ちの Promise を解決する。中断・破棄のときも必ず呼ぶこと。 */

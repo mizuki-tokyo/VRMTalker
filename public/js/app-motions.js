@@ -5,17 +5,20 @@
  * ので、アクションを書く人はファイル名を知らなくてよい。
  *
  *   [
- *     {"id": "idle",         "name": "立ち姿",     "default": true,
- *      "file": "./animations/vrma/standard_idle.vrma"},
  *     {"id": "hand-raising", "name": "手を挙げる",
- *      "file": "./animations/fbx/Hand Raising.fbx"}
+ *      "file": "./animations/fbx/Hand Raising.fbx"},
+ *     {"id": "walk",         "name": "歩く",       "loop": true,
+ *      "file": "./animations/vrma/CC0-walk.vrma"}
  *   ]
  *
  *   id      アクションが覚える名札。api.playMotion() に渡すのもこれ。
  *           後から変えないこと（保存済みのアクションが外れる）
  *   name    画面に出す文字。変えても保存済みのアクションに響かない
  *   file    モーションファイル（FBX / VRMA）
- *   default ループする待機モーション。1 つだけ指定する
+ *   default ループする待機モーション。1 つだけ指定する。
+ *           animations/poses.json に既定のポーズがあれば、そちらを使う（省略してよい）
+ *   loop    くり返し再生するモーション（歩く・走るなど、一歩分の周期のもの）。
+ *           つなぎ目を滑らかにし、続けて再生すると切れ目なく続く
  *
  * JSON にしているのは、将来ビジュアルプログラミングの編集画面が同じものを
  * 読んで選択肢を組み立てるため。アクションのフローも JSON で保存するので、
@@ -41,7 +44,7 @@ export const MOTIONS_URL = "./animations/motions.json";
  * 無くてもアプリは会話できるため、警告にとどめて動かし続ける。
  *
  * @param {string} [url]
- * @returns {Promise<Array<{id: string, name: string, file: string, default: boolean}>>}
+ * @returns {Promise<Array<{id: string, name: string, file: string, default: boolean, loop: boolean}>>}
  */
 export const readMotions = async (url = MOTIONS_URL) => {
     let definitions;
@@ -74,7 +77,8 @@ export const readMotions = async (url = MOTIONS_URL) => {
             // 名前が無ければ id で代用する（選べなくなるよりはよい）
             name: String(definition.name ?? id),
             file: String(file),
-            default: Boolean(definition.default)
+            default: Boolean(definition.default),
+            loop: Boolean(definition.loop)
         });
     }
     return motions;
@@ -89,22 +93,28 @@ export const readMotions = async (url = MOTIONS_URL) => {
  *
  * @param {Element} avatar <vrm-avatar>
  * @param {Array<object>} motions readMotions() が返したもの
+ * @param {object} [options]
+ * @param {boolean} [options.useDefault] default のモーションを待機の動きにするか。
+ *        既定のポーズを使うときは false にする（default は通常のモーションになる）
  * @returns {Promise<Array<{id: string, name: string}>>} 実際に登録できたもの
  */
-export const registerMotions = async (avatar, motions) => {
+export const registerMotions = async (avatar, motions, {useDefault = true} = {}) => {
     const loaded = [];
     let hasDefault = false;
 
     for (const motion of motions) {
         // 既定モーションは 1 つだけ。2 つめ以降は通常のモーションとして扱う
-        const isDefault = motion.default && ! hasDefault;
-        if (motion.default && hasDefault) {
+        if (motion.default && ! useDefault) {
+            console.warn(`既定のポーズを使うため、"${motion.id}" は通常のモーションにします`);
+        }
+        const isDefault = useDefault && motion.default && ! hasDefault;
+        if (useDefault && motion.default && hasDefault) {
             console.warn(`既定のモーションが複数あります。"${motion.id}" は通常のモーションにします`);
         }
 
         try {
             // <vrm-avatar> には id で覚えさせる。api.playMotion() が渡すのも id
-            await avatar.loadMotion(motion.file, isDefault, motion.id);
+            await avatar.loadMotion(motion.file, isDefault, motion.id, {loop: motion.loop});
             loaded.push({id: motion.id, name: motion.name});
             hasDefault = hasDefault || isDefault;
         } catch (error) {
@@ -112,9 +122,9 @@ export const registerMotions = async (avatar, motions) => {
         }
     }
 
-    if (! hasDefault) {
-        console.warn("既定のモーションがありません。"
-                     + '定義のどれかに "default": true を付けてください');
+    if (useDefault && ! hasDefault) {
+        console.warn("待機の動きがありません。animations/poses.json のポーズか、"
+                     + 'motions.json のモーションのどれかに "default": true を付けてください');
     }
     return loaded;
 };

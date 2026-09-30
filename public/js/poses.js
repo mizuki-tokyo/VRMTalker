@@ -40,6 +40,14 @@ export default class PoseLibrary {
         return [...this._entries].map(([id, entry]) => ({id, name: entry.name}));
     }
 
+    /**
+     * 何もしていないときの姿勢にする動きの名前。定義で "default": true を
+     * 付けたもの（最初の 1 つ）。無ければ undefined
+     */
+    get defaultTemplate() {
+        return [...this._entries.values()].find((entry) => entry.isDefault)?.template;
+    }
+
     /** id から動きの名前を引く。知らない id なら undefined。 */
     templateOf(id) {
         return this._entries.get(String(id))?.template;
@@ -55,6 +63,7 @@ export default class PoseLibrary {
      *   id        アクションが覚える名札。後から変えないこと
      *   name      画面に出す名前
      *   template  動きの名前（TalkingHead のポーズ・ジェスチャーの名前）
+     *   default   何もしていないときの姿勢にする（ポーズのみ。1 つだけ付ける）
      *
      * 読めなくても、定義の一部が壊れていても例外は投げない。無くても
      * アプリは会話できるため、警告にとどめて動かし続ける。
@@ -94,7 +103,8 @@ export default class PoseLibrary {
             this._entries.set(String(id), {
                 // 名前が無ければ id で代用する（選べなくなるよりはよい）
                 name: String(definition.name ?? id),
-                template: String(template)
+                template: String(template),
+                isDefault: Boolean(definition.default)
             });
         }
         return this.choices;
