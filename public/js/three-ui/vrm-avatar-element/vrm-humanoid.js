@@ -231,7 +231,7 @@ class VrmHumanoid {
                     onFinish(event);
                 }
                 this._actionManager.onFinish = null;
-                this._returnToDefaultAction();
+                this._returnToDefaultAction(action);
                 this._settleAction();
             };
         });
@@ -304,10 +304,21 @@ class VrmHumanoid {
         this._gestureLayer.stop();
     }
 
-    /** 既定モーション（ポーズをとっていればそのポーズ）へ戻す。 */
-    _returnToDefaultAction() {
+    /**
+     * 既定モーション（ポーズをとっていればそのポーズ）へ戻す。
+     *
+     * 終わったモーションは弱めて外す。最後のコマで止めてある（clampWhenFinished）
+     * ので、外さないと重み 1 のまま残り、この先のモーションとずっと混ざり続ける
+     * （次に再生したモーションの動きが半分ほどに弱まって見える）
+     *
+     * @param {THREE.AnimationAction} [finishedAction] 終わったモーション
+     */
+    _returnToDefaultAction(finishedAction) {
         if (! this._baseAction) {
             return;
+        }
+        if (finishedAction && finishedAction !== this._baseAction) {
+            finishedAction.fadeOut(FADE_TIME);
         }
         this._activeAction = this._baseAction;
         this._activeAction.setLoop(THREE.LoopRepeat);
