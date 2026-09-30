@@ -78,6 +78,25 @@ const SHADOW_PLANE_SCALE = 3.0;
 /** 表情の変化を識別する名前。同じ表情を二重に動かさないために使う。 */
 const expressionTweenKey = (name) => `expression:${name}`;
 
+// 立った姿勢と低い姿勢（ひざまずく・座る）の間を移るときに経由するポーズと、
+// そこに留まる秒数。TalkingHead と同じ決まり（isPoseDetour() を参照）
+const DETOUR_POSE = "oneknee";
+const DETOUR_SECONDS = 1.0;
+
+/**
+ * from から to へ移るときに、片ひざをつくポーズを経由するか。
+ *
+ * ポーズの定義に付いている印で決まる。standing（立っている）と lying（低い）の
+ * 間を移るときだけ経由する。ポーズの名前の組み合わせは見ない。
+ * 名前が null（ポーズではない待機モーション）は、立っているものとして扱う
+ */
+const isPoseDetour = (from, to) => {
+    const kind = (name) => (name === null) ? {standing: true} : (poseTemplates[name] ?? {});
+    const a = kind(from), b = kind(to);
+    return Boolean(poseTemplates[DETOUR_POSE])
+        && Boolean((a.standing && b.lying) || (a.lying && b.standing));
+};
+
 export default class VrmAvatarElement extends HTMLElement {
 
     _world = null;
@@ -100,6 +119,14 @@ export default class VrmAvatarElement extends HTMLElement {
 
     // 秒数を決めてとっているポーズの、戻るまでのタイマーと待っている resolve
     _poseWait = null;
+
+    // とっているポーズの名前（null なら待機の姿勢）と、待機の姿勢にしたポーズの名前
+    //（null ならポーズではない待機モーション）。片ひざを経由するかの判定に使う
+    _currentPose = null;
+    _defaultPose = null;
+
+    // 片ひざを経由している間の、本来のポーズへ移るまでのタイマー
+    _detourTimer = null;
 
     _ready = null;
     _resolveReady = null;
@@ -403,7 +430,10 @@ export default class VrmAvatarElement extends HTMLElement {
         this._maskedExpressions = new Map();
         this._tweenedExpressions.clear();
         this._settlePose();
+        this._cancelDetour();
         this._poseActions = new Map();
+        this._currentPose = null;
+        this._defaultPose = null;
         // 光源はモデルの scene に入れてあるので、モデルと一緒に消える
         this._fillLight = null;
         this._humanoid?.dispose();
@@ -569,6 +599,8 @@ export default class VrmAvatarElement extends HTMLElement {
      *
      * ポーズの間に再生したモーションは、終わるとポーズへ戻る。
      * 秒数を決めてとっている途中で別のポーズをとると、前のほうの待ちは解決する。
+     * 立った姿勢と低い姿勢（ひざまずく・座る）の間は、片ひざをつくポーズを
+     * 1 秒経由して移る（isPoseDetour() を参照）。
      *
      * @param {string|null} name ポーズの名前。null なら待機モーションへ戻る
      * @param {number} [seconds] 保つ秒数。省略するとずっと
@@ -580,10 +612,10 @@ export default class VrmAvatarElement extends HTMLElement {
         this._settlePose();
 
         if (name === null || name === undefined) {
-            this._humanoid.setPose(null);
+            this._changePose(null);
             return;
         }
-        this._humanoid.setPose(this._poseAction(String(name)));
+        this._changePose(String(name));
 
         if (! Number.isFinite(Number(seconds))) {
             return;
@@ -591,11 +623,48 @@ export default class VrmAvatarElement extends HTMLElement {
         return new Promise((resolve) => {
             const timer = setTimeout(() => {
                 this._poseWait = null;
-                this._humanoid?.setPose(null);
+                this._changePose(null);
                 resolve();
             }, Math.max(0, Number(seconds)) * 1000);
             this._poseWait = {timer, resolve};
         });
+    }
+
+    /**
+     * ポーズを切り替える。必要なら片ひざをつくポーズを経由する。
+     * @param {string|null} name ポーズの名前。null なら待機の姿勢へ戻る
+     */
+    _changePose(name) {
+        if (! this._humanoid) {
+            return;
+        }
+        const action = (name === null) ? null : this._poseAction(name); // 知らない名前はここで投げる
+
+        // 経由している途中なら、今いるのは片ひざの姿勢
+        const from = (this._detourTimer !== null)
+            ? DETOUR_POSE
+            : (this._currentPose ?? this._defaultPose);
+        this._cancelDetour();
+        const to = name ?? this._defaultPose;
+        this._currentPose = name;
+
+        if (! isPoseDetour(from, to)) {
+            this._humanoid.setPose(action);
+            return;
+        }
+        this._humanoid.setPose(this._poseAction(DETOUR_POSE));
+        this._detourTimer = setTimeout(() => {
+            this._detourTimer = null;
+            this._humanoid?.setPose(action);
+        }, DETOUR_SECONDS * 1000);
+    }
+
+    /** 片ひざを経由している途中なら、本来のポーズへ移るのを取りやめる。 */
+    _cancelDetour() {
+        if (this._detourTimer !== null) {
+            clearTimeout(this._detourTimer);
+            this._detourTimer = null;
+        }
     }
 
     /** 秒数を決めたポーズのタイマーを止め、待っている呼び出し元を解決する。 */
@@ -644,6 +713,7 @@ export default class VrmAvatarElement extends HTMLElement {
     async setDefaultPose(name) {
         await this._ready;
         this._humanoid.setDefaultAction(this._poseAction(String(name)));
+        this._defaultPose = String(name);
     }
 
     /**
