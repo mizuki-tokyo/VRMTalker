@@ -67,6 +67,16 @@
 このアプリで書いたものです（`public/js/three-ui/vrm-avatar-element/talkinghead-templates.js`
 に、許諾表示とともに定義の写しがあります）。
 
+## モーション
+# おじぎ
+[virtual-avatar-sdk プロジェクト](https://github.com/hirokazuniimoto/virtual-avatar-sdk)に含まれているモーションです（MIT ライセンス）。
+
+# 歩く、軽く走る、走る
+Josie - Character Model のモーション（CC0）を
+sashii さんが VRM にリターゲティングしたモーション（CC0）です。
+
+**BOOTH の配布サイト** — <https://booth.pm/en/items/7861818>
+
 ## 3D モデル
 
 同梱のモデルの作者・利用許諾は、モデル自身に埋め込まれています。
@@ -89,14 +99,5 @@
 | [Lucide](https://lucide.dev/) | アイコン |
 | [FastAPI](https://fastapi.tiangolo.com/) | サーバ |
 
----
 
-## 出典が未記入のもの
 
-次の素材は出典を確認できていません。配布する前に記入してください。
-
-- `public/animations/vrma/quick_formal_bow.vrma`
-- `public/animations/vrma/standard_idle.vrma`
-- `public/animations/fbx/` の各ファイル
-
-ファイル名に `CC0-` が付く動きは CC0 として配布されているものです。
