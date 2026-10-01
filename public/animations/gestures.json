@@ -1,5 +1,5 @@
 [
-    { "id": "handup",    "name": "手を挙げる",       "template": "handup" },
+    { "id": "handup",    "name": "手を上げる",       "template": "handup" },
     { "id": "index",     "name": "人差し指を立てる", "template": "index" },
     { "id": "ok",        "name": "OK サイン",        "template": "ok" },
     { "id": "thumbup",   "name": "親指を立てる",     "template": "thumbup" },
