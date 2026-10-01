@@ -73,6 +73,8 @@
 
 [virtual-avatar-sdk プロジェクト](https://github.com/hirokazuniimoto/virtual-avatar-sdk)に含まれているモーションです（MIT ライセンス）。
 
+頭を上げた後の、動きの無い部分（約 5 秒）を切り詰めて使っています。
+
 ### 歩く、軽く走る、走る
 
 Josie - Character Model のモーション（CC0）を
