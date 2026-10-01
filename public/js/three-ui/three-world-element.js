@@ -39,9 +39,18 @@ const DEFAULT_FAR = 20.0;
 const MAX_PIXEL_RATIO = 2;
 
 // 1フレームあたりの経過時間の上限（秒）。
-// タブが非表示の間は requestAnimationFrame が止まるため、復帰直後の delta が
-// 数秒になることがある。そのまま渡すと物理演算（スプリングボーン等）が発散する。
+// 一度に大きく進めると物理演算（スプリングボーン等）が発散する。
+// 画面が隠れている間にまとめて進めるときも、この長さずつに刻む
 const MAX_DELTA_TIME = 0.1;
+
+// 画面が隠れている間に時間を進める間隔（ミリ秒）。
+// ブラウザは隠れたページの requestAnimationFrame を止めるので、代わりに
+// setTimeout で進める。ブラウザが間引くため、実際には 1 秒に 1 回ほどになる
+const HIDDEN_STEP_INTERVAL = 100;
+
+// 隠れている間に、一度にまとめて進める時間の上限（秒）。
+// 長く隠れていると、ブラウザは 1 分に 1 回ほどまで間引くことがある
+const MAX_CATCH_UP_TIME = 60;
 
 // setFocus() で範囲を収める際の余白（1.0 でぴったり）
 const FRAME_MARGIN = 1.05;
@@ -72,7 +81,9 @@ export default class ThreeWorldElement extends HTMLElement {
     _clock = new THREE.Clock();
     _tweenRunner = new TweenRunner();
     _updaters = new Set();
+    _running = false;
     _animationFrameId = 0;
+    _timeoutId = 0;
     _resizeObserver = null;
 
     constructor() {
@@ -349,27 +360,88 @@ export default class ThreeWorldElement extends HTMLElement {
         this._renderer.setSize(width, height, false); // 表示サイズは CSS 側に任せる
     }
 
+    /*
+      毎フレームの処理（時間を進めて描く）を回す。
+
+      見えている間は requestAnimationFrame で回す。画面が隠れると
+      （背面のタブ、最小化、ほかのウィンドウに覆われたときなど）ブラウザは
+      requestAnimationFrame を呼ばなくなり、モーションも表情の変化も止まって、
+      「終わるまで待つ」が先へ進まなくなる。そこで隠れている間は setTimeout で
+      時間だけを進める（描画は見えないので省く）。モーションや表情を動かす側は、
+      どちらで回っているかを知らなくてよい
+    */
     _start() {
-        if (this._animationFrameId !== 0) {
+        if (this._running) {
             return;
         }
-        const animate = () => {
-            this._animationFrameId = requestAnimationFrame(animate);
-            this._render();
-        };
-        animate();
+        this._running = true;
+        document.addEventListener("visibilitychange", this._onVisibilityChange);
+        this._clock.getDelta(); // 止めていた間の時間は数えない
+        this._scheduleNext();
     }
 
     _stop() {
-        cancelAnimationFrame(this._animationFrameId);
-        this._animationFrameId = 0;
+        this._running = false;
+        document.removeEventListener("visibilitychange", this._onVisibilityChange);
+        this._cancelNext();
     }
 
+    _onVisibilityChange = () => {
+        if (! this._running) {
+            return;
+        }
+        // 見えている・隠れているに合わせて、回し方を切り替える
+        this._cancelNext();
+        this._scheduleNext();
+    };
+
+    _scheduleNext() {
+        if (document.hidden) {
+            this._timeoutId = setTimeout(() => {
+                this._timeoutId = 0;
+                this._catchUp();
+                this._scheduleNext();
+            }, HIDDEN_STEP_INTERVAL);
+        } else {
+            this._animationFrameId = requestAnimationFrame(() => {
+                this._animationFrameId = 0;
+                this._render();
+                this._scheduleNext();
+            });
+        }
+    }
+
+    _cancelNext() {
+        cancelAnimationFrame(this._animationFrameId);
+        this._animationFrameId = 0;
+        clearTimeout(this._timeoutId);
+        this._timeoutId = 0;
+    }
+
+    /** 見えているとき：時間を進めて描く。 */
     _render() {
         // delta は複数回取得できないため、ここで一度だけ取得して配る
         const delta = Math.min(this._clock.getDelta(), MAX_DELTA_TIME);
-        const elapsed = this._clock.elapsedTime;
+        this._advance(delta, this._clock.elapsedTime);
+        this._renderer.render(this._scene, this._camera);
+    }
 
+    /**
+     * 隠れているとき：前回からの実時間ぶんを、MAX_DELTA_TIME ずつに刻んで進める。
+     * 描画はしない（見えないので）。
+     */
+    _catchUp() {
+        let remaining = Math.min(this._clock.getDelta(), MAX_CATCH_UP_TIME);
+        const elapsed = this._clock.elapsedTime;
+        while (remaining > 0) {
+            const delta = Math.min(remaining, MAX_DELTA_TIME);
+            this._advance(delta, elapsed);
+            remaining -= delta;
+        }
+    }
+
+    /** 時間を delta 秒進める（トゥイーンと、登録された更新処理）。 */
+    _advance(delta, elapsed) {
         // トゥイーンを先に進めてから更新処理を呼ぶ。
         // 表情の値をこのフレームの描画に確実に反映させるため
         this._tweenRunner.update(delta);
@@ -377,7 +449,6 @@ export default class ThreeWorldElement extends HTMLElement {
         for (const updater of this._updaters) {
             updater(delta, elapsed);
         }
-        this._renderer.render(this._scene, this._camera);
     }
 }
 
