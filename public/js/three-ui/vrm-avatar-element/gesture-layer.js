@@ -16,6 +16,10 @@ import * as THREE from "three";
  *   戻す     fadeTime 秒かけて、モーションの動きへ
  *
  * 途中で別のジェスチャーを始めると、今の見た目の位置からそのまま移る（飛ばない）。
+ *
+ * 骨は毎フレーム、モーション（と揺れ）を反映した直後の値になっている前提で、
+ * それを「モーションの向き」として使う（前のフレームで上書きした分は
+ * VrmHumanoid#update() が取り消している）。
  */
 
 // 寄せる・戻すの時間（秒）。TalkingHead の既定と同じ
@@ -41,8 +45,7 @@ export default class GestureLayer {
      *   node     正規化された骨のノード
      *   from     移り始めの向き。null ならモーションの向き
      *   to       移り先の向き。null ならモーションの向き（戻している骨）
-     *   applied  前のフレームで書いた向き
-     *   restore  触る前の向き（モーションが動かさない骨のため。_baseOf() 参照）
+     *   applied  前のフレームで書いた向き（途中で切り替えるときの移り始めになる）
      */
     _bones = new Map();
 
@@ -89,13 +92,7 @@ export default class GestureLayer {
             }
             let bone = this._bones.get(name);
             if (! bone) {
-                bone = {
-                    node,
-                    from: null,
-                    to: null,
-                    applied: node.quaternion.clone(),
-                    restore: node.quaternion.clone()
-                };
+                bone = {node, from: null, to: null, applied: node.quaternion.clone()};
                 this._bones.set(name, bone);
             }
             bone.to = rotation.clone();
@@ -130,12 +127,6 @@ export default class GestureLayer {
      * モデルを捨てるときに使う（戻す間を待たない）。
      */
     clear() {
-        for (const bone of this._bones.values()) {
-            // モーションが動かさない骨は、触る前の向きへ戻しておく
-            if (bone.node.quaternion.equals(bone.applied)) {
-                bone.node.quaternion.copy(bone.restore);
-            }
-        }
         this._bones.clear();
         this._phase = PHASE.idle;
         this._settle();
@@ -157,7 +148,7 @@ export default class GestureLayer {
 
         const t = ease(this._progress);
         for (const bone of this._bones.values()) {
-            const base = this._baseOf(bone);
+            const base = bone.node.quaternion.clone(); // このフレームのモーションの向き
             const from = bone.from ?? base;
             const to = bone.to ?? base;
             bone.node.quaternion.slerpQuaternions(from, to, t);
@@ -170,19 +161,6 @@ export default class GestureLayer {
         if (this._phase === PHASE.hold && this._elapsed >= this._seconds) {
             this.stop();
         }
-    }
-
-    /**
-     * この骨の、モーションとしての向き。
-     *
-     * モーションが動かす骨なら、このフレームでモーションが書いた向きがそのまま
-     * 入っている。動かさない骨（指の無いモーションの指など）は、前のフレームで
-     * 自分が書いた向きが残っているので、触る前の向きを使う
-     */
-    _baseOf(bone) {
-        return bone.node.quaternion.equals(bone.applied)
-            ? bone.restore
-            : bone.node.quaternion.clone();
     }
 
     _finishTransition() {

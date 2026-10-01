@@ -65,6 +65,11 @@ class VrmHumanoid {
     // ポーズとして作った action。揺れを足すかどうかの判定に使う
     _poseActions = new WeakSet();
 
+    // 揺れとジェスチャーが触りうる骨と、そのフレームの「上書き前の値」。
+    // 毎フレーム、モーションを反映する前にこの値へ戻す（update() を参照）
+    _layerNodes = [];
+    _layerBase = [];
+
     // 経過時間（秒）。モーションが終わってからの時間を測るのに使う
     _clock = 0;
 
@@ -87,6 +92,16 @@ class VrmHumanoid {
         this._actionManager = new ActionManager(vrm);
         this._gestureLayer = new GestureLayer(vrm);
         this._poseSway = new PoseSway(vrm);
+
+        // 目とあごは除く（視線は VRM 側が毎フレーム設定し直す）
+        const excluded = new Set(["leftEye", "rightEye", "jaw"]);
+        for (const name of Object.keys(vrm.humanoid.humanBones)) {
+            const node = excluded.has(name) ? null : vrm.humanoid.getNormalizedBoneNode(name);
+            if (node) {
+                this._layerNodes.push(node);
+                this._layerBase.push(node.quaternion.clone());
+            }
+        }
 
         this._audioPlayer = new AudioPlayer();
         this._audioPlayer.onPlayStart = this._onPlayStart.bind(this);
@@ -181,12 +196,22 @@ class VrmHumanoid {
 
     update(deltaTime, elapsedTime) {
         this._clock += deltaTime;
+
+        // 前のフレームで揺れとジェスチャーが上書きした分を、まず取り消す。
+        // three.js は値が変わらない骨を書き直さない（止まったポーズなど）ので、
+        // 取り消さないと上書きした値が残り、次のフレームでそれを元の値と
+        // 取り違えてしまう
+        this._layerNodes.forEach((node, i) => node.quaternion.copy(this._layerBase[i]));
+
         this._blender.update(deltaTime);
         if (this._actionManager) {
             this._actionManager.update(deltaTime);
         }
 
-        // モーションが骨を動かした後、VRM へ反映する前に足す・上書きする。
+        // モーションを反映した直後の値を、このフレームの「上書き前の値」として控える
+        this._layerNodes.forEach((node, i) => this._layerBase[i].copy(node.quaternion));
+
+        // その上に足す・上書きする。VRM へ反映する前に行う。
         // 揺れはポーズをとっている間だけ（モーションの再生中は弱めて消す）。
         // ジェスチャーは揺れより後にして、腕と手はジェスチャーを優先する
         const isPosing = this._poseActions.has(this._activeAction);

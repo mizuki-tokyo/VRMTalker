@@ -17,6 +17,9 @@ import * as THREE from "three";
  *
  * 腰は動かさない。腰を回すと脚ごと動いて、足が床を滑って見えるため。
  * 腕と手はジェスチャーが後から上書きするので、ジェスチャーの間はそちらが勝つ。
+ *
+ * 骨は毎フレーム、モーションを反映した直後の値になっている前提で、そこへ
+ * 掛け足す（前のフレームで足した分は VrmHumanoid#update() が取り消している）。
  */
 
 // ポーズに入る・出るときに、揺れを強める・弱める時間（秒）
@@ -49,15 +52,8 @@ export default class PoseSway {
     _vrm = null;
     _time = 0;
     _weight = 0;
-    _dirty = false; // 揺れを足したまま、まだ戻していない骨があるか
 
-    /**
-     * 動かす骨。VRM の骨の名前 → 状態。
-     *
-     *   node     正規化された骨のノード
-     *   applied  前のフレームで書いた向き
-     *   base     前のフレームで、揺れを足す前だった向き
-     */
+    /** 動かす骨。VRM の骨の名前 → 正規化された骨のノード。 */
     _bones = new Map();
 
     // 揺れのもと。軸ごとに別の揺れにして、動きが揃わないようにする
@@ -80,9 +76,7 @@ export default class PoseSway {
                             "leftShoulder", "rightShoulder"]) {
             const node = vrm.humanoid.getNormalizedBoneNode(name);
             if (node) {
-                this._bones.set(name, {
-                    node, applied: node.quaternion.clone(), base: node.quaternion.clone()
-                });
+                this._bones.set(name, node);
             }
         }
     }
@@ -101,15 +95,8 @@ export default class PoseSway {
             ? Math.min(target, this._weight + step)
             : Math.max(target, this._weight - step);
 
-        if (this._weight === 0 && ! active) {
-            if (! this._dirty) {
-                return; // 何も足していない
-            }
-            // 0 になった最初のフレームだけは通す。重み 0 で書き直して、
-            // モーションが書かない骨に足した分を残さないため
-            this._dirty = false;
-        } else {
-            this._dirty = true;
+        if (this._weight === 0) {
+            return; // 何も足さない
         }
 
         const w = this._weight * this._weight * (3 - 2 * this._weight);
@@ -149,22 +136,13 @@ export default class PoseSway {
      * @param {number[]} degrees [x, y, z]（度）
      */
     _apply(name, weight, [x, y, z]) {
-        const bone = this._bones.get(name);
-        if (! bone) {
+        const node = this._bones.get(name);
+        if (! node) {
             return;
         }
-        // モーションがこの骨を書かなかったフレームは、前に足した分が残っている。
-        // 掛け足すと積み重なって回り続けるので、足す前の向きから始める
-        const base = bone.node.quaternion.equals(bone.applied)
-            ? bone.base
-            : bone.node.quaternion.clone();
-
         const flip = this._flip;
         const sway = new THREE.Quaternion().setFromEuler(new THREE.Euler(
             deg(x * weight) * flip, deg(y * weight), deg(z * weight) * flip, "XYZ"));
-
-        bone.base.copy(base);
-        bone.node.quaternion.copy(base).multiply(sway);
-        bone.applied.copy(bone.node.quaternion);
+        node.quaternion.multiply(sway);
     }
 }
