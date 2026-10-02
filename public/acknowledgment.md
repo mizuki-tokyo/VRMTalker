@@ -90,14 +90,17 @@ sashii さんが VRM にリターゲティングしたモーション（CC0）�
 
 ## ソフトウェア
 
-| 名前 | 用途 |
-|---|---|
-| [three.js](https://threejs.org/) | 3D 表示 |
-| [@pixiv/three-vrm](https://github.com/pixiv/three-vrm) | VRM の読み込みと制御 |
-| [Blockly](https://developers.google.com/blockly) | ブロックの編集画面 |
-| [marked](https://marked.js.org/) | このページの表示 |
-| [Lucide](https://lucide.dev/) | アイコン |
-| [FastAPI](https://fastapi.tiangolo.com/) | サーバ |
+| 名前 | 用途 | ライセンス |
+|---|---|---|
+| [three.js](https://threejs.org/) | 3D 表示 | MIT |
+| [@pixiv/three-vrm](https://github.com/pixiv/three-vrm) | VRM と VRMA の読み込みと制御 | MIT |
+| [Blockly](https://developers.google.com/blockly) | ブロックの編集画面（画像・効果音を含む） | Apache 2.0 |
+| [marked](https://marked.js.org/) | このページの表示 | MIT |
+| [Lucide](https://lucide.dev/) | アイコン | ISC |
+| [FastAPI](https://fastapi.tiangolo.com/) | サーバ | MIT |
+
+three.js・three-vrm・Blockly・marked は `public/vendor/` に同梱しています。
+ライセンスの写しは、それぞれのフォルダにあります。
 
 
 

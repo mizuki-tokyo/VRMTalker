@@ -17,10 +17,15 @@ import {defineBlocks, createToolbox} from "./app-blocks.js";
 import {createStackAction} from "./app-action-program.js";
 import dialog, {ICONS} from "./web-ui/dialog.js";
 
+/*
+  Blockly は public/vendor/ に置いてある（scripts/setup_vendor.py で取得する）。
+  版を上げるときは、あちらとこちらの両方を書き換える
+*/
 const BLOCKLY_VERSION = "13.2.1";
+const BLOCKLY_DIR = `./vendor/blockly@${BLOCKLY_VERSION}`;
 const BLOCKLY_SCRIPTS = [
-    `https://cdn.jsdelivr.net/npm/blockly@${BLOCKLY_VERSION}/blockly.min.js`,
-    `https://cdn.jsdelivr.net/npm/blockly@${BLOCKLY_VERSION}/msg/ja.js`
+    `${BLOCKLY_DIR}/blockly.min.js`,
+    `${BLOCKLY_DIR}/msg/ja.js`
 ];
 
 /** 分割の幅。CSS の --editor-width に入れる */
@@ -870,6 +875,9 @@ const createBlockEditor = ({actionsUrl, getNames, namesReady, onApply, trial}) =
         }
 
         workspace = Blockly.inject(area, {
+            // 拡大・縮小ボタンやゴミ箱の絵、効果音、カーソルの置き場所。
+            // 指定しないと Blockly のサイト（static.blockly.com）から読む
+            media: `${BLOCKLY_DIR}/media/`,
             toolbox: createToolbox(),
             theme: createTheme(Blockly),
             renderer: registerRenderer(Blockly),

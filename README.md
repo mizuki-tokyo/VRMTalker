@@ -53,6 +53,13 @@ uv run python scripts/setup_llama.py
 `setup_llama.py` は llama.cpp の事前ビルド済みバイナリ（約 10MB）と
 GGUF モデル（LFM2.5-2.6B Q4_K_M、約 1.5GB）を `llama/` に取得する。
 
+ブラウザで使うライブラリ（three.js、three-vrm、Blockly、marked）は
+`public/vendor/` に同梱してあるので、取得の手順は要らない。CDN からは読まないため、
+LLM を手元で動かしていれば、音声認識（Chrome が Google のサーバーで行う）を除いて
+インターネットが無くても動く。ライブラリの版を上げるときは
+`scripts/setup_vendor.py` の版を書き換えて実行し、読み込む側の参照
+（`index.html` の importmap、`app-block-editor.js`、`app-credits.js`）も書き換える。
+
 ## 起動
 
 ```bash
@@ -435,6 +442,9 @@ VOICEVOX の利用規約により、生成した音声を利用する際は **VO
   [TalkingHead](https://github.com/met4citizen/TalkingHead) の MIT License
   （Copyright (c) 2023-2024 Mika Suominen）。許諾表示はファイルの先頭にある
 - 音声モデル・音声ライブラリ: 上記「クレジット表記について」を参照
+- `public/vendor/` のライブラリ: three.js・three-vrm・three-vrm-animation・marked は
+  MIT License、Blockly（画像・効果音を含む）は Apache License 2.0。
+  ライセンスの写しを、それぞれのフォルダに置いてある
 
 ## 構成
 
@@ -450,6 +460,7 @@ main.py                     FastAPI アプリ（エントリポイント）
 scripts/
   setup_voicevox.py         VOICEVOX 一式の取得
   setup_llama.py            llama.cpp と GGUF モデルの取得
+  setup_vendor.py           ブラウザで使うライブラリの取得（public/vendor/）
 src/
   project_paths.py          プロジェクトルートの解決
   tts.py                    VOICEVOX CORE のラッパー
@@ -465,6 +476,7 @@ public/
   actions.json              同梱のアクション（読み取り専用の見本）
   acknowledgment.md         素材とソフトウェアの出典
   animations/  emotes/  sounds/  voices/  backgrounds/  models/   素材と、その定義ファイル
+  vendor/                   ブラウザで使うライブラリ（版ごとのフォルダ。ライセンスの写し付き）
   styles/
     blockly.css             Blockly の見た目（他のプロジェクトでも使える分）
   js/

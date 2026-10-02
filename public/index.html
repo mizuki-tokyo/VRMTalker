@@ -760,14 +760,16 @@
       three.js / three-vrm の参照先はここだけで管理する。
       各 js からは "three" / "three/addons/..." / "@pixiv/three-vrm" で参照すること。
       importmap は、どの module script よりも先に記述する必要がある。
+      ファイルは public/vendor/ に置いてある（scripts/setup_vendor.py で取得する）。
+      版を上げるときは、あちらとこちらの両方を書き換える
     -->
     <script type="importmap">
       {
           "imports": {
-              "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-              "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
-              "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3/lib/three-vrm.module.min.js",
-              "@pixiv/three-vrm-animation": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm-animation@3.4.2/lib/three-vrm-animation.module.min.js"
+              "three": "./vendor/three@0.169.0/build/three.module.min.js",
+              "three/addons/": "./vendor/three@0.169.0/examples/jsm/",
+              "@pixiv/three-vrm": "./vendor/@pixiv/three-vrm@3.5.5/lib/three-vrm.module.min.js",
+              "@pixiv/three-vrm-animation": "./vendor/@pixiv/three-vrm-animation@3.4.2/lib/three-vrm-animation.module.min.js"
           }
       }
     </script>

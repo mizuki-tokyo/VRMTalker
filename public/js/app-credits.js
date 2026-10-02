@@ -18,7 +18,7 @@ const ACKNOWLEDGMENT_URL = "./acknowledgment.md";
  * 常時必要なものではないので、起動を重くしない。読み込めなければ
  * 元の文章をそのまま出す（読めなくなるよりはよい）
  */
-const MARKED_URL = "https://cdn.jsdelivr.net/npm/marked@15/marked.min.js";
+const MARKED_URL = "./vendor/marked@15.0.12/marked.min.js"; // scripts/setup_vendor.py で取得する
 
 const loadMarked = (() => {
     let loading = null;
