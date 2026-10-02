@@ -32,6 +32,12 @@
  *   --dialog-backdrop   背景を覆う色
  *   --dialog-radius     角の丸み
  *
+ * 本文（.content）の見出しも、h1〜h3 ごとに変えられる（h2・h3 も同じ名前の形）。
+ *
+ *   --dialog-h1-margin       余白         既定 1.2em 0 0.4em
+ *   --dialog-h1-font-size    文字の大きさ  既定 1em
+ *   --dialog-h1-font-weight  文字の太さ    既定 800
+ *
  * このファイルはプロジェクトに依存しない。import も持たない。
  */
 
@@ -62,7 +68,12 @@ const ICON_INFO = `
  */
 export const ICONS = Object.freeze({alert: ICON_ALERT, info: ICON_INFO});
 
-const STYLE = `
+/*
+  見た目。CSSStyleSheet にして、どのダイアログからも同じものを使う
+  （adoptedStyleSheets）。<style> に書くと、ダイアログを作るたびに解析し直す
+*/
+const _DialogStyle_ = new CSSStyleSheet();
+_DialogStyle_.replaceSync(`
 /*
   使う側の CSS の影響を受けないよう、いったん全部を初期値へ戻す。
 
@@ -179,10 +190,24 @@ input:focus {
 .content:empty { display: none; }
 .content > :first-child { margin-top: 0; }
 .content > :last-child { margin-bottom: 0; }
-.content h1, .content h2, .content h3 {
-    margin: 1.2em 0 0.4em;
-    font-size: 1em;
-    font-weight: 800;
+/*
+  見出し。既定値は :host に書かず、使う場所に書く。:host（このダイアログの
+  入れ物）で宣言すると、使う側が :root に書いた値より優先され、届かなくなる
+*/
+.content h1 {
+    margin: var(--dialog-h1-margin, 1.2em 0 0.4em);
+    font-size: var(--dialog-h1-font-size, 1em);
+    font-weight: var(--dialog-h1-font-weight, 800);
+}
+.content h2 {
+    margin: var(--dialog-h2-margin, 1.2em 0 0.4em);
+    font-size: var(--dialog-h2-font-size, 1em);
+    font-weight: var(--dialog-h2-font-weight, 800);
+}
+.content h3 {
+    margin: var(--dialog-h3-margin, 1.2em 0 0.4em);
+    font-size: var(--dialog-h3-font-size, 1em);
+    font-weight: var(--dialog-h3-font-weight, 800);
 }
 .content p, .content ul, .content ol { margin: 0.4em 0; }
 .content ul, .content ol { padding-left: 1.4em; }
@@ -314,7 +339,7 @@ button:focus-visible {
 }
 /* 下のボタン。choose() が .content の中に作るボタンは対象にしない */
 .buttons > button:not(.is-shown) { display: none; }
-`;
+`);
 
 
 export class Dialog {
@@ -434,8 +459,8 @@ export class Dialog {
         }
         this._host = document.createElement("div");
         const shadow = this._host.attachShadow({mode: "open"});
+        shadow.adoptedStyleSheets = [_DialogStyle_];
         shadow.innerHTML = `
-<style>${STYLE}</style>
 <dialog>
   <form method="dialog">
     <div class="head">
