@@ -20,7 +20,7 @@
 **AIPICT** — <https://aipict.com/>
 
 商用利用・加工可、クレジット表記不要で公開されています
-（`public/img/readme.txt` に利用規約の写しがあります）。
+（`public/backgrounds/readme.txt` に利用規約の写しがあります）。
 
 素材としての再配布・販売は禁止されています。背景を差し替えて配布する場合はご注意ください。
 

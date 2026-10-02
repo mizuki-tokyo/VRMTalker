@@ -2,7 +2,7 @@
  * 背景の絵を差し替える。
  *
  *   const background = new Background(document.querySelector("#screen"));
- *   await background.load();        // img/backgrounds.json を読む
+ *   await background.load();        // backgrounds/backgrounds.json を読む
  *   background.set("beach");        // 読み込めた時点で切り替わる
  *
  * 最初に出す絵は index.html が決める（#screen の style）。起動してから
@@ -22,7 +22,7 @@
  */
 
 /** 背景の定義の既定の場所。 */
-export const BACKGROUNDS_URL = "./img/backgrounds.json";
+export const BACKGROUNDS_URL = "./backgrounds/backgrounds.json";
 
 /**
  * 切り替えの終わりを待つ上限（ミリ秒）。
@@ -64,7 +64,7 @@ export default class Background {
      * 定義を読み込む。
      *
      *   [
-     *     {"id": "beach", "name": "ビーチ", "file": "./img/beach.png"}
+     *     {"id": "beach", "name": "ビーチ", "file": "./backgrounds/beach.png"}
      *   ]
      *
      *   id    アクションが覚える名札。set() に渡すのもこれ。後から変えないこと

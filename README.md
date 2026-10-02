@@ -266,7 +266,7 @@ uv run python scripts/setup_voicevox.py --models-pattern "*"
 | エモート（頭の上のアイコン） | `public/emotes/emotes.json` | `public/emotes/` |
 | 効果音 | `public/sounds/sounds.json` | `public/sounds/` |
 | ボイスデータ | `public/voices/voices.json` | `public/voices/` |
-| 背景 | `public/img/backgrounds.json` | `public/img/` |
+| 背景 | `public/backgrounds/backgrounds.json` | `public/backgrounds/` |
 
 どれも同じ形をしている。
 
@@ -464,7 +464,7 @@ public/
   index.html
   actions.json              同梱のアクション（読み取り専用の見本）
   acknowledgment.md         素材とソフトウェアの出典
-  animations/  emotes/  sounds/  voices/  img/  models/   素材と、その定義ファイル
+  animations/  emotes/  sounds/  voices/  backgrounds/  models/   素材と、その定義ファイル
   styles/
     blockly.css             Blockly の見た目（他のプロジェクトでも使える分）
   js/

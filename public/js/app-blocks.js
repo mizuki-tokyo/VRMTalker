@@ -267,7 +267,7 @@ const buildBlockUi = ({motionChoices = [], poseChoices = [], gestureChoices = []
         screen_set_background: {
             message0: "背景を %1 にする",
             args0: [dropdown("NAME", backgrounds)], style: "looks_blocks",
-            tooltip: "選べる背景は img/backgrounds.json で決める"
+            tooltip: "選べる背景は backgrounds/backgrounds.json で決める"
         },
 
         //-------------------------------- 会話

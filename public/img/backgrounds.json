@@ -1,7 +1,0 @@
-[
-    { "id": "atelier",      "name": "アトリエ",         "file": "./img/atelier.png" },
-    { "id": "music-studio", "name": "音楽スタジオ",     "file": "./img/music_studio.png" },
-    { "id": "christmas",    "name": "クリスマス",       "file": "./img/snow_christmas.png" },
-    { "id": "beach",        "name": "ビーチ",           "file": "./img/beach.png" },
-    { "id": "pastel-room",  "name": "パステル色の部屋", "file": "./img/pastel_room.png" }
-]
