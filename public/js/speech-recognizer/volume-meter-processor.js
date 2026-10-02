@@ -2,74 +2,60 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/*
+  マイクの音量を測る AudioWorklet（音声処理のスレッドで動く）。
+  volume-meter.js が読み込んで使う。
+
+  届いた音の大きさ（RMS）を、前の値を少しずつ減らしながら保ち（すぐ 0 に
+  落とさず、針がなめらかに戻るように）、一定の間隔でメインスレッドへ送る。
+*/
+
 /* global currentTime */
 
-const SMOOTHING_FACTOR = 0.8;
-const FRAME_PER_SECOND = 30;//60;
-const FRAME_INTERVAL = 1 / FRAME_PER_SECOND;
+// 減衰の速さ。ScriptProcessorNode で 512 サンプルごとに 0.95 倍していたのと
+// 同じになるよう、届く長さ（ふつう 128 サンプル）に合わせて換算する
+const DECAY_PER_512_SAMPLES = 0.95;
 
-/**
- *  Measure microphone volume.
- *
- * @class VolumeMeter
- * @extends AudioWorkletProcessor
- */
-class VolumeMeter extends AudioWorkletProcessor {
+// メインスレッドへ送る回数（1 秒あたり）
+const POSTS_PER_SECOND = 60;
 
-    _lastUpdate = null;
+class VolumeMeterProcessor extends AudioWorkletProcessor {
+
     _volume = 0;
+    _lastPost = 0;
 
     constructor() {
         super();
-        this._lastUpdate = currentTime;
-        this._volume = 0;
+        // 測り始めるときに呼ばれる。前の回の値を持ち越さない
+        this.port.onmessage = () => {
+            this._volume = 0;
+        };
     }
 
-    calculateRMS(inputChannelData) {
-        // Calculate the squared-sum.
+    process(inputs) {
+        // モノラルとして扱う（最初のチャンネルだけを見る）。
+        // 入力がつながっていないとき（止めている間）は空で届くので、何も送らない
+        const channel = inputs[0]?.[0];
+        if (! channel || channel.length === 0) {
+            return true;
+        }
+
         let sum = 0;
-
-        //console.log(inputChannelData.length);
-        for (let i = 0; i < inputChannelData.length; i++) {
-            //sum += inputChannelData[i] * inputChannelData[i];
-            //console.log(inputChannelData[i]);
-            let value = inputChannelData[i]/*[-1,1]*/;
-            sum += value * value;
+        for (let i = 0; i < channel.length; i++) {
+            sum += channel[i] * channel[i];
         }
-        // Calculate the RMS level and update the volume.
-        let rms = Math.sqrt(sum / inputChannelData.length);
-        this._volume = Math.max(rms, this._volume * SMOOTHING_FACTOR);
-    }
+        const rms = Math.sqrt(sum / channel.length);
+        const decay = DECAY_PER_512_SAMPLES ** (channel.length / 512);
+        this._volume = Math.max(rms, this._volume * decay);
 
-    process(inputs, outputs/*,parameters*/) {
-        // This example only handles mono channel.
-        const inputChannelData = inputs[0][0];
-        //const gain = parameters["customGain"][0];
-
-        // Post a message to the node every 16ms.
-        if (currentTime - this._lastUpdate > FRAME_INTERVAL) {
-            this.calculateRMS(inputChannelData);
+        if (currentTime - this._lastPost >= 1 / POSTS_PER_SECOND) {
             this.port.postMessage(this._volume);
-            this._lastUpdate = currentTime;
+            this._lastPost = currentTime;
         }
 
+        // 止めない（同じノードを使い回す。つなぎ直せばまた測る）
         return true;
     }
-
-    /*
-    // define the customGain parameter used in process method
-    static get parameterDescriptors() {
-        return [
-            {
-                name: "customGain",
-                defaultValue: 1,
-                minValue: 0,
-                maxValue: 1,
-                automationRate: "a-rate",
-            },
-        ];
-    }
-    */
 }
 
-registerProcessor("volume-meter", VolumeMeter);
+registerProcessor("volume-meter", VolumeMeterProcessor);

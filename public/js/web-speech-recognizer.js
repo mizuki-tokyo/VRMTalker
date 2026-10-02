@@ -9,7 +9,6 @@
 
 import SpeechRecognizer from "./speech-recognizer.js";
 import VolumeMeter from "./speech-recognizer/volume-meter.js";
-//import VolumeMeter from "./speech-recognizer/volume-meter-worklet.js";
 
 
 // window 経由で参照する。Firefox のように未実装のブラウザでは、

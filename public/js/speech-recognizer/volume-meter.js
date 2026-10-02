@@ -14,47 +14,55 @@
 //         （切り替えの間、音が途切れることがある）
 const KEEP_MIC_OPEN = true;
 
+// 音量（0〜1 ほど）を、インジケーターの値（0〜100）に直す倍率
+const LEVEL_SCALE = 250;
+
+// 音量を測る処理（音声処理のスレッドで動く）。読み込むページの場所によらず
+// 見つかるよう、このファイルからの相対で指定する
+const PROCESSOR_URL = new URL("./volume-meter-processor.js", import.meta.url);
+
 const VolumeMeter = (() => {
-    let audioContext = null
+    let audioContext = null;
     let stream = null;
     let mediaStreamSource = null;
-    let gainNode = null;
-    let processorNode = null;
+
+    // 音量を測るノード。AudioContext ごとに一度だけ作り、使い回す
+    let meterNode = null;
+    let meterContext = null;
 
     // startAudio() / stopAudio() のたびに増やす。マイクが開くのを待つ間に
     // 止められたかを見分けるため（止められた後に開いたマイクは、すぐ閉じる）
     let generation = 0;
 
     let onvolumechangeHandler = null;
-    let volume = 0;
-    const averaging = 0.95;
 
-    const onAudioMeterProcess = (event) => {
-        const buf = event.inputBuffer.getChannelData(0);
-        const bufLength = buf.length;
-        let sum = 0;
-        let x;
-
-        for (let i = 0; i < bufLength; i++) {
-            x = buf[i];
-            sum += x * x;
-        }
-        const rms = Math.sqrt(sum / bufLength);
-        volume = Math.max(rms, volume * averaging);
-        
-        if (onvolumechangeHandler) {
-            //console.log(volume);
-            onvolumechangeHandler(volume * 250);
-        }
-    };
+    // 測っている最中か。止めた後に届いた値は捨てる（表示を消した後で
+    // 古い値が届くと、インジケーターが戻ってしまう）
+    let measuring = false;
 
     /** マイクを閉じ、次の startAudio() で開き直させる。 */
     const releaseMic = () => {
         stream?.getTracks().forEach((track) => track.stop());
         stream = null;
         mediaStreamSource = null;
-        gainNode = null;
-        processorNode = null;
+    };
+
+    /** 音量を測るノードを用意する（この AudioContext で初めてなら作る）。 */
+    const prepareMeter = async (context) => {
+        if (meterNode && meterContext === context) {
+            return meterNode;
+        }
+        await context.audioWorklet.addModule(PROCESSOR_URL);
+        // 出力は持たせない（測るだけで、音は出さない）
+        const node = new AudioWorkletNode(context, "volume-meter", {numberOfOutputs: 0});
+        node.port.onmessage = ({data}) => {
+            if (measuring) {
+                onvolumechangeHandler?.(data * LEVEL_SCALE);
+            }
+        };
+        meterNode = node;
+        meterContext = context;
+        return node;
     };
 
     return {
@@ -64,6 +72,14 @@ const VolumeMeter = (() => {
 
             if (audioContext.state !== "running") {
                 await audioContext.resume();
+            }
+
+            let node;
+            try {
+                node = await prepareMeter(audioContext);
+            } catch (error) {
+                console.error(error);
+                return; // 音量は出せないが、認識そのものは続けられる
             }
 
             // マイクが閉じていれば開く。開いたままにする設定なら、2 回目からは開いている
@@ -85,34 +101,20 @@ const VolumeMeter = (() => {
                 }
                 stream = opened;
                 mediaStreamSource = audioContext.createMediaStreamSource(stream);
-                gainNode = audioContext.createGain();
-                // TODO: ScriptProcessorNode is deprecated. need to use AudioWorklet.
-                processorNode = audioContext.createScriptProcessor(512); // ScriptProcessorNode
-                //processorNode.onaudioprocess = onAudioMeterProcess;
             }
 
             if (current !== generation) {
-                return; // resume() を待つ間に止められた
+                return; // 準備を待つ間に止められた
             }
-            gainNode.gain.value = 1; // [-3.4, 3.4]
-
-            processorNode.onaudioprocess = onAudioMeterProcess;
-            mediaStreamSource.connect(gainNode);
-            gainNode.connect(processorNode);
-            processorNode.connect(audioContext.destination);
+            node.port.postMessage("reset");
+            mediaStreamSource.connect(node);
+            measuring = true;
         },
         stopAudio: () => {
             ++generation; // マイクが開くのを待っている startAudio() があれば、取りやめさせる
 
-            // if (audioContext) {
-            //     audioContext.suspend();
-            // }
-            if (processorNode) {
-                processorNode.disconnect();
-            }
-            if (gainNode) {
-                gainNode.disconnect();
-            }
+            // 測るのをやめる（表示は呼び出し側が消す）
+            measuring = false;
             if (mediaStreamSource) {
                 mediaStreamSource.disconnect();
             }
