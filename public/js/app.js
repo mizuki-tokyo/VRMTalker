@@ -3,6 +3,7 @@
 import ChatClient from "./chat-client.js";
 import SpeechSynthesizer from "./speech-synthesizer.js";
 import SoundPlayer from "./sound-player.js";
+import Stopwatch from "./stopwatch.js";
 import VoiceLibrary from "./voices.js";
 import PoseLibrary, {POSES_URL, GESTURES_URL} from "./poses.js";
 import Background from "./background.js";
@@ -295,11 +296,15 @@ document.addEventListener('DOMContentLoaded', function() {
     //----------------------------------
     const conversation = new Conversation({chatClient});
 
+    // ブロックの「ストップウォッチ」。出来事ごとのアクションをまたいで値を保つので、
+    // アプリ全体で 1 つ持つ
+    const stopwatch = new Stopwatch();
+
     const runner = createActionRunner({
         conversation,
         createApi: (signal) => createAvatarApi({
             avatar, emote, chatFlow, speechSynthesizer, sounds, voices, poses, gestures,
-            background, toast, conversation, signal
+            background, toast, stopwatch, conversation, signal
         }),
         // アクションが終わったら入力待ちへ移す。
         //
@@ -323,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
      * そのアクションが登録されていないと誰も待機へ移してくれない。
      * その場合は ready を飛ばして直接待機へ入る。
      *
-     * 見た目は読み込んだ直後の状態へ戻す。表情・視線・ポーズ・ジェスチャーは、
+     * 見た目は読み込んだ直後の状態へ戻す（ストップウォッチも）。表情・視線・ポーズ・ジェスチャーは、
      * ブロックで変えたらブロックで戻す作りなので、戻し忘れたまま「はじめから」を
      * 押すと、前の続きの顔や姿勢で始まってしまう
      *
@@ -334,6 +339,8 @@ document.addEventListener('DOMContentLoaded', function() {
         avatar.gazeFollowCamera();
         avatar.takePose(null).catch(() => {});
         avatar.stopGesture();
+        stopwatch.stop();   // 止まって 0（はじめの状態）に戻す
+        stopwatch.reset();
         conversation.restart(fireReady && runner.types.includes("ready"));
     };
 

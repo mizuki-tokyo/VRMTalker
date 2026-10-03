@@ -88,7 +88,8 @@ export const CALL_BLOCKS = Object.freeze({
     chat_clear_history:       {fn: "clearHistory",            args: []},
 
     // 制御（値を返さないもの）
-    control_wait:             {fn: "wait",                    args: ["SECONDS"]}
+    control_wait:             {fn: "wait",                    args: ["SECONDS"]},
+    control_stopwatch:        {fn: "controlStopwatch",        args: ["ACTION"]}
 });
 
 /** 値のブロック → api の関数。 */
@@ -98,6 +99,7 @@ export const VALUE_BLOCKS = Object.freeze({
     operator_random:      {fn: "random",        args: ["FROM", "TO"]},
     operator_includes:    {fn: "includes",      args: ["TEXT", "WORD"]},
     operator_current:     {fn: "currentTime",   args: ["UNIT"]},
+    value_stopwatch:      {fn: "stopwatch",     args: []},
     // 入力 2 つの横長な結合。入力を増やせる text_join も残してある
     operator_join:        {fn: "join",          args: ["STRING1", "STRING2"]}
 });

@@ -62,6 +62,9 @@ const TIME_UNITS = [
     ["時", "hour"], ["分", "minute"], ["秒", "second"]
 ];
 
+/** ストップウォッチの操作。覚える値は app-avatar-api.js の controlStopwatch() と合わせる。 */
+const STOPWATCH_ACTIONS = [["開始", "start"], ["停止", "stop"], ["リセット", "reset"]];
+
 /** 吹き出しの出し手。app-avatar-api.js の SPEAKER と合わせる。 */
 const SPEAKERS = [["キャラクタ", "キャラクタ"], ["あなた", "あなた"]];
 
@@ -294,6 +297,18 @@ const buildBlockUi = ({motionChoices = [], poseChoices = [], gestureChoices = []
         //-------------------------------- 制御
         control_wait: {
             message0: "%1 秒待つ", args0: [number("SECONDS")], style: "control_blocks"
+        },
+        control_stopwatch: {
+            message0: "ストップウォッチを %1 する",
+            args0: [dropdown("ACTION", STOPWATCH_ACTIONS)], style: "control_blocks",
+            tooltip: "開始：止まっていれば続きから数える。停止：その値で止める。"
+                   + "リセット：0 に戻す（動いていれば 0 から数え続ける）。"
+                   + "はじめは止まって 0"
+        },
+        value_stopwatch: {
+            message0: "ストップウォッチ", args0: [],
+            output: "Number", style: "control_blocks",
+            tooltip: "開始してからの秒数（0.1 秒単位）。止めている間は進まない"
         },
 
         //-------------------------------- 値
@@ -567,6 +582,8 @@ export const createToolbox = () => {
                 contents: [
                     {kind: "block", type: "control_wait",
                      inputs: {SECONDS: shadowNumber(1)}},
+                    {kind: "block", type: "control_stopwatch"},
+                    {kind: "block", type: "value_stopwatch"},
                     {kind: "block", type: "control_repeat",
                      inputs: {TIMES: shadowNumber(3)}},
                     {kind: "block", type: "control_forever"},

@@ -42,11 +42,13 @@ export const SPEAKER = Object.freeze({
  * @param {object}      deps.gestures          PoseLibrary（ジェスチャー）
  * @param {object}      deps.background        Background
  * @param {object}      deps.toast             画面に短い知らせを出すもの
+ * @param {object}      deps.stopwatch         Stopwatch（アプリ全体で 1 つ）
  * @param {object}      deps.conversation      Conversation
  * @param {AbortSignal} deps.signal            中断の合図
  */
 const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, voices,
-                          poses, gestures, background, toast, conversation, signal}) => {
+                          poses, gestures, background, toast, stopwatch, conversation,
+                          signal}) => {
 
     const stopIfAborted = () => {
         if (signal.aborted) {
@@ -414,6 +416,20 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
         },
 
         /**
+         * ストップウォッチを操作する（stopwatch.js を参照）。
+         * @param {string} action "start"（開始）| "stop"（停止）| "reset"（リセット）
+         */
+        controlStopwatch(action) {
+            switch (String(action)) {
+            case "start": stopwatch.start(); break;
+            case "stop":  stopwatch.stop();  break;
+            case "reset": stopwatch.reset(); break;
+            default:
+                console.warn(`ストップウォッチの操作 "${action}" はありません`);
+            }
+        },
+
+        /**
          * ループ 1 周ごとに呼ぶ。中断を確かめ、画面が固まらないよう制御を返す。
          * ビジュアルプログラミングのループブロックが自動で挟む
          */
@@ -432,6 +448,11 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
         /** キャラクタの名前（設定ウインドウで決めたもの）。 */
         characterName() {
             return conversation.characterName;
+        },
+
+        /** ストップウォッチの値（秒。0.1 秒単位）。 */
+        stopwatch() {
+            return stopwatch.seconds;
         },
 
         /** from 以上 to 以下の整数の乱数。 */
