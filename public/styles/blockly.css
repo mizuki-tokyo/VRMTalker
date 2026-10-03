@@ -58,3 +58,15 @@
             drop-shadow(0 0 var(--blockly-glow-size, 2px) var(--blockly-glow-color, #ff8a00))
             drop-shadow(0 0 var(--blockly-glow-size, 2px) var(--blockly-glow-color, #ff8a00));
 }
+
+/**
+ * 変数の名前を入力する等で使われるダイアログ。
+ * 入力欄やボタンのサイズ大きめにする。
+ */
+.blocklyDialogInput {
+    height: 2.5em;
+}
+.blocklyDialogCancelButton, .blocklyDialogConfirmButton {
+    padding: 0.4em;
+}
+
