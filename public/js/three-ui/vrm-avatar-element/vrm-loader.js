@@ -21,11 +21,6 @@ const VrmLoader = (() => {
                 loader.load(url, (gltf) => {
                     vrm = gltf.userData.vrm;
 
-                    // if (this._currentVrm) {
-                    //     scene.remove(this._currentVrm.scene);
-                    //     VRMUtils.deepDispose(this._currentVrm.scene);
-                    // }
-                    
                     // calling these functions greatly improves the performance
                     VRMUtils.removeUnnecessaryVertices(gltf.scene);
 		    VRMUtils.combineSkeletons(gltf.scene);
@@ -36,22 +31,7 @@ const VrmLoader = (() => {
                         obj.frustumCulled = false;
                     });
 
-                    // // replace the lookAt to our extended one
-                    // const smoothLookAt = new VRMSmoothLookAt(vrm.humanoid, vrm.lookAt.applier);
-                    // smoothLookAt.copy(vrm.lookAt);
-                    // vrm.lookAt = smoothLookAt;
-                    // vrm.lookAt.target = camera;
-
-                    /*
-                    const smoothLookAt = new VRMSmoothLookAt(vrm.humanoid, vrm.lookAt.applier);
-                    smoothLookAt.copy(vrm.lookAt);
-                    vrm.lookAt = smoothLookAt;
-
-                    scene.add(vrm.scene);
-
-                    vrm.lookAt.target = camera;
-                    */
-                    //console.log(vrm);
+                    // 視線をなめらかに動かす版への差し替えは、VrmHumanoid が行う
                     resolve(vrm);
                 },
                 (progress) => {

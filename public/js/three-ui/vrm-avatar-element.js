@@ -102,7 +102,6 @@ export default class VrmAvatarElement extends HTMLElement {
     _world = null;
     _humanoid = null;
     _removeUpdateListener = null;
-    _lookAtInitialized = false;
     _shadowPlane = null;
     _restoreMorphClamp = null;
     _fillLight = null;
@@ -438,7 +437,6 @@ export default class VrmAvatarElement extends HTMLElement {
         this._fillLight = null;
         this._humanoid?.dispose();
         this._humanoid = null;
-        this._lookAtInitialized = false;
     }
 
     async _load() {
@@ -936,11 +934,7 @@ export default class VrmAvatarElement extends HTMLElement {
             this._world.add(this._shadowPlane);
         }
 
-        if (! this._lookAtInitialized) {
-            // lookAt の差し替えは一度だけ行う（複数回行うと入れ子になる）
-            this._humanoid.lookAtTarget = this._world.camera;
-            this._lookAtInitialized = true;
-        }
+        this._humanoid.lookAtTarget = this._world.camera;
         this._removeUpdateListener = this._world.addUpdateListener((delta, elapsed) => {
             this._humanoid.update(delta, elapsed);
         });

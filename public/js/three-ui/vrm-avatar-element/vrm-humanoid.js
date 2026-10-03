@@ -5,6 +5,7 @@ import {
     VRMExpressionPresetName,
     VRMUtils
 } from "@pixiv/three-vrm";
+import { VRMLookAtQuaternionProxy } from "@pixiv/three-vrm-animation";
 
 import ActionManager from "./action-manager.js"
 import ActionBlender from "./action-blender.js";
@@ -92,6 +93,7 @@ class VrmHumanoid {
         this._actionManager = new ActionManager(vrm);
         this._gestureLayer = new GestureLayer(vrm);
         this._poseSway = new PoseSway(vrm);
+        this._replaceLookAt(vrm);
 
         // 目とあごは除く（視線は VRM 側が毎フレーム設定し直す）
         const excluded = new Set(["leftEye", "rightEye", "jaw"]);
@@ -185,13 +187,30 @@ class VrmHumanoid {
         action.play();
     }
 
-    set lookAtTarget(camera) {
-        // replace the lookAt to our extended one
-        const vrm = this._currentVrm;
+    /**
+     * 視線を、なめらかに動かす版（VRMSmoothLookAt）に差し替える。作るときに一度だけ呼ぶ。
+     *
+     * あわせて、VRMA の視線の動きを vrm.lookAt へ伝える部品
+     * （VRMLookAtQuaternionProxy）を加える。部品は作ったときの vrm.lookAt を覚える
+     * ので、差し替えた後に作る。用意しておかないと、VRMA からモーションを作るたびに
+     * three-vrm-animation が自動で作り、警告を出す
+     */
+    _replaceLookAt(vrm) {
+        if (! vrm.lookAt) {
+            return; // 視線の定義が無いモデル
+        }
         const smoothLookAt = new VRMSmoothLookAt(vrm.humanoid, vrm.lookAt.applier);
         smoothLookAt.copy(vrm.lookAt);
         vrm.lookAt = smoothLookAt;
-        vrm.lookAt.target = camera;
+
+        const proxy = new VRMLookAtQuaternionProxy(vrm.lookAt);
+        proxy.name = "VRMLookAtQuaternionProxy"; // 名前が無いと、別の警告が出る
+        vrm.scene.add(proxy);
+    }
+
+    /** 視線で追いかける対象（ふつうはカメラ）。何度設定してもよい。 */
+    set lookAtTarget(camera) {
+        this._currentVrm.lookAt?.follow(camera);
     }
 
     update(deltaTime, elapsedTime) {
