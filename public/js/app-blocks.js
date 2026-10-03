@@ -53,6 +53,15 @@ const GAZE_AMOUNTS = [["ちらっと", "20"], ["しっかり", "60"]];
  */
 const HANDS = [["右手", "right"], ["左手", "left"]];
 
+/**
+ * 「現在の〇〇」の項目。覚える値は app-avatar-api.js の currentTime() と合わせる。
+ * 「日」は月の中の何日か（曜日の「日」とは別）
+ */
+const TIME_UNITS = [
+    ["年", "year"], ["月", "month"], ["日", "date"], ["曜日", "day-of-week"],
+    ["時", "hour"], ["分", "minute"], ["秒", "second"]
+];
+
 /** 吹き出しの出し手。app-avatar-api.js の SPEAKER と合わせる。 */
 const SPEAKERS = [["キャラクタ", "キャラクタ"], ["あなた", "あなた"]];
 
@@ -310,6 +319,15 @@ const buildBlockUi = ({motionChoices = [], poseChoices = [], gestureChoices = []
             args0: [text("TEXT"), text("WORD")],
             output: "Boolean", inputsInline: true, style: "operator_blocks"
         },
+        // 曜日だけ文字（月〜日）、ほかは数を返すので、出力は「数か文字」にする。
+        // 型を決めない（null）と、Zelos ではパズルのような形で描かれてしまう
+        operator_current: {
+            message0: "現在の %1",
+            args0: [dropdown("UNIT", TIME_UNITS)],
+            output: ["Number", "String"], style: "operator_blocks",
+            tooltip: "パソコンの時計の今の値。曜日は「月」〜「日」の文字、"
+                   + "ほかは数（月は 1〜12、時は 0〜23）。「日」は月の中の何日か"
+        },
         // 入力 2 つの横長な結合。3 つ以上つなぎたいときは入力を増やせる
         // text_join を使う（そちらは縦に積まれる）
         operator_join: {
@@ -564,6 +582,7 @@ export const createToolbox = () => {
                      inputs: {A: shadowNumber(1), B: shadowNumber(1)}},
                     {kind: "block", type: "operator_random",
                      inputs: {FROM: shadowNumber(1), TO: shadowNumber(10)}},
+                    {kind: "block", type: "operator_current"},
                     {kind: "block", type: "text", fields: {TEXT: ""}},
                     // 初期値は、つないだ結果が 1 つの語になるものを選ぶ。
                     // 「こんにちは」＋「さん」のように結果が意味をなさないと、

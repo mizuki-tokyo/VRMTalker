@@ -449,6 +449,31 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
         /** 2 つの文字列をつなぐ。 */
         join(a, b) {
             return String(a ?? "") + String(b ?? "");
+        },
+
+        /**
+         * 今の日時の一部。パソコン（ブラウザ）の時計の値。
+         *
+         * 曜日だけは「月」〜「日」の文字、ほかは数を返す
+         * （Scratch の「現在の〇〇」と同じ。ただし Scratch の曜日は 1＝日曜の数）。
+         *
+         * @param {string} unit "year" | "month" | "date" | "day-of-week" |
+         *                      "hour" | "minute" | "second"
+         */
+        currentTime(unit) {
+            const now = new Date();
+            switch (String(unit)) {
+            case "year":        return now.getFullYear();
+            case "month":       return now.getMonth() + 1;
+            case "date":        return now.getDate();
+            case "day-of-week": return "日月火水木金土"[now.getDay()];
+            case "hour":        return now.getHours();
+            case "minute":      return now.getMinutes();
+            case "second":      return now.getSeconds();
+            default:
+                console.warn(`現在の日時の項目 "${unit}" はありません`);
+                return "";
+            }
         }
     };
 
