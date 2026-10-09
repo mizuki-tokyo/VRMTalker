@@ -26,6 +26,7 @@
  *   error         認識に失敗した        detail: {code, message}
  *   nomatch       結果を確定できなかった detail: なし
  *   end           認識を終了した        detail: なし
+ *   activechange  連続対話が始まった・終わった  detail: {active}  ※連続対話の実装のみ
  *
  * 受け取り方は 2 通りある。DOM のイベントと同じで、両方を同時に使える。
  *
@@ -46,13 +47,20 @@
  * speechstart / speechend（ユーザが話し始めた・話し終えた）は任意とする。
  * 発話区間を取れない実装（録音してまとめてサーバへ送る方式など）があるため、
  * 受け取る側はこれらが来ないことを前提に作ること。
+ *
+ * 連続対話の実装（speech-hands-free/vad-speech-recognizer.js）は、さらに
+ * 次を持つ。start() で始めたら stop() まで続き、その間は発話のたびに
+ * start → result（または nomatch / error）→ end を繰り返す。
+ *   active          続いているか。マイクボタンは、これで始める・終えるを切り替える
+ *   listen()        次の発話を待つ（会話が入力待ちに戻ったときに呼ぶ）
+ *   activechange    続いているかが変わったときのイベント
  */
 
 /** onXXX として代入できるイベント。 */
 const HANDLER_EVENT_TYPES = Object.freeze([
     "start", "speechstart", "speechend",
     "result", "interimresult", "volumechange", "error", "nomatch",
-    "end"
+    "end", "activechange"
 ]);
 
 

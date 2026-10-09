@@ -9,6 +9,7 @@ import PoseLibrary, {POSES_URL, GESTURES_URL} from "./poses.js";
 import Background from "./background.js";
 import Toast from "./web-ui/toast.js";
 import WebSpeechRecognizer from "./web-speech-recognizer.js";
+import VadSpeechRecognizer from "./speech-hands-free/vad-speech-recognizer.js";
 import Conversation from "./app-conversation.js";
 
 // 会話の節目でアバターが何をするか
@@ -240,12 +241,21 @@ document.addEventListener('DOMContentLoaded', function() {
     //----------------------------------
     const creditElement = document.querySelector("#credit");
 
+    // 連続対話を使うか（設定の「話しかけ方」）。音声認識の実装を選ぶ関数は、
+    // 認識の準備をするところ（下の「音声認識」）で用意する
+    let handsFreeEnabled = false;
+    let useRecognizer = null;
+
     setupSettings({
         avatar, world, chatFlow, chatClient, speechSynthesizer,
         // VOICEVOX の利用規約により、実際に使用したキャラクターのクレジット表記が必要。
         // 設定ウインドウではなく常時表示なので、ここで面倒を見る
         onSpeakerChange: (speaker) => {
             creditElement.textContent = `VOICEVOX: ${speaker.character}`;
+        },
+        onHandsFreeChange: (enabled) => {
+            handsFreeEnabled = enabled;
+            useRecognizer?.();
         }
     });
 
@@ -500,20 +510,48 @@ document.addEventListener('DOMContentLoaded', function() {
     // 使用する音声認識の実装を選ぶ。別の認識方式に変えるときは、
     // SpeechRecognizer を継承した実装を作ってここを差し替える
     // （js/speech-recognizer.js 参照）
+    //
+    // 実装は 2 つあり、設定の「話しかけ方」で切り替える。
+    //   ボタンを押すたびに 1 回聞き取る   WebSpeechRecognizer
+    //   連続対話（ボタンで始め、話しかけるたびに聞き取る）  VadSpeechRecognizer
+    // 連続対話も、聞き取り自体は Web Speech API で行う
     if (WebSpeechRecognizer.isSupported()) {
-        const recognizer = new WebSpeechRecognizer();
+        const singleRecognizer = new WebSpeechRecognizer();
+        const handsFreeRecognizer = new VadSpeechRecognizer();
 
         // 認識中の文字を画面下部に流す。会話の節目ではないので
         // conversation のイベントにはせず、ここで表示だけを受け持つ
-        recognizer.oninterimresult = (event) => {
-            showInterimText(event.detail.text);
+        for (const recognizer of [singleRecognizer, handsFreeRecognizer]) {
+            recognizer.oninterimresult = (event) => {
+                showInterimText(event.detail.text);
+            };
+        }
+
+        // 連続対話は、会話が入力待ちに戻るたびに次の発話を待つ。
+        // 返事をしている間は待たない（アバターの声などを拾わないように）。
+        // 始めたときにもう入力待ちなら、すぐ待つ
+        conversation.addEventListener("idle", () => handsFreeRecognizer.listen());
+        handsFreeRecognizer.addEventListener("activechange", (event) => {
+            if (event.detail.active && conversation.isIdle) {
+                handsFreeRecognizer.listen();
+            }
+        });
+
+        useRecognizer = () => {
+            const next = handsFreeEnabled ? handsFreeRecognizer : singleRecognizer;
+            if (next === conversation.recognizer) {
+                return;
+            }
+            // 切り替える前の認識は止める（連続対話なら、マイクを閉じる）
+            conversation.recognizer?.stop();
+
+            // 会話の進行は conversation が受け持つ（イベントへ変換する）
+            conversation.recognizer = next;
+
+            // 配線し終えてから要素へ渡す。渡すまでマイクボタンは押せない
+            speechRecognitionElement.recognizer = next;
         };
-
-        // 会話の進行は conversation が受け持つ（イベントへ変換する）
-        conversation.recognizer = recognizer;
-
-        // 配線し終えてから要素へ渡す。渡すまでマイクボタンは押せない
-        speechRecognitionElement.recognizer = recognizer;
+        useRecognizer();
 
     } else {
         console.warn("このブラウザは Web Speech API に対応していないため、"

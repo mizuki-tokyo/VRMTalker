@@ -636,6 +636,48 @@
           font-weight: 800;
           opacity: 0.6;
       }
+      /*
+        連続対話のオン・オフ。文字の前にトグルを並べる。
+        見た目は Lucide の toggle-left / toggle-right（角丸の枠と、輪のつまみ）に合わせる。
+        つまみは背景の円で描き、背景の位置で左右に動かす
+      */
+      .settings-check {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+
+          & input {
+              appearance: none;
+              flex-shrink: 0;
+              box-sizing: border-box;
+              width: 34px;
+              height: 24px;
+              margin: 0;
+              border: 2px solid currentColor;
+              border-radius: 12px;
+              background: radial-gradient(circle, transparent 3.5px, currentColor 4px 5.5px, transparent 6px)
+                          left center / 20px 20px no-repeat;
+              color: inherit;
+              opacity: 0.5;
+              cursor: pointer;
+              transition: background-position 0.15s, color 0.15s, opacity 0.15s;
+
+              &:checked {
+                  background-position: right center;
+                  color: var(--pop-blue);
+                  opacity: 1;
+              }
+              &:focus-visible {
+                  outline: 2px solid var(--pop-blue);
+                  outline-offset: 2px;
+              }
+          }
+          &:has(input:disabled) {
+              cursor: wait;
+              opacity: 0.6;
+          }
+      }
       /* キャラクタの名前と性格。見た目は話者の select に合わせる */
       #character-name,
       #character-profile {
@@ -972,6 +1014,15 @@
               <textarea id="character-profile" rows="4" maxlength="2000"
                         placeholder="例: 元気な高校生。お菓子作りが趣味。"></textarea>
             </label>
+          </div>
+
+          <div class="settings-section">
+            <p class="settings-heading">話しかけ方</p>
+            <label class="settings-check">
+              <input id="hands-free" type="checkbox" role="switch">
+              ボタンを押さずに話しかける（連続対話）
+            </label>
+            <p id="hands-free-note" class="settings-note"></p>
           </div>
 
           <!--

@@ -1,7 +1,7 @@
 /**
  * 設定ウインドウの処理。
  *
- * 話者 / カメラの寄り / 吹き出しの色 / キャラクタの名前と性格を扱い、
+ * 話者 / カメラの寄り / 吹き出しの色 / キャラクタの名前と性格 / 話しかけ方を扱い、
  * localStorage への保存と破棄を行う。
  *
  * 対話の骨格は app.js に置き、設定はここへ分けている。値をどこへ適用するか
@@ -18,6 +18,8 @@
  */
 
 import dialog from "./web-ui/dialog.js";
+import {checkTrackSupport, readCachedTrackSupport}
+    from "./speech-hands-free/track-support.js";
 
 // localStorage のキー
 const SETTINGS_KEY = "vrmtalker.settings";
@@ -55,10 +57,13 @@ const readStoredSettings = () => {
  * @param {object}   deps.chatClient        ChatClient
  * @param {object}   deps.speechSynthesizer SpeechSynthesizer
  * @param {(speaker: object) => void} [deps.onSpeakerChange] 話者が決まったとき
+ * @param {(enabled: boolean) => void} [deps.onHandsFreeChange] 連続対話を
+ *        オン・オフしたとき（使えるかを確かめた後に呼ぶ）
  */
 const setupSettings = ({
     avatar, world, chatFlow, chatClient, speechSynthesizer,
-    onSpeakerChange = () => {}
+    onSpeakerChange = () => {},
+    onHandsFreeChange = () => {}
 }) => {
 
     const storedSettings = readStoredSettings();
@@ -256,6 +261,64 @@ const setupSettings = ({
     applyPersona();
 
     //----------------------------------
+    // 話しかけ方（連続対話）
+    //
+    // 連続対話は、音声認識に音を渡せるブラウザでだけ使える。オンにしようと
+    // したときに確かめ、使えなければオフに戻して知らせる（確かめるには
+    // 音を鳴らすので、利用者の操作を受けてから行う）。確かめた結果は
+    // ブラウザごとに覚えておき、次からは確かめ直さない
+    //----------------------------------
+    const handsFreeCheckbox = document.querySelector("#hands-free");
+    const handsFreeNote = document.querySelector("#hands-free-note");
+
+    const HANDS_FREE_NOTES = {
+        off: "オフのときは、マイクのボタンを押すたびに 1 回聞き取ります。",
+        on: "マイクのボタンで連続対話を始め、もう一度押すと終わります。"
+              + "話しかけるたびに聞き取ります。",
+        checking: "このブラウザで使えるかを確かめています…",
+        // 理由は利用者には伝わりにくく、同じ Chrome・Edge でも環境で結果が変わりうるので、
+        // 画面には出さない（コンソールに出す）
+        unsupported: "このブラウザは対応していませんでした。他のブラウザでお試しください。"
+    };
+
+    const applyHandsFree = (enabled, note) => {
+        handsFreeCheckbox.checked = enabled;
+        handsFreeNote.textContent = note ?? (enabled ? HANDS_FREE_NOTES.on : HANDS_FREE_NOTES.off);
+        onHandsFreeChange(enabled);
+    };
+
+    handsFreeCheckbox.addEventListener("change", async () => {
+        if (! handsFreeCheckbox.checked) {
+            applyHandsFree(false);
+            return;
+        }
+        // 前に使えると分かっていれば、確かめ直さない
+        if (readCachedTrackSupport()?.supported) {
+            applyHandsFree(true);
+            return;
+        }
+        handsFreeCheckbox.disabled = true;
+        handsFreeNote.textContent = HANDS_FREE_NOTES.checking;
+        const {supported, reason} = await checkTrackSupport();
+        handsFreeCheckbox.disabled = false;
+        if (! supported) {
+            console.info("連続対話は使えません:", reason);
+        }
+        applyHandsFree(supported, supported ? undefined : HANDS_FREE_NOTES.unsupported);
+    });
+
+    // 保存されていても、使えると確かめた結果が無ければオンにしない
+    // （ブラウザを更新した後など。確かめるには利用者の操作が要る）
+    if (storedSettings?.handsFree && readCachedTrackSupport()?.supported) {
+        applyHandsFree(true);
+    } else {
+        applyHandsFree(false, storedSettings?.handsFree
+            ? "このブラウザで使えるかを確かめ直すため、連続対話をオフにしました。"
+              + "使うには、もう一度オンにしてください。"
+            : undefined);
+    }
+
+    //----------------------------------
     // 設定の保存 / 破棄
     //----------------------------------
     const saveButton = document.querySelector("#save-settings");
@@ -280,7 +343,8 @@ const setupSettings = ({
             persona: {
                 name: characterNameInput.value.trim(),
                 profile: characterProfileInput.value.trim()
-            }
+            },
+            handsFree: handsFreeCheckbox.checked
         };
         try {
             localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -311,6 +375,8 @@ const setupSettings = ({
         characterNameInput.value = "";
         characterProfileInput.value = "";
         applyPersona();
+
+        applyHandsFree(false);
 
         // 会話履歴には元の性格での応答が残る。消すかどうかは利用者に任せる
         flashDone(resetButton);

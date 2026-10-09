@@ -13,6 +13,10 @@
  * error / nomatch のイベントを発火すること（js/speech-recognizer.js 参照）。
  * この要素は認識方式を知らないので、実装を増やしてもここは変わらない。
  *
+ * 連続対話のように、一度始めたら止めるまで続く実装（active が true になる
+ * もの）では、押すたびに始める・終えるを切り替える。続いている間は active
+ * 属性が付き、ボタンの色が変わる（activechange イベントで知る）。
+ *
  * 認識結果は recognizer が直接返す。この要素は中継しない。
  *
  *   recognizer.onresult = (event) => console.log(event.detail.text);
@@ -29,6 +33,7 @@
  * CSS カスタムプロパティ
  *   --size        ボタンの直径（既定 40px）
  *   --background  ボタンの背景色
+ *   --active-background  連続対話が続いている間の背景色
  *   --foreground  マイクアイコンの色
  *   --level-color 入力レベルのリングの色
  *
@@ -52,6 +57,7 @@ STYLE_SHEET.replaceSync(`
   :host {
       --size:        var(--ui-button-size, 40px);
       --background:  var(--pop-blue, royalblue);
+      --active-background: var(--pop-pink, crimson);
       --foreground:  #ffffff;
       --level-color: var(--pop-yellow, orange);
       --shadow:      var(--pop-shadow, 0 4px 0 rgba(35, 36, 74, 0.18));
@@ -95,6 +101,10 @@ STYLE_SHEET.replaceSync(`
   .button:active {
       transform: translateY(2px);
       box-shadow: 0 2px 0 rgba(35, 36, 74, 0.18);
+  }
+  /* 連続対話が続いている間 */
+  :host([active]) .button {
+      background: var(--active-background);
   }
   .button:focus-visible {
       outline: 3px solid var(--level-color);
@@ -240,14 +250,22 @@ export default class SpeechRecognitionElement extends HTMLElement {
             volumechange: (event) => this.setInputLevel(event.detail.level),
             result: reset,
             error: reset,
-            nomatch: reset
+            nomatch: reset,
+            activechange: (event) => this._showActive(event.detail.active)
         };
         for (const [type, listener] of Object.entries(this._listeners)) {
             recognizer.addEventListener(type, listener);
         }
     }
 
+    /** 連続対話が続いているかを、見た目に出す。 */
+    _showActive(active) {
+        this.toggleAttribute("active", Boolean(active));
+        this._buttonElement.setAttribute("aria-pressed", String(Boolean(active)));
+    }
+
     _unbindRecognizer() {
+        this._showActive(false);
         if (! this._recognizer || ! this._listeners) {
             return;
         }
@@ -287,7 +305,12 @@ export default class SpeechRecognitionElement extends HTMLElement {
         if (! this._recognizer) {
             return;
         }
-        this._recognizer.start();
+        // 続いているものなら終える（連続対話）。そうでなければ始める
+        if (this._recognizer.active) {
+            this._recognizer.stop();
+        } else {
+            this._recognizer.start();
+        }
     };
 
     /**
