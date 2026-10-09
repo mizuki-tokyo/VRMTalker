@@ -638,7 +638,8 @@
       }
       /*
         設定のオン・オフ（考え中の吹き出し、連続対話）。文字の前にトグルを並べる。
-        見た目は Lucide の toggle-left / toggle-right（角丸の枠と、輪のつまみ）に合わせる。
+        ほかの部品（入力欄やボタン）と同じく、枠線ではなく塗りの色で形を見せる。
+        オフは淡い地に白いつまみ、オンは青い地に白いつまみ。
         つまみは背景の円で描き、背景の位置で左右に動かす
       */
       .settings-check {
@@ -650,23 +651,20 @@
           & input {
               appearance: none;
               flex-shrink: 0;
-              box-sizing: border-box;
-              width: 34px;
+              width: 40px;
               height: 24px;
               margin: 0;
-              border: 2px solid currentColor;
+              border: none;
               border-radius: 12px;
-              background: radial-gradient(circle, transparent 3.5px, currentColor 4px 5.5px, transparent 6px)
-                          left center / 20px 20px no-repeat;
-              color: inherit;
-              opacity: 0.5;
+              background: radial-gradient(circle, #ffffff 8.5px, transparent 9.5px)
+                          left center / 24px 24px no-repeat
+                          #d5dbf7;
               cursor: pointer;
-              transition: background-position 0.15s, color 0.15s, opacity 0.15s;
+              transition: background-position 0.15s, background-color 0.15s;
 
               &:checked {
                   background-position: right center;
-                  color: var(--pop-blue);
-                  opacity: 1;
+                  background-color: var(--pop-blue);
               }
               &:focus-visible {
                   outline: 2px solid var(--pop-blue);
