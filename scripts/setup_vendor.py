@@ -10,6 +10,8 @@
     public/vendor/@pixiv/three-vrm-animation@3.4.2/   VRMA の読み込み
     public/vendor/blockly@13.2.1/                     ブロックの編集画面（画像・音を含む）
     public/vendor/marked@15.0.12/                     リソースの出典の表示
+    public/vendor/onnxruntime-web@1.22.0/             連続対話の発話検出（Silero VAD）を動かす
+    public/vendor/silero-vad@5.1.2/                   連続対話の発話検出のモデル
 
 CDN から読まずに手元に置くのは、ネットワークが無くても（LLM を手元で
 動かしていれば、音声認識を除いて）動くようにするため。版も確実に固定される。
@@ -19,6 +21,7 @@ CDN から読まずに手元に置くのは、ネットワークが無くても�
     three・three-vrm・three-vrm-animation   public/index.html の importmap
     blockly                                  public/js/app-block-editor.js の BLOCKLY_VERSION
     marked                                   public/js/app-credits.js の MARKED_URL
+    onnxruntime-web・silero-vad              public/js/speech-hands-free/silero-vad.js
 
 古い版のフォルダは消さないので、要らなくなったら手で消す。
 """
@@ -35,6 +38,7 @@ VENDOR_DIR = PROJECT_ROOT / "public" / "vendor"
 
 NPM_BASE = "https://cdn.jsdelivr.net/npm"
 NPM_LISTING = "https://data.jsdelivr.com/v1/package/npm"
+GITHUB_BASE = "https://cdn.jsdelivr.net/gh"
 
 
 @dataclass
@@ -47,12 +51,16 @@ class Package:
     directories: list[str] = field(default_factory=list)
     # ライセンスの写し。パッケージの中のパスか、完全な URL（{version} は版に置き換える）
     license: str = "LICENSE"
+    # npm ではなく GitHub のリポジトリから取るときの "持ち主/名前"。版は v<版> のタグ
+    github: str | None = None
 
     @property
     def folder(self) -> Path:
         return VENDOR_DIR / f"{self.name}@{self.version}"
 
     def url(self, path: str) -> str:
+        if self.github:
+            return f"{GITHUB_BASE}/{self.github}@v{self.version}/{path}"
         return f"{NPM_BASE}/{self.name}@{self.version}/{path}"
 
 
@@ -83,6 +91,20 @@ PACKAGES = [
         license="https://cdn.jsdelivr.net/gh/google/blockly@blockly-v{version}/LICENSE",
     ),
     Package("marked", "15.0.12", files=["marked.min.js"], license="LICENSE.md"),
+    Package(
+        "onnxruntime-web", "1.22.0",
+        # ES モジュール版の本体と、それが読み込む WebAssembly 一式（CPU 版）
+        files=[
+            "dist/ort.wasm.min.mjs",
+            "dist/ort-wasm-simd-threaded.mjs",
+            "dist/ort-wasm-simd-threaded.wasm",
+        ],
+        # npm のパッケージにはライセンスが入っていないので、同じ版の GitHub から取る
+        license="https://cdn.jsdelivr.net/gh/microsoft/onnxruntime@v{version}/LICENSE",
+    ),
+    # 発話検出のモデル。配布元のリポジトリから取る
+    Package("silero-vad", "5.1.2", files=["src/silero_vad/data/silero_vad.onnx"],
+            github="snakers4/silero-vad"),
 ]
 
 

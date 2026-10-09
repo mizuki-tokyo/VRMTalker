@@ -98,8 +98,10 @@ sashii さんが VRM にリターゲティングしたモーション（CC0）�
 | [marked](https://marked.js.org/) | このページの表示 | MIT |
 | [Lucide](https://lucide.dev/) | アイコン | ISC |
 | [FastAPI](https://fastapi.tiangolo.com/) | サーバ | MIT |
+| [ONNX Runtime Web](https://onnxruntime.ai/) | 連続対話の発話検出を動かす | MIT |
+| [Silero VAD](https://github.com/snakers4/silero-vad) | 連続対話の発話検出のモデル | MIT |
 
-three.js・three-vrm・Blockly・marked は `public/vendor/` に同梱しています。
+three.js・three-vrm・Blockly・marked・ONNX Runtime Web・Silero VAD は `public/vendor/` に同梱しています。
 ライセンスの写しは、それぞれのフォルダにあります。
 
 
