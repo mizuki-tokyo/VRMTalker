@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <!-- 吹き出し本体のグラデーション（上：白っぽい → 下：淡い水色） -->
+    <radialGradient id="bubbleFill" gradientUnits="userSpaceOnUse" cx="88" cy="50" r="150">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#e6f3f9"/>
+      <stop offset="100%" stop-color="#b9dcec"/>
+    </radialGradient>
+    <!-- 縁のやわらかい陰影（楕円形に合わせて変形） -->
+    <radialGradient id="edgeShade" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1"
+                    gradientTransform="translate(98 94) scale(90 72)">
+      <stop offset="80%" stop-color="#8fc2d9" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#8fc2d9" stop-opacity="0.4"/>
+    </radialGradient>
+    <!-- 点のグラデーション -->
+    <radialGradient id="dotFill" cx="40%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#5a8aa6"/>
+      <stop offset="100%" stop-color="#2f5d78"/>
+    </radialGradient>
+    <!-- 全体の淡い影 -->
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#6aa6c2" flood-opacity="0.35"/>
+    </filter>
+    <!--
+      楕円＋しっぽを1つにした輪郭。しっぽは右下（頭の上の左側に出すので、頭へ向ける）。
+      エモートと左右を入れ替えるため、輪郭だけを左右反転してある（点は反転しない。
+      点が右から左へ増えて見えてしまう）
+    -->
+    <path id="bubbleShape"
+          d="M122 161.3
+             A88 70 0 1 1 156 146.7
+             Q160 166 176 176
+             Q144 172 122 161.3 Z"/>
+  </defs>
+
+  <g filter="url(#softShadow)">
+    <use href="#bubbleShape" fill="url(#bubbleFill)"/>
+  </g>
+  <use href="#bubbleShape" fill="url(#edgeShade)"/>
+
+  <!--
+    3つの点。class="dot" は <vrm-thinking> が「.」「..」「...」の絵を作るときの目印
+    （左から順に 1 つ・2 つ・3 つ見せる）
+  -->
+  <circle class="dot" cx="67" cy="99" r="9" fill="url(#dotFill)"/>
+  <circle class="dot" cx="100" cy="99" r="9" fill="url(#dotFill)"/>
+  <circle class="dot" cx="133" cy="99" r="9" fill="url(#dotFill)"/>
+</svg>

@@ -479,6 +479,7 @@ public/
   actions.json              同梱のアクション（読み取り専用の見本）
   acknowledgment.md         素材とソフトウェアの出典
   animations/  emotes/  sounds/  voices/  backgrounds/  models/   素材と、その定義ファイル
+  icons/                    画面に出す絵（考え中の吹き出し）
   vendor/                   ブラウザで使うライブラリ（版ごとのフォルダ。ライセンスの写し付き）
   styles/
     blockly.css             Blockly の見た目（他のプロジェクトでも使える分）
@@ -506,6 +507,8 @@ public/
       vrm-avatar-element.js   <vrm-avatar>   VRM モデルの配置と制御
       vrm-avatar-element/     VRM 固有の処理（ローダ、モーション、リップシンク、
                               ポーズとジェスチャー）
+      vrm-head-sprite-element.js  頭の上に絵を出す要素の土台（次の 2 つが継承する）
       vrm-emote-element.js    <vrm-emote>    頭の上のアイコン
+      vrm-thinking-element.js <vrm-thinking> 返事を考えている間の吹き出し
     web-ui/                 画面部品のカスタム要素（吹き出し・設定・ダイアログ等）
 ```

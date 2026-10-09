@@ -1,7 +1,7 @@
 /**
  * 設定ウインドウの処理。
  *
- * 話者 / カメラの寄り / 吹き出しの色 / キャラクタの名前と性格 / 話しかけ方を扱い、
+ * 話者 / カメラの寄り / 吹き出しの色 / 表示 / キャラクタの名前と性格 / 話しかけ方を扱い、
  * localStorage への保存と破棄を行う。
  *
  * 対話の骨格は app.js に置き、設定はここへ分けている。値をどこへ適用するか
@@ -59,11 +59,14 @@ const readStoredSettings = () => {
  * @param {(speaker: object) => void} [deps.onSpeakerChange] 話者が決まったとき
  * @param {(enabled: boolean) => void} [deps.onHandsFreeChange] 連続対話を
  *        オン・オフしたとき（使えるかを確かめた後に呼ぶ）
+ * @param {(enabled: boolean) => void} [deps.onThinkingBubbleChange] 考え中の
+ *        吹き出しをオン・オフしたとき
  */
 const setupSettings = ({
     avatar, world, chatFlow, chatClient, speechSynthesizer,
     onSpeakerChange = () => {},
-    onHandsFreeChange = () => {}
+    onHandsFreeChange = () => {},
+    onThinkingBubbleChange = () => {}
 }) => {
 
     const storedSettings = readStoredSettings();
@@ -261,6 +264,21 @@ const setupSettings = ({
     applyPersona();
 
     //----------------------------------
+    // 表示（考え中の吹き出し）。既定はオン
+    //----------------------------------
+    const thinkingBubbleCheckbox = document.querySelector("#thinking-bubble");
+
+    const applyThinkingBubble = (enabled) => {
+        thinkingBubbleCheckbox.checked = enabled;
+        onThinkingBubbleChange(enabled);
+    };
+
+    thinkingBubbleCheckbox.addEventListener("change", () => {
+        applyThinkingBubble(thinkingBubbleCheckbox.checked);
+    });
+    applyThinkingBubble(storedSettings?.thinkingBubble ?? true);
+
+    //----------------------------------
     // 話しかけ方（連続対話）
     //
     // 連続対話は、音声認識に音を渡せるブラウザでだけ使える。オンにしようと
@@ -344,6 +362,7 @@ const setupSettings = ({
                 name: characterNameInput.value.trim(),
                 profile: characterProfileInput.value.trim()
             },
+            thinkingBubble: thinkingBubbleCheckbox.checked,
             handsFree: handsFreeCheckbox.checked
         };
         try {
@@ -376,6 +395,7 @@ const setupSettings = ({
         characterProfileInput.value = "";
         applyPersona();
 
+        applyThinkingBubble(true);
         applyHandsFree(false);
 
         // 会話履歴には元の性格での応答が残る。消すかどうかは利用者に任せる

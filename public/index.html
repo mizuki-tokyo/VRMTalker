@@ -637,7 +637,7 @@
           opacity: 0.6;
       }
       /*
-        連続対話のオン・オフ。文字の前にトグルを並べる。
+        設定のオン・オフ（考え中の吹き出し、連続対話）。文字の前にトグルを並べる。
         見た目は Lucide の toggle-left / toggle-right（角丸の枠と、輪のつまみ）に合わせる。
         つまみは背景の円で描き、背景の位置で左右に動かす
       */
@@ -906,11 +906,23 @@
           <!--
             頭の上に出す感情アイコン。出せる絵は emotes/emotes.json で定義する。
             入れ子は「どのアバターのものか」を表すだけで、three.js の親子関係
-            とは一致しない（vrm-emote-element.js を参照）
+            とは一致しない（vrm-emote-element.js を参照）。
+            pop を付けると、出るときに膨らみ、消えるときに縮む。外せば
+            フェードだけになる（次の <vrm-thinking> も同じ）
           -->
           <vrm-emote src="./emotes/emotes.json"
                      size="0.28"
-                     offset="0.18, 0.28, 0"></vrm-emote>
+                     offset="0.18, 0.28, 0"
+                     pop></vrm-emote>
+          <!--
+            返事を考えている間に出す吹き出し。エモートと重ならないよう、
+            左右反対の側に出す（vrm-thinking-element.js を参照）
+          -->
+          <vrm-thinking src="./icons/thinking-bubble.svg"
+                        size="0.28"
+                        offset="-0.18, 0.28, 0"
+                        fade="0.3"
+                        pop></vrm-thinking>
         </vrm-avatar>
       </three-world>
       <chat-flow></chat-flow>
@@ -1002,6 +1014,14 @@
             <color-picker id="left-text"  label="キャラクタ / 文字"></color-picker>
             <color-picker id="right-fill" label="あなた / 背景"></color-picker>
             <color-picker id="right-text" label="あなた / 文字"></color-picker>
+          </div>
+
+          <div class="settings-section">
+            <p class="settings-heading">表示</p>
+            <label class="settings-check">
+              <input id="thinking-bubble" type="checkbox" role="switch" checked>
+              返事を考えている間、吹き出しを出す
+            </label>
           </div>
 
           <div class="settings-section">

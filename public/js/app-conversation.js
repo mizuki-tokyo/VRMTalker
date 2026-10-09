@@ -17,7 +17,14 @@
  *   listenend   発話が確定した                        detail: {text}
  *   error       失敗した                              detail: {phase, message}
  *
+ *   thinkingstart  返事を待ち始めた（LLM に頼んだ）     detail: なし
+ *   thinkingend    返事の最初の一文が届いた（または失敗・中断）  detail: なし
+ *
  * speechstart / speechend は音声認識の実装によっては出ない（js/speech-recognizer.js 参照）。
+ *
+ * thinkingstart / thinkingend は画面の表示（考え中の吹き出し）のためのもので、
+ * アクションのイベントにはしていない。返事を同時に複数待っていても、
+ * 待ち始めと、全部が届いたときに 1 回ずつ出す。
  *
  * 応答ターンや応答文ごとのイベントは設けていない。応答の流れそのものを
  * アクション側に書いてもらうほうが、上から下に読める形になるため
@@ -43,6 +50,9 @@ class Conversation extends EventTarget {
     _userText = "";
 
     _idle = false;
+
+    // 最初の一文を待っている返事の数
+    _thinkingCount = 0;
 
     /**
      * @param {object} deps
@@ -135,13 +145,25 @@ class Conversation extends EventTarget {
      * @param {string} text 返事のもとになる発話
      */
     async *replySentences(text) {
+        // 最初の一文が届くまでを「考え中」とする。失敗したときや、
+        // 読み手が途中でやめたときも、finally で必ず終える
+        let thinking = true;
+        this._setThinking(+1);
         try {
             for await (const sentence of this._chatClient.stream(text)) {
+                if (thinking) {
+                    thinking = false;
+                    this._setThinking(-1);
+                }
                 yield sentence;
             }
         } catch (error) {
             console.error(error);
             this._emit("error", {phase: PHASE.chat, message: error.message});
+        } finally {
+            if (thinking) {
+                this._setThinking(-1);
+            }
         }
     }
 
@@ -186,6 +208,17 @@ class Conversation extends EventTarget {
             this._recognizer.removeEventListener(type, listener);
         }
         this._recognizerListeners = null;
+    }
+
+    /** 待っている返事の数を増減し、0 との間を行き来したら知らせる。 */
+    _setThinking(change) {
+        const before = this._thinkingCount;
+        this._thinkingCount = Math.max(0, before + change);
+        if (before === 0 && this._thinkingCount > 0) {
+            this._emit("thinkingstart");
+        } else if (before > 0 && this._thinkingCount === 0) {
+            this._emit("thinkingend");
+        }
     }
 
     _emit(type, detail = null) {

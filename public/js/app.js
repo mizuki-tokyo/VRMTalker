@@ -41,6 +41,7 @@ import "./web-ui/speech-recognition-element.js";
 import "./three-ui/three-world-element.js";
 import VrmAvatarElement from "./three-ui/vrm-avatar-element.js";
 import "./three-ui/vrm-emote-element.js";
+import "./three-ui/vrm-thinking-element.js";
 
 // モデルの読み込みと <three-world> への配置は <vrm-avatar> が行う（index.html を参照）
 const avatar = document.querySelector("vrm-avatar");
@@ -55,6 +56,13 @@ const emote = document.querySelector("vrm-emote") ?? {
     current: null,
     show: () => {},
     clear: () => {}
+};
+
+// 返事を考えている間、頭の上（エモートと反対の側）に出す吹き出し。
+// これも要らなければ index.html から <vrm-thinking> を消せばよい
+const thinking = document.querySelector("vrm-thinking") ?? {
+    show: () => {},
+    hide: () => {}
 };
 
 //----------------------------------
@@ -246,6 +254,27 @@ document.addEventListener('DOMContentLoaded', function() {
     let handsFreeEnabled = false;
     let useRecognizer = null;
 
+    // 考え中の吹き出しを出すか（設定の「表示」）。出し入れは、会話の
+    // thinkingstart / thinkingend を受けて行う（下の「会話の進行」）
+    let thinkingEnabled = true;
+
+    // 返事がすぐ届いたときに、一瞬だけ出てちらつかないよう、
+    // この時間たっても届かないときだけ出す（ミリ秒）
+    const THINKING_DELAY_MS = 300;
+    let thinkingTimer = null;
+
+    const showThinkingSoon = () => {
+        clearTimeout(thinkingTimer);
+        if (thinkingEnabled) {
+            thinkingTimer = setTimeout(() => thinking.show(), THINKING_DELAY_MS);
+        }
+    };
+    const hideThinking = () => {
+        clearTimeout(thinkingTimer);
+        thinkingTimer = null;
+        thinking.hide();
+    };
+
     setupSettings({
         avatar, world, chatFlow, chatClient, speechSynthesizer,
         // VOICEVOX の利用規約により、実際に使用したキャラクターのクレジット表記が必要。
@@ -256,6 +285,12 @@ document.addEventListener('DOMContentLoaded', function() {
         onHandsFreeChange: (enabled) => {
             handsFreeEnabled = enabled;
             useRecognizer?.();
+        },
+        onThinkingBubbleChange: (enabled) => {
+            thinkingEnabled = enabled;
+            if (! enabled) {
+                hideThinking();
+            }
         }
     });
 
@@ -305,6 +340,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // 何をするかは app-avatar-actions.js に書く（このファイルには書かない）
     //----------------------------------
     const conversation = new Conversation({chatClient});
+
+    // 返事を待つ間は、考え中の吹き出しを出す（固まって見えないように）
+    conversation.addEventListener("thinkingstart", showThinkingSoon);
+    conversation.addEventListener("thinkingend", hideThinking);
 
     // ブロックの「ストップウォッチ」。出来事ごとのアクションをまたいで値を保つので、
     // アプリ全体で 1 つ持つ
