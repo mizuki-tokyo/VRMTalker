@@ -23,6 +23,8 @@
           --pop-yellow:  #ffd93d;
           --pop-ink:     #23244a;
           --pop-surface: #ffffff;
+          /* 気づいてほしい知らせの文字。白地で読めるよう、ピンクより濃い赤 */
+          --pop-red:     #e0344d;
 
           /* フラットな影（ぼかさずに真下へずらす） */
           --pop-shadow:  0 4px 0 rgba(35, 36, 74, 0.18);
@@ -380,6 +382,18 @@
           margin: 8px 0 0;
           font-size: 0.85em;
           opacity: 0.6;
+
+          /* 気づいてほしい知らせ。赤い文字で、先頭に注意のアイコン（js/icons.js）を付ける */
+          &.settings-warning {
+              color: var(--pop-red);
+              opacity: 1;
+          }
+          & .icon {
+              width: 1.2em;
+              height: 1.2em;
+              margin-right: 4px;
+              vertical-align: -0.25em;
+          }
       }
 
       /*

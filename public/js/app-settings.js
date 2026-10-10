@@ -18,6 +18,7 @@
  */
 
 import dialog from "./web-ui/dialog.js";
+import {createIcon} from "./icons.js";
 import {checkTrackSupport, readCachedTrackSupport}
     from "./speech-hands-free/track-support.js";
 
@@ -296,12 +297,23 @@ const setupSettings = ({
         checking: "このブラウザで使えるかを確かめています…",
         // 理由は利用者には伝わりにくく、同じ Chrome・Edge でも環境で結果が変わりうるので、
         // 画面には出さない（コンソールに出す）
-        unsupported: "このブラウザは対応していませんでした。他のブラウザでお試しください。"
+        unsupported: "このブラウザは対応していませんでした。他のブラウザでお試しください。",
+        recheck: "このブラウザで使えるかを確かめ直すため、連続対話をオフにしました。"
+                 + "使うには、もう一度オンにしてください。"
+    };
+
+    // 気づいてほしい知らせ。赤い文字にし、先頭に注意のアイコンを付ける
+    const HANDS_FREE_WARNINGS = new Set([HANDS_FREE_NOTES.unsupported, HANDS_FREE_NOTES.recheck]);
+
+    const showHandsFreeNote = (text) => {
+        const warning = HANDS_FREE_WARNINGS.has(text);
+        handsFreeNote.classList.toggle("settings-warning", warning);
+        handsFreeNote.replaceChildren(...(warning ? [createIcon("triangle-alert")] : []), text);
     };
 
     const applyHandsFree = (enabled, note) => {
         handsFreeCheckbox.checked = enabled;
-        handsFreeNote.textContent = note ?? (enabled ? HANDS_FREE_NOTES.on : HANDS_FREE_NOTES.off);
+        showHandsFreeNote(note ?? (enabled ? HANDS_FREE_NOTES.on : HANDS_FREE_NOTES.off));
         onHandsFreeChange(enabled);
     };
 
@@ -316,7 +328,7 @@ const setupSettings = ({
             return;
         }
         handsFreeCheckbox.disabled = true;
-        handsFreeNote.textContent = HANDS_FREE_NOTES.checking;
+        showHandsFreeNote(HANDS_FREE_NOTES.checking);
         const {supported, reason} = await checkTrackSupport();
         handsFreeCheckbox.disabled = false;
         if (! supported) {
@@ -330,10 +342,7 @@ const setupSettings = ({
     if (storedSettings?.handsFree && readCachedTrackSupport()?.supported) {
         applyHandsFree(true);
     } else {
-        applyHandsFree(false, storedSettings?.handsFree
-            ? "このブラウザで使えるかを確かめ直すため、連続対話をオフにしました。"
-              + "使うには、もう一度オンにしてください。"
-            : undefined);
+        applyHandsFree(false, storedSettings?.handsFree ? HANDS_FREE_NOTES.recheck : undefined);
     }
 
     //----------------------------------

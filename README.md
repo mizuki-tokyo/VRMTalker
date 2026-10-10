@@ -479,7 +479,7 @@ public/
   actions.json              同梱のアクション（読み取り専用の見本）
   acknowledgment.md         素材とソフトウェアの出典
   animations/  emotes/  sounds/  voices/  backgrounds/  models/   素材と、その定義ファイル
-  icons/                    画面に出す絵（考え中の吹き出し）
+  icons/                    画面に出す絵（考え中の吹き出し）と、使い回すアイコン（icon-list.svg）
   vendor/                   ブラウザで使うライブラリ（版ごとのフォルダ。ライセンスの写し付き）
   styles/
     blockly.css             Blockly の見た目（他のプロジェクトでも使える分）
@@ -497,6 +497,7 @@ public/
     sound-player.js         効果音
     voices.js               ボイスデータの一覧
     background.js           背景の切り替え
+    icons.js                icon-list.svg のアイコンを要素として作る
     app-settings.js         設定ウインドウの中身
     app-credits.js          謝辞（出典とモデル情報）
     speech-synthesizer.js   /api/tts のクライアント
