@@ -15,6 +15,8 @@
  * 呼び出し側（app-action-runner.js）が握りつぶすため、利用者には見えない。
  */
 
+import {stripEmoji} from "./emotion.js";
+
 /** 中断を伝えるための専用の例外。実行時エラーと区別する。 */
 export class ActionStopped extends Error {
     constructor() {
@@ -90,7 +92,13 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
     };
 
     const speakText = async (text) => {
-        const arrayBuffer = await speechSynthesizer.createSound(String(text));
+        // 絵文字は読み上げない（返事の頭の感情の絵文字や、ブロックに書いた絵文字）。
+        // 絵文字だけなら、話すことが無い
+        const spoken = stripEmoji(text);
+        if (! spoken) {
+            return;
+        }
+        const arrayBuffer = await speechSynthesizer.createSound(spoken);
         stopIfAborted();
         await avatar.speak(arrayBuffer);
     };
@@ -448,6 +456,20 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
         /** キャラクタの名前（設定ウインドウで決めたもの）。 */
         characterName() {
             return conversation.characterName;
+        },
+
+        /**
+         * 直近の返事の感情が emotion か。
+         *
+         * 感情は、LLM が返事の最初に付ける絵文字から読み取る（js/emotion.js）。
+         * 最初の一文が届いた時点で分かるので、返事を一文ずつ受け取るループの
+         * 中でも、言い終えた後でも使える。感情が読み取れなかった返事では、
+         * どの感情でも false
+         *
+         * @param {string} emotion js/emotion.js の EMOTIONS の id（"happy" など）
+         */
+        replyHasEmotion(emotion) {
+            return conversation.replyEmotion === String(emotion);
         },
 
         /** ストップウォッチの値（秒。0.1 秒単位）。 */

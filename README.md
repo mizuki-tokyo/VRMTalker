@@ -498,6 +498,7 @@ public/
     voices.js               ボイスデータの一覧
     background.js           背景の切り替え
     icons.js                icon-list.svg のアイコンを要素として作る
+    emotion.js              返事の感情（LLM が付ける絵文字）の読み取り
     app-settings.js         設定ウインドウの中身
     app-credits.js          謝辞（出典とモデル情報）
     speech-synthesizer.js   /api/tts のクライアント

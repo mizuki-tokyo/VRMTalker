@@ -238,6 +238,11 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     const chatClient = new ChatClient();
+
+    // 会話の進行。節目をイベントとして出す（下の「会話の進行と、それに対する
+    // アクション」）。設定（返事の吹き出しの絵文字）を渡すため、先に作っておく
+    const conversation = new Conversation({chatClient});
+
     const chatFlow = document.querySelector("chat-flow");
     const world = document.querySelector("three-world");
 
@@ -291,6 +296,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (! enabled) {
                 hideThinking();
             }
+        },
+        // 返事の吹き出しの頭に、気持ちの絵文字を付けるか（app-conversation.js）
+        onEmotionEmojiChange: (enabled) => {
+            conversation.showEmotionEmoji = enabled;
         }
     });
 
@@ -339,7 +348,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // 会話の節目は conversation がイベントとして出す。
     // 何をするかは app-avatar-actions.js に書く（このファイルには書かない）
     //----------------------------------
-    const conversation = new Conversation({chatClient});
 
     // 返事を待つ間は、考え中の吹き出しを出す（固まって見えないように）
     conversation.addEventListener("thinkingstart", showThinkingSoon);

@@ -662,6 +662,11 @@
           gap: 8px;
           cursor: pointer;
 
+          /* トグルを続けて並べるときの間隔 */
+          & + & {
+              margin-top: 10px;
+          }
+
           & input {
               appearance: none;
               flex-shrink: 0;
@@ -1033,6 +1038,10 @@
             <label class="settings-check">
               <input id="thinking-bubble" type="checkbox" role="switch" checked>
               返事を考えている間、吹き出しを出す
+            </label>
+            <label class="settings-check">
+              <input id="emotion-emoji" type="checkbox" role="switch" checked>
+              返事の吹き出しに、気持ちの絵文字を出す
             </label>
           </div>
 

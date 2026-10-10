@@ -62,12 +62,15 @@ const readStoredSettings = () => {
  *        オン・オフしたとき（使えるかを確かめた後に呼ぶ）
  * @param {(enabled: boolean) => void} [deps.onThinkingBubbleChange] 考え中の
  *        吹き出しをオン・オフしたとき
+ * @param {(enabled: boolean) => void} [deps.onEmotionEmojiChange] 返事の
+ *        吹き出しに気持ちの絵文字を出すかを切り替えたとき
  */
 const setupSettings = ({
     avatar, world, chatFlow, chatClient, speechSynthesizer,
     onSpeakerChange = () => {},
     onHandsFreeChange = () => {},
-    onThinkingBubbleChange = () => {}
+    onThinkingBubbleChange = () => {},
+    onEmotionEmojiChange = () => {}
 }) => {
 
     const storedSettings = readStoredSettings();
@@ -279,6 +282,19 @@ const setupSettings = ({
     });
     applyThinkingBubble(storedSettings?.thinkingBubble ?? true);
 
+    // 返事の吹き出しに、気持ちの絵文字（LLM が付けたもの）を出すか。既定はオン
+    const emotionEmojiCheckbox = document.querySelector("#emotion-emoji");
+
+    const applyEmotionEmoji = (enabled) => {
+        emotionEmojiCheckbox.checked = enabled;
+        onEmotionEmojiChange(enabled);
+    };
+
+    emotionEmojiCheckbox.addEventListener("change", () => {
+        applyEmotionEmoji(emotionEmojiCheckbox.checked);
+    });
+    applyEmotionEmoji(storedSettings?.emotionEmoji ?? true);
+
     //----------------------------------
     // 話しかけ方（連続対話）
     //
@@ -372,6 +388,7 @@ const setupSettings = ({
                 profile: characterProfileInput.value.trim()
             },
             thinkingBubble: thinkingBubbleCheckbox.checked,
+            emotionEmoji: emotionEmojiCheckbox.checked,
             handsFree: handsFreeCheckbox.checked
         };
         try {
@@ -405,6 +422,7 @@ const setupSettings = ({
         applyPersona();
 
         applyThinkingBubble(true);
+        applyEmotionEmoji(true);
         applyHandsFree(false);
 
         // 会話履歴には元の性格での応答が残る。消すかどうかは利用者に任せる

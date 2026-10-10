@@ -15,6 +15,7 @@
 
 import {CALL_BLOCKS, VALUE_BLOCKS, EVENT_BLOCKS, DETAIL_BLOCKS}
     from "./app-action-program.js";
+import {EMOTIONS} from "./emotion.js";
 
 
 /** 基本表情。モデルに依存せず使えることが分かっているものだけ並べる。 */
@@ -64,6 +65,12 @@ const TIME_UNITS = [
 
 /** ストップウォッチの操作。覚える値は app-avatar-api.js の controlStopwatch() と合わせる。 */
 const STOPWATCH_ACTIONS = [["開始", "start"], ["停止", "stop"], ["リセット", "reset"]];
+
+/**
+ * 返事の感情。画面には絵文字を出し、覚える値は js/emotion.js の id
+ * （表情と同じ名前）にする
+ */
+const REPLY_EMOTIONS = EMOTIONS.map(({id, emoji}) => [emoji, id]);
 
 /** 吹き出しの出し手。app-avatar-api.js の SPEAKER と合わせる。 */
 const SPEAKERS = [["キャラクタ", "キャラクタ"], ["あなた", "あなた"]];
@@ -292,6 +299,17 @@ const buildBlockUi = ({motionChoices = [], poseChoices = [], gestureChoices = []
             message0: "会話の記憶を消す", args0: [], style: "sensing_blocks",
             tooltip: "キャラクタが前のやり取りを覚えていない状態に戻す。"
                    + "吹き出しは消えない"
+        },
+        // 六角形（真偽の値）にして、「もし」の条件に差し込んで使う
+        chat_reply_emotion: {
+            message0: "返事に感情 %1 が含まれる？",
+            args0: [dropdown("EMOTION", REPLY_EMOTIONS)],
+            output: "Boolean", style: "sensing_blocks",
+            tooltip: "直近の返事の気持ち。"
+                   + EMOTIONS.map(({emoji, name}) => `${emoji} ${name}`).join("、")
+                   + "。最初の一文が届いた時点で分かるので、一文ずつのくりかえしの中でも、"
+                   + "返事を言い終えた後でも使える。気持ちが読み取れなかった返事では、"
+                   + "どれを選んでも成り立たない"
         },
 
         //-------------------------------- 制御
@@ -571,6 +589,7 @@ export const createToolbox = () => {
                     {kind: "block", type: "chat_reply",
                      inputs: {PROMPT: {block: {type: "value_user_text"}}}},
                     {kind: "block", type: "chat_clear_history"},
+                    {kind: "block", type: "chat_reply_emotion"},
                     {kind: "block", type: "value_user_text"},
                     {kind: "block", type: "value_character_name"},
                     {kind: "block", type: "value_error_message"},

@@ -29,7 +29,13 @@
  * 応答ターンや応答文ごとのイベントは設けていない。応答の流れそのものを
  * アクション側に書いてもらうほうが、上から下に読める形になるため
  * （replySentences() を参照）。
+ *
+ * 返事の感情（LLM が返事の最初に付ける絵文字。js/emotion.js）もここで読み取り、
+ * replyEmotion に覚えておく。返す文からは絵文字を取り除き、showEmotionEmoji が
+ * true なら、読み取った感情の絵文字を 1 つだけ文の頭に付け直す。
  */
+
+import {readEmotion, stripEmoji, emotionEmoji} from "./emotion.js";
 
 /** error イベントの phase。どこで失敗したかを表す。 */
 export const PHASE = Object.freeze({
@@ -54,6 +60,12 @@ class Conversation extends EventTarget {
     // 最初の一文を待っている返事の数
     _thinkingCount = 0;
 
+    // 直近の返事の感情（js/emotion.js の id）。分からなければ null
+    _replyEmotion = null;
+
+    /** 返事の文の頭に、感情の絵文字を付けるか（設定の「表示」）。 */
+    showEmotionEmoji = true;
+
     /**
      * @param {object} deps
      * @param {object} deps.chatClient ChatClient
@@ -66,6 +78,15 @@ class Conversation extends EventTarget {
     /** 直近のユーザの発話。 */
     get userText() {
         return this._userText;
+    }
+
+    /**
+     * 直近の返事の感情（js/emotion.js の EMOTIONS の id）。分からなければ null。
+     * 返事を頼むたびに null に戻り、感情の絵文字が届いた時点で決まる
+     * （ふつうは最初の一文）
+     */
+    get replyEmotion() {
+        return this._replyEmotion;
     }
 
     /** 今が入力待ちかどうか。 */
@@ -149,13 +170,18 @@ class Conversation extends EventTarget {
         // 読み手が途中でやめたときも、finally で必ず終える
         let thinking = true;
         this._setThinking(+1);
+        this._replyEmotion = null;
         try {
             for await (const sentence of this._chatClient.stream(text)) {
                 if (thinking) {
                     thinking = false;
                     this._setThinking(-1);
                 }
-                yield sentence;
+                const shown = this._readSentence(sentence);
+                // 絵文字だけの文（「😄」など）は、取り除くと空になるので返さない
+                if (shown) {
+                    yield shown;
+                }
             }
         } catch (error) {
             console.error(error);
@@ -208,6 +234,25 @@ class Conversation extends EventTarget {
             this._recognizer.removeEventListener(type, listener);
         }
         this._recognizerListeners = null;
+    }
+
+    /**
+     * 返事の 1 文から感情を読み取り、返す形にする。
+     *
+     * 感情は、返事の中で最初に見つかったものだけを使う。小さなモデルは
+     * 余分な絵文字を付けがちなので、文からは絵文字をすべて取り除き、
+     * 表示するときは読み取った感情の絵文字を 1 つだけ付け直す
+     */
+    _readSentence(sentence) {
+        const emotion = (this._replyEmotion === null) ? readEmotion(sentence) : null;
+        if (emotion) {
+            this._replyEmotion = emotion;
+        }
+        const plain = stripEmoji(sentence);
+        if (plain && emotion && this.showEmotionEmoji) {
+            return `${emotionEmoji(emotion)} ${plain}`;
+        }
+        return plain;
     }
 
     /** 待っている返事の数を増減し、0 との間を行き来したら知らせる。 */

@@ -26,7 +26,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import llama_server
-from llm import ChatModel, ChatModelError, Message, create_chat_model, system_prompt
+from llm import (
+    EMOTION_EXAMPLES, ChatModel, ChatModelError, Message, create_chat_model, system_prompt,
+)
 from tts import DEFAULT_STYLE_ID, SetupRequiredError, TextToSpeech
 
 logging.basicConfig(level=logging.INFO)
@@ -143,6 +145,8 @@ def _build_messages(request: ChatRequest) -> list[Message]:
             content=system_prompt(name=persona.name, profile=persona.profile),
         )
     ]
+    # 感情の絵文字の付け方を、やりとりの例で見せる（llm/__init__.py を参照）
+    messages.extend(EMOTION_EXAMPLES)
     for item in request.history[-10:]:  # 直近のやりとりのみ渡す
         role = item.get("role")
         content = item.get("content")
