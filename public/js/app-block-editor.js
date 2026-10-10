@@ -202,6 +202,8 @@ const registerRenderer = (Blockly) => {
  * @param {(key: string) => boolean} deps.trial.isRunning
  * @param {(key: string) => void} deps.trial.stop
  * @param {(editing: boolean) => void} deps.trial.setEditing
+ * @param {Map<string, *>} deps.trial.variables 変数の入れ物。会話モードで動く
+ *        並びと共有する（試した並びどうしでも、値を受け渡せる）
  *        編集モードへ入る／出るとき。イベント実行の停止と再開は app.js 側が行う
  */
 const createBlockEditor = ({actionsUrl, getNames, namesReady, onApply, trial}) => {
@@ -805,7 +807,7 @@ const createBlockEditor = ({actionsUrl, getNames, namesReady, onApply, trial}) =
         setHighlight(root, true);
         setStatus("試しに動かしています…");
         try {
-            await trial.run(key, createStackAction(root));
+            await trial.run(key, createStackAction(root, {variables: trial.variables}));
         } finally {
             setHighlight(root, false);
             if (! isTrialRunning()) {

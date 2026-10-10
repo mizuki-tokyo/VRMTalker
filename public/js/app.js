@@ -141,8 +141,9 @@ const createTrialApi = (api) => {
  *
  * @param {object} runner          app-action-runner
  * @param {object} handwritten     app-avatar-actions.js
+ * @param {Map<string, *>} variables ブロックの変数の入れ物（アプリ全体で 1 つ）
  */
-const registerActions = async (runner, handwritten, program = null) => {
+const registerActions = async (runner, handwritten, variables, program = null) => {
     let fromJson = {};
 
     try {
@@ -153,7 +154,7 @@ const registerActions = async (runner, handwritten, program = null) => {
             }
             program = await response.json();
         }
-        const compiled = createActionProgram(program);
+        const compiled = createActionProgram(program, {variables});
         for (const warning of compiled.warnings) {
             console.warn(`アクション定義: ${warning}`);
         }
@@ -357,6 +358,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // アプリ全体で 1 つ持つ
     const stopwatch = new Stopwatch();
 
+    // ブロックの変数（名前 → 値）。Scratch と同じく、すべての並びで共有し、
+    // 出来事をまたいで値を保つ。編集画面で試すときも同じものを使う。
+    // 会話を始め直すとき（「はじめから実行」と、編集モードから会話モードへ
+    // 戻るとき）に空に戻す。ストップウォッチと同じ（startConversation を参照）
+    const variables = new Map();
+
     const runner = createActionRunner({
         conversation,
         createApi: (signal) => createAvatarApi({
@@ -376,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    const actionsRegistered = registerActions(runner, avatarActions);
+    const actionsRegistered = registerActions(runner, avatarActions, variables);
 
     /**
      * 会話を始める（始め直す）。
@@ -385,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
      * そのアクションが登録されていないと誰も待機へ移してくれない。
      * その場合は ready を飛ばして直接待機へ入る。
      *
-     * 見た目は読み込んだ直後の状態へ戻す（ストップウォッチも）。表情・視線・ポーズ・ジェスチャーは、
+     * 見た目は読み込んだ直後の状態へ戻す（ストップウォッチと変数も）。表情・視線・ポーズ・ジェスチャーは、
      * ブロックで変えたらブロックで戻す作りなので、戻し忘れたまま「はじめから」を
      * 押すと、前の続きの顔や姿勢で始まってしまう
      *
@@ -398,6 +405,7 @@ document.addEventListener('DOMContentLoaded', function() {
         avatar.stopGesture();
         stopwatch.stop();   // 止まって 0（はじめの状態）に戻す
         stopwatch.reset();
+        variables.clear();  // 変数も空（はじめの状態）に戻す
         conversation.restart(fireReady && runner.types.includes("ready"));
     };
 
@@ -433,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 保存とは切り離してある（どこかへ残すかは編集画面の「ファイル」の仕事）
         onApply: async (program) => {
             runner.abortAll();
-            await registerActions(runner, avatarActions, program);
+            await registerActions(runner, avatarActions, variables, program);
         },
 
         //----------------------------------
@@ -444,6 +452,8 @@ document.addEventListener('DOMContentLoaded', function() {
         //----------------------------------
         trial: {
             run: (key, action) => runner.runOnce(key, (api) => action(createTrialApi(api))),
+            // 試すときも、会話モードの並びと同じ変数を使う
+            variables,
             isRunning: (key) => runner.isRunning(key),
             stop: (key) => {
                 runner.abort(key);

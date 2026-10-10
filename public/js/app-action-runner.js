@@ -4,8 +4,10 @@
  * 実行の規則は 3 つだけ。ビジュアルプログラミングで組んだ人が
  * 「なぜこう動いたか」を説明できる範囲に絞ってある。
  *
- *   1. イベントごとに 1 本だけ走る。同じイベントが再び起きたら、前のアクションを
- *      中断してから新しいものを始める（Scratch のハットブロックと同じ）
+ *   1. イベントごとに 1 つだけ走る。同じイベントが再び起きたら、前のアクションを
+ *      中断してから新しいものを始める（Scratch の旗やメッセージの帽子ブロックと同じ）。
+ *      同じイベントの帽子ブロックが複数あれば、それらの並びをまとめて 1 つの
+ *      アクションとして扱う（app-action-program.js）。中断も、やり直しもまとめて
  *   2. 別のイベントのアクションとは並行して走る
  *   3. 状態を表すイベント（idle など）のアクションは、その状態を抜けるときに中断する
  *
@@ -21,7 +23,9 @@ import {ActionStopped} from "./app-avatar-api.js";
  * @param {(signal: AbortSignal) => object} deps.createApi
  *        アクションへ渡す API を作る。中断の合図を受け取る
  * @param {(type: string) => void} [deps.onSettled]
- *        アクションが終わったとき（成功・失敗・中断のいずれも）
+ *        アクションが終わったとき（成功・失敗・中断のいずれも）。ただし、同じ
+ *        イベントが再び起きて新しいアクションに置き換えられたときは呼ばない
+ *        （置き換えたアクションが終わったときに呼ぶ）
  */
 const createActionRunner = ({conversation, createApi, onSettled = () => {}}) => {
 
@@ -58,11 +62,19 @@ const createActionRunner = ({conversation, createApi, onSettled = () => {}}) => 
                 console.warn(`アクション "${type}" でエラーが起きました`, error);
             }
         } finally {
+            const current = running.get(type);
             // 既に次のアクションが始まっていたら、その管理を消さない
-            if (running.get(type) === controller) {
+            if (current === controller) {
                 running.delete(type);
             }
-            onSettled(type);
+            // 新しいアクションに置き換えられて中断されたときは、終わったとみなさない
+            // （終わったことは、置き換えたほうが終わったときに知らせる）。
+            // ここで知らせると、新しい返事をしている最中に会話が待機へ戻り、
+            // 「待機に入ったとき」が動き出したり、連続対話が聞き始めたりする
+            const replaced = current !== undefined && current !== controller;
+            if (! replaced) {
+                onSettled(type);
+            }
         }
     };
 
