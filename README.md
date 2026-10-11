@@ -492,6 +492,7 @@ public/
     app-action-runner.js    アクションの実行と中断
     app-blocks.js           ブロックの文言・形・パレット
     app-block-editor.js     編集画面（Blockly の組み立てと読み書き）
+    app-block-warnings.js   つまずきやすい組み方に、編集画面で警告を付ける
     app-motions.js          motions.json の読み込み
     poses.js                poses.json / gestures.json の読み込み
     sound-player.js         効果音

@@ -15,6 +15,7 @@
 
 import {defineBlocks, createToolbox} from "./app-blocks.js";
 import {createStackAction} from "./app-action-program.js";
+import createBlockWarnings from "./app-block-warnings.js";
 import dialog, {ICONS} from "./web-ui/dialog.js";
 
 /*
@@ -891,6 +892,13 @@ const createBlockEditor = ({actionsUrl, getNames, namesReady, onApply, trial}) =
             move: {scrollbars: true, drag: true, wheel: true}
         });
 
+        // つまずきやすい組み方に、警告のマークを付ける（app-block-warnings.js）。
+        // ブロックの並びが変わるたびに調べ直す
+        const blockWarnings = createBlockWarnings(workspace);
+        const STRUCTURE_EVENTS = new Set([
+            Blockly.Events.BLOCK_CREATE, Blockly.Events.BLOCK_DELETE, Blockly.Events.BLOCK_MOVE
+        ]);
+
         workspace.addChangeListener((event) => {
             // 読み込みが済んだ合図。Blockly はイベントを非同期に配るので、
             // 定義を読み込んだ直後の create などは loadProgram() が
@@ -898,7 +906,11 @@ const createBlockEditor = ({actionsUrl, getNames, namesReady, onApply, trial}) =
             // いないのに未保存の扱いになる
             if (event.type === Blockly.Events.FINISHED_LOADING) {
                 setDirty(false);
+                blockWarnings.update();
                 return;
+            }
+            if (STRUCTURE_EVENTS.has(event.type)) {
+                blockWarnings.update();
             }
             if (! event.isUiEvent) {
                 setDirty(true);
