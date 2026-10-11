@@ -47,6 +47,16 @@ const NARROW_BAR_WIDTH = 560;
 const STORAGE_KEY = "vrmtalker.editorWidth";
 
 /**
+ * 拡大・縮小。＋／－のボタンを 1 回押すと、拡大率が ZOOM_SPEED 倍
+ * （－なら 1 / ZOOM_SPEED 倍）になる。ZOOM_SPEED は Blockly の既定と同じ。
+ *
+ * 開いた直後は、0.8 倍から－を 1 回押した大きさにする（並びの全体を
+ * 見渡しやすくするため）
+ */
+const ZOOM_SPEED = 1.2;
+const START_SCALE = 0.8 / ZOOM_SPEED;
+
+/**
  * アクションのファイルに書く印。
  *
  * 中身は Blockly の保存（blocks / variables）に、こちらの素性（properties）を
@@ -888,7 +898,7 @@ const createBlockEditor = ({actionsUrl, getNames, namesReady, onApply, trial}) =
             // カテゴリ付きにするとパレットが開きっぱなしになり、Scratch に近くなる
             horizontalLayout: false,
             trashcan: true,
-            zoom: {controls: true, wheel: true, startScale: 0.8},
+            zoom: {controls: true, wheel: true, startScale: START_SCALE, scaleSpeed: ZOOM_SPEED},
             move: {scrollbars: true, drag: true, wheel: true}
         });
 
