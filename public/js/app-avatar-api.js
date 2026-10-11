@@ -269,6 +269,24 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
             avatar.clearExpressions();
         },
 
+        /**
+         * 表情を全部、徐々に消す。消え切るのを待たない。
+         *
+         * 会話の途中で「今の表情が何であれ、ふつうの顔に戻す」ときに使う。
+         * clearExpression() は一気に戻るので、途中だと不自然に見える。
+         * まばたきと口の形は消えない
+         */
+        clearExpressionIn(seconds) {
+            guard(() => avatar.fadeOutExpressions(Number(seconds)), "表情の変更")
+                .catch(() => {});
+        },
+
+        /** 表情を全部、徐々に消して、消え切るまで待つ。 */
+        async clearExpressionInAndWait(seconds) {
+            stopIfAborted();
+            await guard(() => avatar.fadeOutExpressions(Number(seconds)), "表情の変更");
+        },
+
         /** カメラの注視点をボーンに合わせる。視線（gaze…）とは別の話。 */
         lookAt(boneName) {
             avatar.focusCamera(String(boneName));

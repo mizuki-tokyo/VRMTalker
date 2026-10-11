@@ -211,6 +211,17 @@ const buildBlockUi = ({motionChoices = [], poseChoices = [], gestureChoices = []
             tooltip: "出している表情をすべて消して、ふつうの顔に戻す。"
                    + "まばたきと口の形はそのまま"
         },
+        avatar_clear_expression_in: {
+            message0: "表情を %1 秒で消す",
+            args0: [number("SECONDS")], style: "looks_blocks", inputsInline: true,
+            tooltip: "出している表情をすべて、徐々に消して、ふつうの顔に戻す。"
+                   + "今の表情が何であっても戻せる。消え切るのを待たない。"
+                   + "まばたきと口の形はそのまま"
+        },
+        avatar_clear_expression_in_wait: {
+            message0: "表情を %1 秒で消して終わるまで待つ",
+            args0: [number("SECONDS")], style: "looks_blocks", inputsInline: true
+        },
         avatar_look_at: {
             message0: "カメラを %1 に向ける",
             args0: [dropdown("BONE", BONES)], style: "motion_blocks",
@@ -547,6 +558,10 @@ export const createToolbox = () => {
                     {kind: "block", type: "avatar_change_expression_wait",
                      inputs: {VALUE: shadowNumber(0), SECONDS: shadowNumber(0.5)}},
                     {kind: "block", type: "avatar_clear_expression"},
+                    {kind: "block", type: "avatar_clear_expression_in",
+                     inputs: {SECONDS: shadowNumber(0.5)}},
+                    {kind: "block", type: "avatar_clear_expression_in_wait",
+                     inputs: {SECONDS: shadowNumber(0.5)}},
                     {kind: "block", type: "avatar_look_at"},
                     {kind: "block", type: "avatar_gaze_to"},
                     {kind: "block", type: "avatar_gaze_camera"},

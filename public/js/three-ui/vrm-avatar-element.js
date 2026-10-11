@@ -289,6 +289,48 @@ export default class VrmAvatarElement extends HTMLElement {
             return;
         }
 
+        return this._tweenResolvedExpression(resolved, value, duration, easing);
+    }
+
+    /**
+     * 表情をすべて、徐々に 0 に戻す。clearExpressions() の、時間をかける版。
+     *
+     *   await avatar.fadeOutExpressions(0.5);
+     *
+     * 対象は、今 0 より大きい表情と、変化の途中の表情（まだ 0 でも、これから
+     * 上がっていくもの）。今の値はモデルから読むので、何を出したかを覚えて
+     * おく必要はない。まばたき・視線・口の形は対象にしない（毎フレーム
+     * 設定し直されるため。消しても戻るし、口の形を消すと話している最中に
+     * 口が止まる）
+     *
+     * @param {number} [duration] 所要時間（秒）。0 以下なら即座に 0 にする
+     * @param {string|((t: number) => number)} [easing]
+     * @returns {Promise<void>} すべて 0 になった時点で解決する
+     */
+    async fadeOutExpressions(duration = 0.3, easing = "easeInOut") {
+        await this._ready;
+
+        const expressionManager = this._humanoid.vrm.expressionManager;
+        const automatic = new Set([
+            ...expressionManager.blinkExpressionNames,
+            ...expressionManager.lookAtExpressionNames,
+            ...expressionManager.mouthExpressionNames
+        ]);
+        const names = expressionManager.expressions
+              .map((expression) => expression.expressionName)
+              .filter((name) => ! automatic.has(name))
+              .filter((name) => (expressionManager.getValue(name) ?? 0) > 0
+                      || this._tweenedExpressions.has(name));
+
+        // 同じ表情の変化は、呼び直すと置き換わる（tweenExpression を参照）。
+        // 変化の途中のものも、その時点の値から 0 へ向かう
+        await Promise.all(names.map((name) =>
+            this._tweenResolvedExpression(name, 0, duration, easing)));
+    }
+
+    /** 解決済みの表情名で、表情を徐々に変化させる。 */
+    _tweenResolvedExpression(resolved, value, duration, easing) {
+        const expressionManager = this._humanoid.vrm.expressionManager;
         this._tweenedExpressions.add(resolved);
 
         return this._world.tween({
