@@ -67,10 +67,11 @@ const TIME_UNITS = [
 const STOPWATCH_ACTIONS = [["開始", "start"], ["停止", "stop"], ["リセット", "reset"]];
 
 /**
- * 返事の感情。画面には絵文字を出し、覚える値は js/emotion.js の id
- * （表情と同じ名前）にする
+ * 返事の感情。画面には絵文字と名前（「😄（うれしい）」）を出し、覚える値は
+ * js/emotion.js の id（表情と同じ名前）にする。出す文字を変えても、保存済みの
+ * アクションの選択は外れない
  */
-const REPLY_EMOTIONS = EMOTIONS.map(({id, emoji}) => [emoji, id]);
+const REPLY_EMOTIONS = EMOTIONS.map(({id, emoji, name}) => [`${emoji}（${name}）`, id]);
 
 /** 吹き出しの出し手。app-avatar-api.js の SPEAKER と合わせる。 */
 const SPEAKERS = [["キャラクタ", "キャラクタ"], ["あなた", "あなた"]];
@@ -316,9 +317,8 @@ const buildBlockUi = ({motionChoices = [], poseChoices = [], gestureChoices = []
             message0: "返事に感情 %1 が含まれる？",
             args0: [dropdown("EMOTION", REPLY_EMOTIONS)],
             output: "Boolean", style: "sensing_blocks",
-            tooltip: "直近の返事の気持ち。"
-                   + EMOTIONS.map(({emoji, name}) => `${emoji} ${name}`).join("、")
-                   + "。最初の一文が届いた時点で分かるので、一文ずつのくりかえしの中でも、"
+            tooltip: "直近の返事の気持ちを見る。"
+                   + "最初の一文が届いた時点で分かるので、一文ずつのくりかえしの中でも、"
                    + "返事を言い終えた後でも使える。気持ちが読み取れなかった返事では、"
                    + "どれを選んでも成り立たない"
         },

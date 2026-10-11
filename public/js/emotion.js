@@ -16,13 +16,16 @@
  * 感情の id は、表情の名前（happy など。VRM の基本表情）と同じにしてある。
  */
 
-/** 感情の一覧。並びはブロックのドロップダウンの順になる。 */
+/**
+ * 感情の一覧。並びはブロックのドロップダウンの順になる。
+ * name は、表情のブロックの選択肢（app-blocks.js の EXPRESSIONS）とそろえる
+ */
 export const EMOTIONS = Object.freeze([
     {id: "happy", emoji: "😄", name: "うれしい"},
-    {id: "angry", emoji: "😠", name: "怒っている"},
-    {id: "sad", emoji: "😢", name: "悲しい"},
-    {id: "surprised", emoji: "😮", name: "驚いた"},
-    {id: "relaxed", emoji: "😌", name: "落ち着いている"}
+    {id: "angry", emoji: "😠", name: "おこり"},
+    {id: "sad", emoji: "😢", name: "かなしい"},
+    {id: "surprised", emoji: "😮", name: "おどろき"},
+    {id: "relaxed", emoji: "😌", name: "リラックス"}
 ]);
 
 /**
