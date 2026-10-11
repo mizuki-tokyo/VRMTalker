@@ -162,10 +162,10 @@ const RENDERER_NAME = "vrmtalker-zelos";
 let rendererRegistered = false;
 
 /**
- * Zelos を土台に、C 型ブロックの左の縦棒を細くしたレンダラーを登録する。
+ * Zelos を土台にしたレンダラーを登録する。
  *
- * 「もし〜なら」「くりかえす」「ずっと」の左の棒は、Zelos の既定だと太く、
- * Scratch に慣れた目には不恰好に映る。
+ * 「もし〜なら」「くりかえす」「ずっと」の左の縦棒の幅を、ここで決める
+ * （STATEMENT_INPUT_PADDING_LEFT）。
  *
  * 寸法を持っているのは ConstantProvider なので、それを継承して数値を
  * 上書きし、上書きした側を返す Renderer を登録する。登録は一度きりで、
@@ -179,9 +179,11 @@ const registerRenderer = (Blockly) => {
     class ScratchLikeConstantProvider extends Blockly.zelos.ConstantProvider {
         constructor() {
             super();
-            // 内側の開始位置は NOTCH_OFFSET_LEFT(12) + この値になる。
-            // Zelos の既定は 16（合計 28px）で、Scratch はもっと細い
-            this.STATEMENT_INPUT_PADDING_LEFT = 4;
+            // C 型ブロックの左の縦棒の幅（px）。この値がそのまま棒の幅になる
+            // （中に入れたブロックが、この分だけ右へずれる。実測で確かめた）。
+            // Scratch と同じにする。今の Scratch（scratch-blocks）は Zelos を
+            // 土台にしていて、この値は Zelos の既定（16）のまま使っている
+            this.STATEMENT_INPUT_PADDING_LEFT = 16;
         }
     }
 
