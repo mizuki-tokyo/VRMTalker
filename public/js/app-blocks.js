@@ -73,6 +73,19 @@ const STOPWATCH_ACTIONS = [["開始", "start"], ["停止", "stop"], ["リセッ�
  */
 const REPLY_EMOTIONS = EMOTIONS.map(({id, emoji, name}) => [`${emoji}（${name}）`, id]);
 
+/**
+ * 返事のくりかえしのブロックが、はじめに使う変数の名前。
+ *
+ * 中身に合わせた名前（「文」）にすると、パレットの「変数」の欄に「{文} を
+ * 1 増やす」のような不自然な組み合わせが出る（Blockly は、そこにいちばん
+ * 最近作られた変数を入れる）。また「一文ずつ {変数} に入れて」のほうが、
+ * 中身を言い重ねずに読める。日本語版の Scratch がはじめに用意する変数の
+ * 名前も「変数」。
+ *
+ * 保存済みのアクションは、その中に記録された名前（以前の「文」など）で動く
+ */
+const DEFAULT_VARIABLE_NAME = "変数";
+
 /** 吹き出しの出し手。app-avatar-api.js の SPEAKER と合わせる。 */
 const SPEAKERS = [["キャラクタ", "キャラクタ"], ["あなた", "あなた"]];
 
@@ -479,7 +492,7 @@ export const defineBlocks = (Blockly, names = {}) => {
         message0: "%1 への返事を考え、一文ずつ %2 に入れてくりかえす",
         args0: [
             {type: "input_value", name: "PROMPT"},
-            {type: "field_variable", name: "SENTENCE", variable: "文"}
+            {type: "field_variable", name: "SENTENCE", variable: DEFAULT_VARIABLE_NAME}
         ],
         message1: "%1",
         args1: [{type: "input_statement", name: "DO"}],
@@ -492,7 +505,7 @@ export const defineBlocks = (Blockly, names = {}) => {
     definitions.push({
         type: "chat_each_reply_sentence",
         message0: "返事を一文ずつ %1 に入れてくりかえす",
-        args0: [{type: "field_variable", name: "SENTENCE", variable: "文"}],
+        args0: [{type: "field_variable", name: "SENTENCE", variable: DEFAULT_VARIABLE_NAME}],
         message1: "%1",
         args1: [{type: "input_statement", name: "DO"}],
         previousStatement: null, nextStatement: null, style: "sensing_blocks",
