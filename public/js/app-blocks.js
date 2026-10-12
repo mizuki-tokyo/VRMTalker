@@ -334,8 +334,10 @@ const buildBlockUi = ({motionChoices = [], poseChoices = [], gestureChoices = []
                    + "リセット：0 に戻す（動いていれば 0 から数え続ける）。"
                    + "はじめは止まって 0"
         },
+        // 単位を書く。ほかのブロック（「1 秒待つ」など）もすべて単位を書いて
+        // おり、値を比べる数を決めるときに迷わないように
         value_stopwatch: {
-            message0: "ストップウォッチ", args0: [],
+            message0: "ストップウォッチの秒数", args0: [],
             output: "Number", style: "control_blocks",
             tooltip: "開始してからの秒数（0.1 秒単位）。止めている間は進まない"
         },
