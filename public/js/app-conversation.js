@@ -45,6 +45,91 @@ export const PHASE = Object.freeze({
 });
 
 
+/**
+ * 頼んだ返事。裏で一文ずつ受け取り、受け取った文を覚えておく。
+ *
+ *   const reply = new Reply(conversation.replySentences(text));
+ *   await reply.firstSentence();             // 最初の一文が届くまで待つ
+ *   for await (const sentence of reply) { }  // 届いた順に、1 文目から取り出す
+ *
+ * 取り出すたびに 1 文目から始まるので、同じ返事を何度でもたどれる。
+ * 読み手がいなくても最後まで受け取る（会話の履歴に返事が残るように）。
+ * cancel() すると、次の文が届いた時点で受け取るのをやめる（履歴にも残らない）
+ */
+export class Reply {
+
+    _sentences = [];
+    _done = false;
+    _cancelled = false;
+
+    // 文が届いた・終わったことを、待っている読み手に知らせる
+    _notify = null;
+    _changed = null;
+
+    /** @param {AsyncIterable<string>} sentences Conversation.replySentences() */
+    constructor(sentences) {
+        this._renewSignal();
+        this._receive(sentences);
+    }
+
+    /** 受け取り終えたか（失敗・取りやめも含む）。 */
+    get done() {
+        return this._done;
+    }
+
+    /** 最初の一文が届くまで待つ。届かずに終わったとき（失敗など）も解決する。 */
+    async firstSentence() {
+        while (this._sentences.length === 0 && ! this._done) {
+            await this._changed;
+        }
+    }
+
+    /** 受け取るのをやめる。 */
+    cancel() {
+        this._cancelled = true;
+    }
+
+    async *[Symbol.asyncIterator]() {
+        for (let i = 0; ; i++) {
+            while (i >= this._sentences.length && ! this._done) {
+                await this._changed;
+            }
+            if (i >= this._sentences.length) {
+                return;
+            }
+            yield this._sentences[i];
+        }
+    }
+
+    async _receive(sentences) {
+        try {
+            for await (const sentence of sentences) {
+                if (this._cancelled) {
+                    break;  // 読むのをやめると、ストリームの後片付けが走る
+                }
+                this._sentences.push(sentence);
+                this._signal();
+            }
+        } finally {
+            this._done = true;
+            this._signal();
+        }
+    }
+
+    _renewSignal() {
+        this._changed = new Promise((resolve) => {
+            this._notify = resolve;
+        });
+    }
+
+    _signal() {
+        const notify = this._notify;
+        this._renewSignal();
+        notify();
+    }
+}
+
+
 class Conversation extends EventTarget {
 
     _chatClient = null;
@@ -62,6 +147,9 @@ class Conversation extends EventTarget {
 
     // 直近の返事の感情（js/emotion.js の id）。分からなければ null
     _replyEmotion = null;
+
+    // 直近に頼んだ返事（Reply）。まだ頼んでいなければ null
+    _currentReply = null;
 
     /** 返事の文の頭に、感情の絵文字を付けるか（設定の「表示」）。 */
     showEmotionEmoji = true;
@@ -87,6 +175,26 @@ class Conversation extends EventTarget {
      */
     get replyEmotion() {
         return this._replyEmotion;
+    }
+
+    /**
+     * 直近に頼んだ返事（Reply）。まだ頼んでいなければ null。
+     * ブロックの「返事を一文ずつ〜くりかえす」が、ここから文を取り出す
+     */
+    get currentReply() {
+        return this._currentReply;
+    }
+
+    /**
+     * 返事を頼む。返事は裏で受け取り続け、currentReply から取り出せる。
+     * 最初の一文を待つのは呼び出し側（Reply.firstSentence()）。
+     *
+     * @param {string} text 返事のもとになる発話
+     * @returns {Reply}
+     */
+    startReply(text) {
+        this._currentReply = new Reply(this.replySentences(text));
+        return this._currentReply;
     }
 
     /** 今が入力待ちかどうか。 */

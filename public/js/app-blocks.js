@@ -307,6 +307,14 @@ const buildBlockUi = ({motionChoices = [], poseChoices = [], gestureChoices = []
             args0: [text("PROMPT")], style: "sensing_blocks",
             tooltip: "返事を考えて、吹き出しに出しながら話す"
         },
+        chat_think_reply: {
+            message0: "%1 への返事を考える",
+            args0: [text("PROMPT")], style: "sensing_blocks",
+            tooltip: "返事を考えはじめ、最初の一文ができるまで待つ。残りの文は"
+                   + "「返事を一文ずつ〜に入れてくりかえす」で取り出す。"
+                   + "最初の一文で返事した時の感情が決まるので、このすぐ後で、"
+                   + "感情に合わせて 1 回だけ行う処理を書ける"
+        },
         chat_clear_history: {
             message0: "会話の記憶を消す", args0: [], style: "sensing_blocks",
             tooltip: "キャラクタが前のやり取りを覚えていない状態に戻す。"
@@ -463,10 +471,12 @@ export const defineBlocks = (Blockly, names = {}) => {
         definitions.push(definition);
     }
 
-    // 応答のループ。コの字型で、中に返事 1 文ぶんの処理を書く
+    // 応答のループ。コの字型で、中に返事 1 文ぶんの処理を書く。
+    // 下の 2 つ（「〜への返事を考える」と「返事を一文ずつ〜くりかえす」）を
+    // まとめたものなので、言葉もそれに合わせる
     definitions.push({
         type: "chat_reply_each_sentence",
-        message0: "%1 への返事を一文ずつ %2 に入れてくりかえす",
+        message0: "%1 への返事を考え、一文ずつ %2 に入れてくりかえす",
         args0: [
             {type: "input_value", name: "PROMPT"},
             {type: "field_variable", name: "SENTENCE", variable: "文"}
@@ -475,6 +485,20 @@ export const defineBlocks = (Blockly, names = {}) => {
         args1: [{type: "input_statement", name: "DO"}],
         previousStatement: null, nextStatement: null, style: "sensing_blocks",
         tooltip: "返事は文ができた順に届きます。全部できあがるのを待ちません"
+    });
+
+    // 「〜への返事を考える」で頼んだ返事を取り出すループ。上のブロックを
+    // 2 つに分けたもの（間に、感情に合わせて 1 回だけ行う処理を書ける）
+    definitions.push({
+        type: "chat_each_reply_sentence",
+        message0: "返事を一文ずつ %1 に入れてくりかえす",
+        args0: [{type: "field_variable", name: "SENTENCE", variable: "文"}],
+        message1: "%1",
+        args1: [{type: "input_statement", name: "DO"}],
+        previousStatement: null, nextStatement: null, style: "sensing_blocks",
+        tooltip: "「〜への返事を考える」で考えた返事を、1 文目から順に取り出します。"
+               + "まだできていない文は、できるまで待ちます。"
+               + "返事をまだ考えていなければ、何もしません"
     });
 
     definitions.push({
@@ -603,12 +627,17 @@ export const createToolbox = () => {
             {
                 kind: "category", name: "会話", categorystyle: "sensing_category",
                 contents: [
+                    // 考える → 感情を見る → 一文ずつ、の順に並べる（組む順と同じ）
+                    {kind: "block", type: "chat_think_reply",
+                     inputs: {PROMPT: {block: {type: "value_user_text"}}}},
+                    {kind: "block", type: "chat_reply_emotion"},
+                    {kind: "block", type: "chat_each_reply_sentence"},
+                    // 上の 2 つを 1 つにまとめたもの。手軽に書ける
                     {kind: "block", type: "chat_reply_each_sentence",
                      inputs: {PROMPT: {block: {type: "value_user_text"}}}},
                     {kind: "block", type: "chat_reply",
                      inputs: {PROMPT: {block: {type: "value_user_text"}}}},
                     {kind: "block", type: "chat_clear_history"},
-                    {kind: "block", type: "chat_reply_emotion"},
                     {kind: "block", type: "value_user_text"},
                     {kind: "block", type: "value_character_name"},
                     {kind: "block", type: "value_error_message"},

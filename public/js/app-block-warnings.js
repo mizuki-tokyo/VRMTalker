@@ -14,12 +14,15 @@
  *   2. 「ユーザの発話が決まったとき」の並びに「ずっと」がある
  *      並びが終わらないので、会話が待機に戻らず、「待機に入ったとき」が
  *      動かない。連続対話では、次の発話を聞かなくなる
+ *   3. 「返事を一文ずつ〜くりかえす」の前に「〜への返事を考える」が無い
+ *      取り出す返事が無いので、何もしない（前の返事が残っていれば、それを
+ *      もう一度たどる）
  */
 
 import {EVENT_BLOCKS} from "./app-action-program.js";
 
 /** 返事を頼むブロック。 */
-const REPLY_BLOCKS = new Set(["chat_reply", "chat_reply_each_sentence"]);
+const REPLY_BLOCKS = new Set(["chat_reply", "chat_reply_each_sentence", "chat_think_reply"]);
 
 /**
  * 警告の種類（setWarningText の id）と文。
@@ -48,8 +51,49 @@ const WARNINGS = Object.freeze({
             "「待機に入ったとき」が動かなくなります。",
             "連続対話では、次の発話を聞かなくなります。"
         ].join("\n")
+    },
+    eachWithoutThink: {
+        id: "each-without-think",
+        text: [
+            "この前に「〜への返事を考える」がありません。",
+            "",
+            "取り出す返事が無いので、何もしません。",
+            "同じ並びの、このブロックより上に",
+            "「〜への返事を考える」を置いてください。"
+        ].join("\n")
     }
 });
+
+/**
+ * 並びの中で、block より前に実行されるブロックに type があるか。
+ *
+ * 「前」は、block から上へ（つながった前のブロックへ）たどり、包んでいる
+ * ブロック（「もし」「くりかえす」など）の中ではその前も見る。包んでいる
+ * ブロックの条件の中は見ない（返事を考えるブロックは条件に入らない）
+ */
+const hasEarlier = (block, type) => {
+    for (let current = block; current; current = current.getSurroundParent()) {
+        const surround = current.getSurroundParent();
+        for (let previous = current.getPreviousBlock(); previous && previous !== surround;
+             previous = previous.getPreviousBlock()) {
+            // 包んでいるブロックの中の先頭では、getPreviousBlock() が包んでいる
+            // ブロックそのものを返すので、そこで止める（ループの条件）
+            if (containsType(previous, type)) {
+                return true;
+            }
+        }
+    }
+    return false;
+};
+
+/**
+ * block そのものか、その中（差し込み口・C 型の口）に type があるか。
+ * 後ろにつながったブロックは見ない（getDescendants は後ろまで含むので使わない）
+ */
+const containsType = (block, type) =>
+      block.type === type
+      || block.inputList.some((input) => input.connection?.targetBlock()
+          ?.getDescendants(false).some((inner) => inner.type === type));
 
 
 /**
@@ -105,6 +149,15 @@ export const createBlockWarnings = (workspace) => {
                 for (const block of stacks.flat()) {
                     add(block, WARNINGS.duplicateReply);
                 }
+            }
+        }
+
+        // 「返事を一文ずつ〜くりかえす」の前に「返事を考える」が無い。
+        // 帽子の無い並び（試しに動かすためのもの）も見る
+        for (const block of workspace.getAllBlocks(false)) {
+            if (block.type === "chat_each_reply_sentence"
+                && ! hasEarlier(block, "chat_think_reply")) {
+                add(block, WARNINGS.eachWithoutThink);
             }
         }
         return wanted;

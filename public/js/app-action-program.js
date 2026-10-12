@@ -104,6 +104,8 @@ export const CALL_BLOCKS = Object.freeze({
 
     // 会話
     chat_reply:               {fn: "reply",                   args: ["PROMPT"]},
+    // 返事を頼み、最初の一文が届くまで待つ（残りは chat_each_reply_sentence で）
+    chat_think_reply:         {fn: "thinkReply",              args: ["PROMPT"]},
     chat_clear_history:       {fn: "clearHistory",            args: []},
 
     // 制御（値を返さないもの）
@@ -139,7 +141,7 @@ const BUILTIN_BLOCKS = Object.freeze([
     // controls_if は Blockly 標準の歯車付き。パレットからは外したが、
     // 以前の定義がそのまま動くよう解釈だけは残してある
     "controls_if",
-    "chat_reply_each_sentence", "variables_set",
+    "chat_reply_each_sentence", "chat_each_reply_sentence", "variables_set",
     // 値
     "text", "math_number", "logic_boolean", "variables_get", "text_join",
     "math_arithmetic", "logic_compare", "logic_operation", "logic_negate"
@@ -409,6 +411,21 @@ const createInterpreter = (tree, warnOnce) => {
         return undefined;
     };
 
+    /**
+     * 返事の文を 1 つずつ変数に入れて、中身をくりかえす。
+     * 変数はブロックの SENTENCE フィールドで選んだもの
+     */
+    const eachSentence = async (block, sentences, ctx) => {
+        // 生のブロックではフィールドが変数の id を返すので、ブロックを渡して
+        // 名前に引き直す。渡さないと variables_get 側と食い違う
+        const name = variableName(fieldValue(block, "SENTENCE"), block);
+        for await (const sentence of sentences) {
+            ctx.variables.set(name, sentence);
+            await runStatements(inputBlock(block, "DO"), ctx);
+            await ctx.api.tick();
+        }
+    };
+
     /** 条件を求めて、成り立てば then を、成り立たなければ otherwise を実行する。 */
     const runIf = (block, conditionName, ctx, then, otherwise = null) =>
           andThen(evaluate(inputBlock(block, conditionName), ctx), (condition) => {
@@ -477,18 +494,15 @@ const createInterpreter = (tree, warnOnce) => {
         }
 
         case "chat_reply_each_sentence":
-            // 返事を待つので、いつも処理を譲る
+            // 返事を頼み、届いた順に 1 文ずつくりかえす。返事を待つので、いつも処理を譲る
             return (async () => {
                 const prompt = await readArgument(block, "PROMPT", ctx);
-                // 生のブロックではフィールドが変数の id を返すので、ブロックを渡して
-                // 名前に引き直す。渡さないと variables_get 側と食い違う
-                const name = variableName(fieldValue(block, "SENTENCE"), block);
-                for await (const sentence of ctx.api.replySentences(prompt)) {
-                    ctx.variables.set(name, sentence);
-                    await runStatements(inputBlock(block, "DO"), ctx);
-                    await ctx.api.tick();
-                }
+                await eachSentence(block, ctx.api.replySentences(prompt), ctx);
             })();
+
+        case "chat_each_reply_sentence":
+            // 「返事を考える」で頼んだ返事を、1 文目から順にくりかえす
+            return eachSentence(block, ctx.api.eachReplySentence(), ctx);
 
         case "variables_set": {
             const name = variableName(fieldValue(block, "VAR"), block);

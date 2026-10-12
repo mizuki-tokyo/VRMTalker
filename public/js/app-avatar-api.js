@@ -78,6 +78,47 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
         signal.addEventListener("abort", onAbort, {once: true});
     });
 
+    /**
+     * 中断されたら ActionStopped で失敗する Promise。待つものと競わせて使う。
+     * 競争に負けた後で中断されても「処理されていない失敗」にならないよう、
+     * 失敗をここで一度受け止めておく（競わせた側には、そのまま伝わる）
+     */
+    const whenAborted = () => {
+        const aborted = new Promise((resolve, reject) => {
+            if (signal.aborted) {
+                reject(new ActionStopped());
+                return;
+            }
+            signal.addEventListener("abort", () => reject(new ActionStopped()), {once: true});
+        });
+        aborted.catch(() => {});
+        return aborted;
+    };
+
+    /**
+     * 返事を頼み、最初の一文が届くまで待つ。
+     * 中断されたら、裏で受け取っている返事も打ち切る（考え中の吹き出しや、
+     * 会話の履歴に途中の返事を残さないため）
+     */
+    const askReply = async (text) => {
+        stopIfAborted();
+        const reply = conversation.startReply(String(text));
+        signal.addEventListener("abort", () => reply.cancel(), {once: true});
+        await Promise.race([reply.firstSentence(), whenAborted()]);
+        return reply;
+    };
+
+    /** 返事を 1 文目から取り出す。文ごとに中断を確かめる。 */
+    const readReply = async function* (reply) {
+        if (! reply) {
+            return;
+        }
+        for await (const sentence of reply) {
+            stopIfAborted();
+            yield sentence;
+        }
+    };
+
     /** 失敗しても止まらないようにする。中断だけはそのまま投げ直す。 */
     const guard = async (work, what) => {
         try {
@@ -409,15 +450,36 @@ const createAvatarApi = ({avatar, emote, chatFlow, speechSynthesizer, sounds, vo
         },
 
         /**
-         * 返事を一文ずつ取り出す。ループブロックの中身になる。
+         * 返事を考える（頼む）。最初の一文が届くまで待つ。
+         *
+         * 残りの文は裏で受け取り続け、eachReplySentence() で取り出す。
+         * 最初の一文で返事の感情が決まるので、このあとすぐに
+         * replyHasEmotion() で見られる。全文を待たないので、話し始めは早い
+         *
+         *   await api.thinkReply(api.userText());
+         *   if (api.replyHasEmotion("happy")) { ... }      // 1 回だけ行う処理
+         *   for await (const sentence of api.eachReplySentence()) { ... }
+         */
+        async thinkReply(text) {
+            await askReply(text);
+        },
+
+        /**
+         * 直近に考えた返事を、1 文目から順に取り出す。ループブロックの中身になる。
+         * まだ届いていない文は、届くまで待つ。返事をまだ考えていなければ何もしない
+         */
+        async *eachReplySentence() {
+            yield* readReply(conversation.currentReply);
+        },
+
+        /**
+         * 返事を考えて、一文ずつ取り出す。thinkReply() と eachReplySentence() を
+         * まとめたもの（ブロックの「〜への返事を考え、一文ずつ〜に入れてくりかえす」）。
          *
          *   for await (const sentence of api.replySentences(api.userText())) { ... }
          */
         async *replySentences(text) {
-            for await (const sentence of conversation.replySentences(String(text))) {
-                stopIfAborted();
-                yield sentence;
-            }
+            yield* readReply(await askReply(text));
         },
 
         /**
