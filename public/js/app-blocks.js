@@ -689,11 +689,15 @@ export const createToolbox = () => {
                     {kind: "block", type: "operator_join",
                      inputs: {STRING1: shadowText("おはよう"),
                               STRING2: shadowText("ございます")}},
+                    // "text_join" は３つ以上のテキストの結合できる便利なブロックだが
+                    // Scratch には存在しない概念なので、現状はフライアウトに掲載しない方針
+                    /*
                     {kind: "block", type: "text_join",
                      extraState: {itemCount: 3},
                      inputs: {ADD0: shadowText("きょうは"),
                               ADD1: shadowText("いい"),
                               ADD2: shadowText("天気")}},
+                    */
                     {kind: "block", type: "operator_includes",
                      inputs: {TEXT: {block: {type: "value_user_text"}},
                               WORD: shadowText("ありがとう")}},
