@@ -1,52 +1,89 @@
 {
+  "format": "vrmtalker-action",
+  "version": 1,
+  "properties": {
+    "name": "サンプル",
+    "description": "サンプルです",
+    "author": "mizuki",
+    "created": "2026-10-11"
+  },
   "blocks": {
     "languageVersion": 0,
     "blocks": [
       {
         "type": "event_ready",
         "id": "y;K#oK.v!Vw#L*F6m$v!",
-        "x": 22,
-        "y": 12,
+        "x": 19,
+        "y": -16,
         "next": {
           "block": {
             "type": "screen_clear_bubbles",
             "id": "FuQvT8hh9`S29!!/(8La",
             "next": {
               "block": {
-                "type": "avatar_speak_and_wait",
-                "id": "oSneW(7X:$p6K~Rzz5j`",
+                "type": "avatar_change_expression",
+                "id": ")HX~~aYdU@O[zQvK;0n4",
+                "fields": {
+                  "NAME": "happy"
+                },
                 "inputs": {
-                  "TEXT": {
-                    "block": {
-                      "type": "operator_join",
-                      "id": "L)CB1q}qg)DUT{/qHh2l",
-                      "inputs": {
-                        "STRING1": {
-                          "shadow": {
-                            "type": "text",
-                            "id": "eAE9d`_bpX%%g?V.vJ^h",
-                            "fields": {
-                              "TEXT": "こんにちは。わたしは"
-                            }
-                          }
-                        },
-                        "STRING2": {
-                          "block": {
-                            "type": "operator_join",
-                            "id": "Zq4!]t2bWmE{v0^xH:sF",
-                            "inputs": {
-                              "STRING1": {
-                                "block": {
-                                  "type": "value_character_name",
-                                  "id": "VgKn[5VDKbc(9?)1Ut_0"
+                  "VALUE": {
+                    "shadow": {
+                      "type": "math_number",
+                      "id": "/%/7)3rkh~HiO@^V;6tf",
+                      "fields": {
+                        "NUM": 1
+                      }
+                    }
+                  },
+                  "SECONDS": {
+                    "shadow": {
+                      "type": "math_number",
+                      "id": "(8JR?9/.3^p6f#^v+]7x",
+                      "fields": {
+                        "NUM": 0.3
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "avatar_speak_and_wait",
+                    "id": "oSneW(7X:$p6K~Rzz5j`",
+                    "inputs": {
+                      "TEXT": {
+                        "block": {
+                          "type": "operator_join",
+                          "id": "L)CB1q}qg)DUT{/qHh2l",
+                          "inputs": {
+                            "STRING1": {
+                              "shadow": {
+                                "type": "text",
+                                "id": "eAE9d`_bpX%%g?V.vJ^h",
+                                "fields": {
+                                  "TEXT": "こんにちは。わたしは"
                                 }
-                              },
-                              "STRING2": {
-                                "shadow": {
-                                  "type": "text",
-                                  "id": "r~UXzR!y=T%IjfhQz`86",
-                                  "fields": {
-                                    "TEXT": "です。"
+                              }
+                            },
+                            "STRING2": {
+                              "block": {
+                                "type": "operator_join",
+                                "id": "Zq4!]t2bWmE{v0^xH:sF",
+                                "inputs": {
+                                  "STRING1": {
+                                    "block": {
+                                      "type": "value_character_name",
+                                      "id": "VgKn[5VDKbc(9?)1Ut_0"
+                                    }
+                                  },
+                                  "STRING2": {
+                                    "shadow": {
+                                      "type": "text",
+                                      "id": "r~UXzR!y=T%IjfhQz`86",
+                                      "fields": {
+                                        "TEXT": "です。"
+                                      }
+                                    }
                                   }
                                 }
                               }
@@ -54,23 +91,61 @@
                           }
                         }
                       }
-                    }
-                  }
-                },
-                "next": {
-                  "block": {
-                    "type": "screen_show_bubble",
-                    "id": "r77GW|E.lcyrQ5aUMKh5",
-                    "fields": {
-                      "WHO": "キャラクタ"
                     },
-                    "inputs": {
-                      "TEXT": {
-                        "shadow": {
-                          "type": "text",
-                          "id": "]yCl(?I8_#w%{sD(xtzE",
-                          "fields": {
-                            "TEXT": "マイクのボタンを押して話しかけてください。"
+                    "next": {
+                      "block": {
+                        "type": "screen_show_bubble",
+                        "id": "r77GW|E.lcyrQ5aUMKh5",
+                        "fields": {
+                          "WHO": "キャラクタ"
+                        },
+                        "inputs": {
+                          "TEXT": {
+                            "shadow": {
+                              "type": "text",
+                              "id": "]yCl(?I8_#w%{sD(xtzE",
+                              "fields": {
+                                "TEXT": "マイクのボタンを押して話しかけてください。"
+                              }
+                            }
+                          }
+                        },
+                        "next": {
+                          "block": {
+                            "type": "avatar_change_expression_wait",
+                            "id": "%c4IrGNw8D5r_7KapxS%",
+                            "fields": {
+                              "NAME": "happy"
+                            },
+                            "inputs": {
+                              "VALUE": {
+                                "shadow": {
+                                  "type": "math_number",
+                                  "id": "{zg56C?Ou|%bbJT~-jM8",
+                                  "fields": {
+                                    "NUM": 0
+                                  }
+                                }
+                              },
+                              "SECONDS": {
+                                "shadow": {
+                                  "type": "math_number",
+                                  "id": "11bZ(;CpKlS]^@a?MY6=",
+                                  "fields": {
+                                    "NUM": 0.5
+                                  }
+                                }
+                              }
+                            },
+                            "next": {
+                              "block": {
+                                "type": "control_stopwatch",
+                                "id": "*G#60L/0TgdU#.p,q.th",
+                                "fields": {
+                                  "ACTION": "start"
+                                }
+                              }
+                            }
                           }
                         }
                       }
@@ -85,8 +160,8 @@
       {
         "type": "event_listenend",
         "id": "v0V*R-XEDswb(?_Y9d4E",
-        "x": 14,
-        "y": 278,
+        "x": 20,
+        "y": 446,
         "next": {
           "block": {
             "type": "screen_show_bubble",
@@ -104,101 +179,72 @@
             },
             "next": {
               "block": {
-                "type": "avatar_play_gesture",
-                "id": "(rXOsp0!D^ik:V+yvfpY",
-                "fields": {
-                  "HAND": "right",
-                  "NAME": "handup"
-                },
+                "type": "chat_think_reply",
+                "id": "cm(IaGeklJ13i[cJNInS",
                 "inputs": {
-                  "SECONDS": {
-                    "shadow": {
-                      "type": "math_number",
-                      "id": "hG3#vQ9pL2]xT7mWz!aK",
-                      "fields": {
-                        "NUM": 3
-                      }
+                  "PROMPT": {
+                    "block": {
+                      "type": "value_user_text",
+                      "id": "+u;1S%s6ThSdDVLRDF]7"
                     }
                   }
                 },
                 "next": {
                   "block": {
-                    "type": "avatar_change_expression",
-                    "id": "tP7A$k:)K=a+Y+uEFO9d",
+                    "type": "avatar_play_gesture",
+                    "id": "(rXOsp0!D^ik:V+yvfpY",
                     "fields": {
-                      "NAME": "happy"
+                      "HAND": "right",
+                      "NAME": "handup"
                     },
                     "inputs": {
-                      "VALUE": {
-                        "shadow": {
-                          "type": "math_number",
-                          "id": "RFFo!SYEC!5*AJ;@bhl7",
-                          "fields": {
-                            "NUM": 1
-                          }
-                        }
-                      },
                       "SECONDS": {
                         "shadow": {
                           "type": "math_number",
-                          "id": "@0XkAmi}4h,bW_aR:+w{",
+                          "id": "hG3#vQ9pL2]xT7mWz!aK",
                           "fields": {
-                            "NUM": 0.3
+                            "NUM": 3
                           }
                         }
                       }
                     },
                     "next": {
                       "block": {
-                        "type": "chat_reply_each_sentence",
-                        "id": "Nh7kU^8ELaw[$7G|+kNK",
-                        "fields": {
-                          "SENTENCE": {
-                            "id": "sentenceVar01"
-                          }
-                        },
+                        "type": "control_if",
+                        "id": "0*twP{MapI[m~D0l!54k",
                         "inputs": {
-                          "PROMPT": {
+                          "CONDITION": {
                             "block": {
-                              "type": "value_user_text",
-                              "id": "/aOHXg69KlAMy$Mq(.v2"
+                              "type": "chat_reply_emotion",
+                              "id": "27W=Q+!|%-I#n^(:1t$N",
+                              "fields": {
+                                "EMOTION": "happy"
+                              }
                             }
                           },
                           "DO": {
                             "block": {
-                              "type": "screen_show_bubble",
-                              "id": "3No,m*A$U3/n|v@1;Vvq",
+                              "type": "avatar_change_expression",
+                              "id": "~:rXRJ66@po9^;dcdN+/",
                               "fields": {
-                                "WHO": "キャラクタ"
+                                "NAME": "happy"
                               },
                               "inputs": {
-                                "TEXT": {
-                                  "block": {
-                                    "type": "variables_get",
-                                    "id": "Li^Y4C-l:Pb*mSue[0oz",
+                                "VALUE": {
+                                  "shadow": {
+                                    "type": "math_number",
+                                    "id": "m-Gae.eiL)r$?S/ny~f/",
                                     "fields": {
-                                      "VAR": {
-                                        "id": "sentenceVar01"
-                                      }
+                                      "NUM": 1
                                     }
                                   }
-                                }
-                              },
-                              "next": {
-                                "block": {
-                                  "type": "avatar_speak_and_wait",
-                                  "id": "ia$`SaQ4!`Ys^SdX)[?~",
-                                  "inputs": {
-                                    "TEXT": {
-                                      "block": {
-                                        "type": "variables_get",
-                                        "id": "y[O8FDT1Mqnri3df`Q9Z",
-                                        "fields": {
-                                          "VAR": {
-                                            "id": "sentenceVar01"
-                                          }
-                                        }
-                                      }
+                                },
+                                "SECONDS": {
+                                  "shadow": {
+                                    "type": "math_number",
+                                    "id": "bglQu,6h}~IX[,T*$96X",
+                                    "fields": {
+                                      "NUM": 0.3
                                     }
                                   }
                                 }
@@ -208,27 +254,270 @@
                         },
                         "next": {
                           "block": {
-                            "type": "avatar_change_expression_wait",
-                            "id": "a]{mGz)RwGda:[~qKLu=",
-                            "fields": {
-                              "NAME": "happy"
-                            },
+                            "type": "control_if",
+                            "id": "WUouMeC3GbmlS56g^,+V",
                             "inputs": {
-                              "VALUE": {
-                                "shadow": {
-                                  "type": "math_number",
-                                  "id": "*%6NhV-8P5~/+N:dR!+5",
+                              "CONDITION": {
+                                "block": {
+                                  "type": "chat_reply_emotion",
+                                  "id": "2yC7y;$6#IeD/sIF[UF2",
                                   "fields": {
-                                    "NUM": 0
+                                    "EMOTION": "angry"
                                   }
                                 }
                               },
-                              "SECONDS": {
-                                "shadow": {
-                                  "type": "math_number",
-                                  "id": "f|+*O*BIm{#us|H]*[7}",
+                              "DO": {
+                                "block": {
+                                  "type": "avatar_change_expression",
+                                  "id": "FB+AN/UgP=FkrUw]7F!/",
                                   "fields": {
-                                    "NUM": 0.5
+                                    "NAME": "angry"
+                                  },
+                                  "inputs": {
+                                    "VALUE": {
+                                      "shadow": {
+                                        "type": "math_number",
+                                        "id": "PdoXOi{+:%V=Q$#hDAZY",
+                                        "fields": {
+                                          "NUM": 1
+                                        }
+                                      }
+                                    },
+                                    "SECONDS": {
+                                      "shadow": {
+                                        "type": "math_number",
+                                        "id": "e%w=:o~-5K{e_uIN:dAe",
+                                        "fields": {
+                                          "NUM": 0.3
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "next": {
+                              "block": {
+                                "type": "control_if",
+                                "id": ";7#|(^w;sS7R}cTsMES#",
+                                "inputs": {
+                                  "CONDITION": {
+                                    "block": {
+                                      "type": "chat_reply_emotion",
+                                      "id": "AByP[y4:nb~/SaADCofZ",
+                                      "fields": {
+                                        "EMOTION": "sad"
+                                      }
+                                    }
+                                  },
+                                  "DO": {
+                                    "block": {
+                                      "type": "avatar_change_expression",
+                                      "id": "gLM,S:JHLgtN2dydXq.^",
+                                      "fields": {
+                                        "NAME": "sad"
+                                      },
+                                      "inputs": {
+                                        "VALUE": {
+                                          "shadow": {
+                                            "type": "math_number",
+                                            "id": "q?_uUUu^~81:M|_4j)WP",
+                                            "fields": {
+                                              "NUM": 1
+                                            }
+                                          }
+                                        },
+                                        "SECONDS": {
+                                          "shadow": {
+                                            "type": "math_number",
+                                            "id": "#LJCAq-7^*Q82*OvsG~A",
+                                            "fields": {
+                                              "NUM": 0.3
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "next": {
+                                  "block": {
+                                    "type": "control_if",
+                                    "id": "PfBz8n}f,UOju,`b0zam",
+                                    "inputs": {
+                                      "CONDITION": {
+                                        "block": {
+                                          "type": "chat_reply_emotion",
+                                          "id": "=rsL/D6:FM.4i%6zN02`",
+                                          "fields": {
+                                            "EMOTION": "surprised"
+                                          }
+                                        }
+                                      },
+                                      "DO": {
+                                        "block": {
+                                          "type": "avatar_change_expression",
+                                          "id": "A?.(f)r6Rfr7lAnU;xCq",
+                                          "fields": {
+                                            "NAME": "surprised"
+                                          },
+                                          "inputs": {
+                                            "VALUE": {
+                                              "shadow": {
+                                                "type": "math_number",
+                                                "id": "7~:+|:z.kN^kH:#s[0#~",
+                                                "fields": {
+                                                  "NUM": 1
+                                                }
+                                              }
+                                            },
+                                            "SECONDS": {
+                                              "shadow": {
+                                                "type": "math_number",
+                                                "id": "lQ=SHxeQj*+g$GJ=IyM#",
+                                                "fields": {
+                                                  "NUM": 0.3
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "next": {
+                                      "block": {
+                                        "type": "control_if",
+                                        "id": "4pMESn~zI-TCaAAvGm+p",
+                                        "inputs": {
+                                          "CONDITION": {
+                                            "block": {
+                                              "type": "chat_reply_emotion",
+                                              "id": "fd^}ro5AuR_C*?*Iv-DU",
+                                              "fields": {
+                                                "EMOTION": "relaxed"
+                                              }
+                                            }
+                                          },
+                                          "DO": {
+                                            "block": {
+                                              "type": "avatar_change_expression",
+                                              "id": "c0?}gme2:3~]Gyg*)d5e",
+                                              "fields": {
+                                                "NAME": "relaxed"
+                                              },
+                                              "inputs": {
+                                                "VALUE": {
+                                                  "shadow": {
+                                                    "type": "math_number",
+                                                    "id": "TJ7h5Jkm~:%A#N1d,g9v",
+                                                    "fields": {
+                                                      "NUM": 1
+                                                    }
+                                                  }
+                                                },
+                                                "SECONDS": {
+                                                  "shadow": {
+                                                    "type": "math_number",
+                                                    "id": "U+/.33%L:Iv=b:|x?d||",
+                                                    "fields": {
+                                                      "NUM": 0.3
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "next": {
+                                          "block": {
+                                            "type": "chat_each_reply_sentence",
+                                            "id": ")mcft#K6y-i3bYYfZxSl",
+                                            "fields": {
+                                              "SENTENCE": {
+                                                "id": "hEXL9|}jJeme|=HI67cv"
+                                              }
+                                            },
+                                            "inputs": {
+                                              "DO": {
+                                                "block": {
+                                                  "type": "avatar_speak_and_wait",
+                                                  "id": "ia$`SaQ4!`Ys^SdX)[?~",
+                                                  "inputs": {
+                                                    "TEXT": {
+                                                      "block": {
+                                                        "type": "variables_get",
+                                                        "id": "y[O8FDT1Mqnri3df`Q9Z",
+                                                        "fields": {
+                                                          "VAR": {
+                                                            "id": "hEXL9|}jJeme|=HI67cv"
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  },
+                                                  "next": {
+                                                    "block": {
+                                                      "type": "screen_show_bubble",
+                                                      "id": "3No,m*A$U3/n|v@1;Vvq",
+                                                      "fields": {
+                                                        "WHO": "キャラクタ"
+                                                      },
+                                                      "inputs": {
+                                                        "TEXT": {
+                                                          "block": {
+                                                            "type": "variables_get",
+                                                            "id": "Li^Y4C-l:Pb*mSue[0oz",
+                                                            "fields": {
+                                                              "VAR": {
+                                                                "id": "hEXL9|}jJeme|=HI67cv"
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            "next": {
+                                              "block": {
+                                                "type": "control_wait",
+                                                "id": "SnqqI^#-GeJnLu.%/!ea",
+                                                "inputs": {
+                                                  "SECONDS": {
+                                                    "shadow": {
+                                                      "type": "math_number",
+                                                      "id": "O=(dKCF1EXI|+^3$EsN[",
+                                                      "fields": {
+                                                        "NUM": 1
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "next": {
+                                                  "block": {
+                                                    "type": "avatar_clear_expression_in",
+                                                    "id": "ZMz/pVswm_8#g1|[vd4j",
+                                                    "inputs": {
+                                                      "SECONDS": {
+                                                        "shadow": {
+                                                          "type": "math_number",
+                                                          "id": "@__g-@M{-4H?|dVww-2}",
+                                                          "fields": {
+                                                            "NUM": 0.5
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
                                   }
                                 }
                               }
@@ -247,38 +536,47 @@
       {
         "type": "event_error",
         "id": "R?FQe5?h{vaNOw:rw;l[",
-        "x": 18,
-        "y": 787,
+        "x": 573,
+        "y": 1178,
         "next": {
           "block": {
-            "type": "screen_show_toast",
-            "id": "WC.Z{],ldyJ(G(r=OTE?",
-            "inputs": {
-              "TEXT": {
-                "shadow": {
-                  "type": "text",
-                  "id": "aZqT+vECf]O6p7wu5SSB",
-                  "fields": {
-                    "TEXT": "エラーが起きました"
-                  }
-                }
-              },
-              "SECONDS": {
-                "shadow": {
-                  "type": "math_number",
-                  "id": "0N,y;((v]vtQ%m8sDITo",
-                  "fields": {
-                    "NUM": 3
-                  }
-                }
-              }
+            "type": "sound_play_wait",
+            "id": "Zb=OEotX#2qL|n(5=:bX",
+            "fields": {
+              "NAME": "incorrect"
             },
             "next": {
               "block": {
-                "type": "avatar_play_voice_wait",
-                "id": "[KsvMh(E%BUCZLWwn6dY",
-                "fields": {
-                  "VOICE": "error-occurred"
+                "type": "screen_show_toast",
+                "id": "WC.Z{],ldyJ(G(r=OTE?",
+                "inputs": {
+                  "TEXT": {
+                    "shadow": {
+                      "type": "text",
+                      "id": "aZqT+vECf]O6p7wu5SSB",
+                      "fields": {
+                        "TEXT": "エラーが起きました"
+                      }
+                    }
+                  },
+                  "SECONDS": {
+                    "shadow": {
+                      "type": "math_number",
+                      "id": "0N,y;((v]vtQ%m8sDITo",
+                      "fields": {
+                        "NUM": 3
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "avatar_play_voice_wait",
+                    "id": "[KsvMh(E%BUCZLWwn6dY",
+                    "fields": {
+                      "VOICE": "error-occurred"
+                    }
+                  }
                 }
               }
             }
@@ -288,88 +586,199 @@
       {
         "type": "event_idle",
         "id": "r{,8`DN)6NoF9Yf$H1JO",
-        "x": 567,
-        "y": 275,
+        "x": 576,
+        "y": 364,
         "next": {
           "block": {
-            "type": "control_wait",
-            "id": "XLU]LSEFhsuS=VfhcLCR",
-            "inputs": {
-              "SECONDS": {
-                "shadow": {
-                  "type": "math_number",
-                  "id": "[X_L?{Y`o`h!;{YayfE*",
-                  "fields": {
-                    "NUM": 1
-                  }
-                }
-              }
+            "type": "control_stopwatch",
+            "id": "Xvz$66qj(Z:56H9ye,)y",
+            "fields": {
+              "ACTION": "reset"
             },
             "next": {
               "block": {
-                "type": "avatar_change_expression_wait",
-                "id": "g]lGo=X4hz/?p_y~miA6",
-                "fields": {
-                  "NAME": "happy"
-                },
+                "type": "control_forever",
+                "id": "f}{akh5jqlm!e1CU~_Yw",
                 "inputs": {
-                  "VALUE": {
-                    "shadow": {
-                      "type": "math_number",
-                      "id": "/=afm/`Mi{3=`=D9xGZ{",
-                      "fields": {
-                        "NUM": 1
-                      }
-                    }
-                  },
-                  "SECONDS": {
-                    "shadow": {
-                      "type": "math_number",
-                      "id": "LE-m7B|t^Kr#LV!Lt*Jj",
-                      "fields": {
-                        "NUM": 0.5
-                      }
-                    }
-                  }
-                },
-                "next": {
-                  "block": {
-                    "type": "control_wait",
-                    "id": "/|z4W5v6|SambU$u%~B!",
-                    "inputs": {
-                      "SECONDS": {
-                        "shadow": {
-                          "type": "math_number",
-                          "id": "8pje4@yj}Gcua^z|~LKe",
-                          "fields": {
-                            "NUM": 1
+                  "DO": {
+                    "block": {
+                      "type": "control_wait",
+                      "id": "b1}e-HzG15y~RMMnYx)-",
+                      "inputs": {
+                        "SECONDS": {
+                          "shadow": {
+                            "type": "math_number",
+                            "id": "({yB0-n1z(5FE{^vYINd",
+                            "fields": {
+                              "NUM": 10
+                            }
                           }
                         }
-                      }
-                    },
-                    "next": {
-                      "block": {
-                        "type": "avatar_change_expression_wait",
-                        "id": ":]cn~~rP5W0i}TRl1%`#",
-                        "fields": {
-                          "NAME": "happy"
-                        },
-                        "inputs": {
-                          "VALUE": {
-                            "shadow": {
-                              "type": "math_number",
-                              "id": "by=`LK3+z-)t+w|my8M%",
-                              "fields": {
-                                "NUM": 0
+                      },
+                      "next": {
+                        "block": {
+                          "type": "control_if_else",
+                          "id": "!}yPdD$^N1TM#UdfS5ca",
+                          "inputs": {
+                            "CONDITION": {
+                              "block": {
+                                "type": "logic_compare",
+                                "id": "80rIq`z=sOSo_p=fe75g",
+                                "fields": {
+                                  "OP": "GT"
+                                },
+                                "inputs": {
+                                  "A": {
+                                    "shadow": {
+                                      "type": "math_number",
+                                      "id": ":VT#aYY44jSG(r[qFt?3",
+                                      "fields": {
+                                        "NUM": 0
+                                      }
+                                    },
+                                    "block": {
+                                      "type": "value_stopwatch",
+                                      "id": "}ahhTfY04mOX/nAn=[SH"
+                                    }
+                                  },
+                                  "B": {
+                                    "shadow": {
+                                      "type": "math_number",
+                                      "id": ":}y):%exsol#^=f#)(Ru",
+                                      "fields": {
+                                        "NUM": 30
+                                      }
+                                    }
+                                  }
+                                }
                               }
-                            }
-                          },
-                          "SECONDS": {
-                            "shadow": {
-                              "type": "math_number",
-                              "id": "$c9^@@;j^Cod;#kb-^SX",
-                              "fields": {
-                                "NUM": 0.5
+                            },
+                            "DO": {
+                              "block": {
+                                "type": "avatar_show_emote",
+                                "id": "[mn5oh+8F(zk*2$I~{h`",
+                                "fields": {
+                                  "NAME": "uneasy"
+                                },
+                                "inputs": {
+                                  "SECONDS": {
+                                    "shadow": {
+                                      "type": "math_number",
+                                      "id": "zx3Cb=KubQ2ubnY41wE*",
+                                      "fields": {
+                                        "NUM": 4
+                                      }
+                                    }
+                                  }
+                                },
+                                "next": {
+                                  "block": {
+                                    "type": "avatar_take_pose_for_wait",
+                                    "id": "yh`THCJUR7,/GbJP/OYy",
+                                    "fields": {
+                                      "NAME": "oneknee"
+                                    },
+                                    "inputs": {
+                                      "SECONDS": {
+                                        "shadow": {
+                                          "type": "math_number",
+                                          "id": "=3h1QfnQ^hd74r{L*;+y",
+                                          "fields": {
+                                            "NUM": 3
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "next": {
+                                      "block": {
+                                        "type": "control_stopwatch",
+                                        "id": "G/+/w|RdfX1:5$2!Q!b+",
+                                        "fields": {
+                                          "ACTION": "reset"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "ELSE": {
+                              "block": {
+                                "type": "control_if_else",
+                                "id": ",i#K4em_Ke6%7$V#*-RW",
+                                "inputs": {
+                                  "CONDITION": {
+                                    "block": {
+                                      "type": "logic_compare",
+                                      "id": "k,1eFOpR^*L]EWLf$YrC",
+                                      "fields": {
+                                        "OP": "GTE"
+                                      },
+                                      "inputs": {
+                                        "A": {
+                                          "shadow": {
+                                            "type": "math_number",
+                                            "id": "df),q5@{*`j|f0!#t$|x",
+                                            "fields": {
+                                              "NUM": 0
+                                            }
+                                          },
+                                          "block": {
+                                            "type": "operator_random",
+                                            "id": "YK*V7e234s[3)YR.nf6R",
+                                            "inputs": {
+                                              "FROM": {
+                                                "shadow": {
+                                                  "type": "math_number",
+                                                  "id": "6FS|2nW_Dr*L5lZzmehh",
+                                                  "fields": {
+                                                    "NUM": 1
+                                                  }
+                                                }
+                                              },
+                                              "TO": {
+                                                "shadow": {
+                                                  "type": "math_number",
+                                                  "id": "Q$3Cqnars@MvhyLZGc#9",
+                                                  "fields": {
+                                                    "NUM": 10
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "B": {
+                                          "shadow": {
+                                            "type": "math_number",
+                                            "id": "Ne9O#_x!)px|}wM*+XT^",
+                                            "fields": {
+                                              "NUM": 5
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "DO": {
+                                    "block": {
+                                      "type": "avatar_take_pose",
+                                      "id": "._XQ?CiYUdLGp:o_6x=[",
+                                      "fields": {
+                                        "NAME": "hip"
+                                      }
+                                    }
+                                  },
+                                  "ELSE": {
+                                    "block": {
+                                      "type": "avatar_take_pose",
+                                      "id": "I7qlSRJ:nPWU;3dPYz8U",
+                                      "fields": {
+                                        "NAME": "side"
+                                      }
+                                    }
+                                  }
+                                }
                               }
                             }
                           }
@@ -387,8 +796,8 @@
   },
   "variables": [
     {
-      "name": "文",
-      "id": "sentenceVar01"
+      "name": "変数",
+      "id": "hEXL9|}jJeme|=HI67cv"
     }
   ]
 }
