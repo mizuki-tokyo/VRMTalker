@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import mixamoVRMRigMap from "./mixamoRigMap.js";
+import mixamoVRMRigMap from "./rig-map/mixamo-rig-map.js";
 
 /**
  * TalkingHead のポーズ・ジェスチャー（talkinghead-templates.js）を、

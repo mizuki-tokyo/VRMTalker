@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js"
-import mixamoVRMRigMap from "./mixamoRigMap.js";
+import mixamoVRMRigMap from "./rig-map/mixamo-rig-map.js";
 import { createVRMAnimationClip, VRMAnimationLoaderPlugin } from "@pixiv/three-vrm-animation";
 
 /**
