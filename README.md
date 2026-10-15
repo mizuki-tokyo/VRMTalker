@@ -1,38 +1,36 @@
 # VRMTalker
 
-VRM 3D モデルを使った音声対話のテンプレートプロジェクト。
+ブラウザ上で、VRM 3D モデルのアバターと声で会話できるようになるプロジェクトです。
+そのままでもお使いいただけますが、自分で用意したアバターを使ってオリジナルのシステムを作るのにもお役立てください。
 
-音声認識（Web Speech API）→ 応答生成（LLM）→ 音声合成（VOICEVOX CORE）→ VRM モデルの
-リップシンクまでを、ローカル実行のみで動かせる構成になっている。
+![VRMTalker の画面。左はアバターの動き方を組み替えるブロックの編集画面、右はアバターと会話している画面](docs/images/screenshot.jpg)
 
-- 応答生成は **llama.cpp** をローカルで実行する（ビルド不要。サーバ側 LLM にも切替可）
-- 音声合成は **VOICEVOX CORE** をローカルで実行する（インストーラ不要）
-- Mac / Windows / Linux で動作する
-- サーバは Python + FastAPI、フロントは素の Web Components
+話しかけた言葉を聞き取り（音声認識）、返事を考え（LLM）、声にして（音声合成）、
+アバターが口を動かして話します。ここまでを、自分のパソコンの中だけで動かせます。
+アバターの動き方は、Scratch のようなブロックを並べる（ビジュアルプログラミング）ことで組み替えられます。
+
+- 返事を考える LLM は、同梱の **llama.cpp** で手元で動かせます（ビルド不要）
+  OpenAI などのサーバー側の LLM にも切り替えられます。
+- 声（音声合成）は **VOICEVOX CORE** で手元で作ります（インストーラ不要）
+- 聞き取り（音声認識）は Web Speech API で行います（Web Speech API はブラウザに内蔵されています）
+- Mac / Windows / Linux で動作します
+
+開発者向けの情報は [docs/development.md](docs/development.md)、サーバーとして
+公開する方法は [docs/deployment.md](docs/deployment.md) にまとめています。
 
 ## 必要なもの
 
 - Python 3.10 以上
-- [uv](https://docs.astral.sh/uv/)
-- Google Chrome（音声認識に Web Speech API を使用）
-
-同梱の llama.cpp は、どの環境でも **CPU 版**を取得する。GPU 版
-（CUDA / Vulkan / ROCm / SYCL）は、どれが使えるかを自動で決められないため
-選んでいない。使いたい場合は
-[リリースページ](https://github.com/ggml-org/llama.cpp/releases)から対応する
-ものを取って `llama/bin` を置き換えること。
-
-| 環境 | 取得するもの |
-|---|---|
-| macOS | `llama-<版>-bin-macos-arm64 / x64.tar.gz` |
-| Windows | `llama-<版>-bin-win-cpu-arm64 / x64.zip` |
-| Linux | `llama-<版>-bin-ubuntu-arm64 / x64.tar.gz` |
-
-Linux 向けは Ubuntu でビルドされたものが配られている。ほかの
-ディストリビューションでも動くことが多いが、glibc が古い環境では動かない
-ことがある。
+- Python のパッケージマネージャー [uv](https://docs.astral.sh/uv/)
+- 音声認識（Web Speech API）が使えるブラウザ。Google Chrome、Microsoft Edge で
+  確かめています。ボタンを押さずに話しかける「連続対話」モードも存在しますが、
+  このモードは新しい版の Chrome と Edge でお使いいただけます（[FAQ](#連続対話がオンにできない) を参照）
+- 同梱の LLM を使う場合は、モデルを置くためにストレージに約 1.5GB の空きが必要になります
 
 ## セットアップ
+
+Python のパッケージマネージャー uv を利用します。
+uv が使える状態になっていない場合は、以下の操作を行う前に uv のインストールを行なってください。
 
 ```bash
 uv sync
@@ -47,237 +45,106 @@ uv run python scripts/setup_llama.py
 ```
 
 `setup_voicevox.py` は VOICEVOX の実行に必要なファイル一式（約 175MB）を
-`voicevox_core/` に取得する。実行時に利用規約への同意を求められるので、
-内容を確認して判断すること。
+`voicevox_core/` にセットアップします。実行時に利用規約への同意を求められるので、
+内容を確認して判断してください。
 
 `setup_llama.py` は llama.cpp の事前ビルド済みバイナリ（約 10MB）と
-GGUF モデル（LFM2.5-2.6B Q4_K_M、約 1.5GB）を `llama/` に取得する。
+GGUF モデル（LFM2.5-2.6B Q4_K_M、約 1.5GB）を `llama/` にセットアップします。
 
-ブラウザで使うライブラリ（three.js、three-vrm、Blockly、marked、
-ONNX Runtime Web と Silero VAD のモデル）は `public/vendor/` に同梱してあるので、
-取得の手順は要らない。CDN からは読まないため、
-LLM を手元で動かしていれば、音声認識（Chrome が Google のサーバーで行う）を除いて
-インターネットが無くても動く。ライブラリの版を上げるときは
-`scripts/setup_vendor.py` の版を書き換えて実行し、読み込む側の参照
-（`index.html` の importmap、`app-block-editor.js`、`app-credits.js`、
-`speech-hands-free/silero-vad.js`）も書き換える。
+その他必要なライブラリは同梱しています。改めてインストールする必要はありません。
+CDN からライブラリの読み込みを行わないので、LLM を手元で動かす（＝ローカル LLM を使用する）ことで、
+インターネットの利用を最小限に抑えることができます。
+※ インターネットは、音声認識を行う時のみ必要となります。（音声認識は、Google 等、ブラウザの開発元のサーバーで実行されます）
+
 
 ## 起動
 
 ```bash
+./start.sh
+```
+
+または、次のようにコマンドラインを打ち込んでください。
+
+```bash
 uv run uvicorn main:app --port 8000
 ```
 
-http://localhost:8000 を Chrome で開く。マイクのアイコンを押すと音声認識が始まり、
-認識結果が音声合成されてモデルが喋る。
+http://localhost:8000 をブラウザで開いてください。
 
-### 画面を見える状態に保つ（オンライン会議・画面共有で使うとき）
+※ 設定ファイル `.env` が存在する場合は、`start.sh` をお使いください。
+- `start.sh` を使うと  `.env` の設定（合言葉や LLM の切り替え）を読み込んでから起動します。
+- `.env` は `.env.example` を参考に作成してください。
 
-VRMTalker のウィンドウは、**隠さずに見える状態に保つ**。ブラウザは、見えていない
-ページ（背面のタブ、最小化したウィンドウ、ほかのウィンドウに完全に覆われた
-ウィンドウ）の描画を止めるため。
+## 使い方
 
-- VRMTalker は、会議のアプリとは別のウィンドウで開き、横に並べるか別の画面に置く
-- 画面共有は「Chrome タブ」を選び、「タブの音声も共有」を有効にする
-  （アバターの声がマイクを通らずに、相手へ直接届く）
-- ヘッドホンを使う（音声認識が相手の声を拾わず、会議側もアバターの声を拾わない）
-- マイクの取り合いで会議側の音声がおかしくなる場合は、会議を別のブラウザで開くか、
-  `public/js/speech-recognizer/volume-meter.js` の `KEEP_MIC_OPEN` を `false` にする
-  （聞き終えるたびに音量表示用のマイクを閉じる）
+### 話しかける
 
-隠れてしまっても会話は止まらない。見えていない間は描画を省き、動きの時間だけを
-進める（`three-world-element.js`）。ただし、ブラウザが隠れたページの処理を間引く
-ため、モーションやジェスチャーの「終わるまで待つ」が最大 1 秒ほど遅れる。
-5 分以上隠れたままだと、1 分ほど遅れることがある。
+画面左下のマイクのボタンを押して話しかけてください。聞き取った言葉に、アバターが
+返事をします。返事を考えている間は、アバターの頭の上に考え中の吹き出しが出ます。
 
-## 別の環境へ移す
+設定で「ボタンを押さずに話しかける（連続対話）」をオンにすると、マイクのボタンを
+1 回押すだけで、話しかけるたびに聞き取るようになります（もう一度押すと終わります）。
+アバターが話している間は聞き取らないので、アバター自身の声を拾うことはありません。
 
-`voicevox_core/` の中身は次のように分かれている。
+### メニュー
 
-| ディレクトリ | 内容 | OS 依存 |
-|---|---|---|
-| `c_api/` | コア本体 | あり |
-| `onnxruntime/` | 推論ランタイム | あり |
-| `dict/` | Open JTalk 辞書 | なし |
-| `models/` | 音声モデル `.vvm` | なし |
+画面右下のボタンを押すと、メニューが開きます。
 
-別 OS 向けのファイルは、手元の環境から事前に取得できる。
-
-```bash
-uv run python scripts/setup_voicevox.py --os windows --cpu-arch x64
-```
-
-`.venv/` はプラットフォーム別のため environment 間でコピーできない。
-移行先で `uv sync` を実行すること。
-
-## LLM の切り替え
-
-LLM へのアクセスは `src/llm/base.py` の `ChatModel` で抽象化してある。
-利用側（`main.py`）は具体的な実装を知らない。
-
-| 実装 | 用途 |
+| 項目 | 内容 |
 |---|---|
-| `OpenAICompatChat` | 同梱の llama-server（ローカル）、および OpenAI / vLLM / Ollama などサーバ側 LLM |
-| `EchoChat` | LLM 無しで動かすためのダミー。復唱するだけ |
+| はじめから実行 | アバターの動きを、最初（「準備ができたとき」）からやり直します |
+| 会話履歴をクリア | 画面の吹き出しと、キャラクタが覚えている前のやり取りを消します |
+| ブロックで編集する | アバターの動き方を組み替える画面を開きます（[下を参照](#アバターの動き方を組み替える)） |
+| 設定 | キャラクタの近さ、話者（声）、吹き出しの色、表示、キャラクタの名前と性格、話しかけ方を変えられます |
+| 謝辞 | 素材とソフトウェアの出典、3D モデルの情報を見られます |
 
-環境変数で切り替える。
+設定は「保存」を押すと、お使いのブラウザに記録されます。「破棄」を押すと初期値に戻ります。
 
-| 変数 | 既定 | 内容 |
-|---|---|---|
-| `LLM_BACKEND` | `local` | `local` / `remote` / `echo` |
-| `LLM_BASE_URL` | – | `remote` のときのエンドポイント |
-| `LLM_MODEL` | `local-model` | モデル名 |
-| `LLM_API_KEY` | – | `remote` のときの API キー |
-| `LLM_SYSTEM_PROMPT` | （`src/llm/__init__.py` を参照） | システムプロンプト |
+### 話者（声）を変える
 
-サーバ側の LLM を使う例。
+メニューの「設定」の「話者」で選んでください。最初から入っている音声モデル
+（`0.vvm`）では、四国めたん・ずんだもん・春日部つむぎ・雨晴はうの 4 人の、
+合わせて 10 種類の声（スタイル）を選べます。選べる声の一覧は、起動したあとに
+http://localhost:8000/api/speakers を開いても確かめられます。
 
-```bash
-LLM_BACKEND=remote \
-LLM_BASE_URL=https://api.openai.com/v1 \
-LLM_MODEL=gpt-4o-mini \
-LLM_API_KEY=sk-... \
-uv run uvicorn main:app --port 8000
-```
+ほかのキャラクタの声を使いたいときは、[FAQ](#音声モデルを追加したい) をご覧ください。
 
-`local` のときだけ、同梱の llama-server を子プロセスとして自動起動する。
+### アバターの動き方を組み替える
 
-### 応答が遅い場合
+メニューの「ブロックで編集する」を押すと、画面の左側にブロックの編集画面が開きます。
+「〜のとき」のブロックの下に並べたブロックが、そのときに上から順に動きます。
 
-`llama/models/` の GGUF を差し替えれば別のモデルを使える。ファイルは 1 つだけ置くこと。
+- **会話モード**：話しかけると、組んだブロックが動きます。このモードでは、
+  ブロックを組み替えられません
+- **編集モード**：ブロックを組み替えられます。ブロックをクリックすると、その場で
+  動きを試せます（動いている間にもう一度クリックすると止まります）
 
-```bash
-uv run python scripts/setup_llama.py --model-repo <HFリポジトリ> --model-file <ファイル名>
-```
+編集画面の「ファイル」から、組んだものをお使いのパソコンにファイルとして保存したり、
+保存したファイルを読み込んだりできます。サーバーに公開して、ほかの人と共有する
+こともできます（公開には合言葉が必要です。
+[docs/deployment.md](docs/deployment.md#アクションの公開) をご覧ください）。
 
-**推論（thinking）モデルには注意**。本文の前に思考トークンを数秒ぶん出力するため、
-最初の発話までの待ち時間が大きくなる。既定では `--reasoning-budget 0` で無効化している
-（LFM2.5 での実測: 有効だと最初のトークンまで 5〜14 秒、無効なら 0.3〜0.5 秒）。
-思考を使いたい場合は `LLAMA_REASONING_BUDGET=-1` を指定する。
+つまずきやすい組み方（返事のブロックを、同じきっかけの複数の並びに置くなど）を
+すると、ブロックの左上に「！」のマークが付きます。マークを押すと、説明が出ます。
 
-同梱の llama-server は既定で `127.0.0.1:8080` を使う。**8080 が他のもので
-埋まっている環境では `LLAMA_PORT` で変える**（アプリが繋ぎに行く先も一緒に
-変わるので、指定はこれ 1 つで足りる）。
+### 素材を入れ替える
 
-```bash
-LLAMA_PORT=8099 ./start.sh
-```
+アバターの動き・アイコン・音・背景・声は、種類ごとに用意した「定義ファイル」で、
+何を使えるかを決めています。定義ファイルは JSON という形式で書かれたテキスト
+ファイルで、ふつうのテキストエディタ（メモ帳など）で編集できます。
+ブロックのドロップダウン（選択肢の一覧）に並ぶのもこの中身なので、
+**素材のファイルを置いて、定義ファイルに 1 行足せば、その場で選べるようになります**。
 
-その他の調整用の環境変数は `LLAMA_CTX_SIZE` / `LLAMA_THREADS` / `LLAMA_HOST`。
-
-## 設定
-
-### 話者を変える
-
-利用可能な一覧は起動後に http://localhost:8000/api/speakers で確認できる。
-既定の `0.vvm` には四国めたん・ずんだもん・春日部つむぎ・雨晴はうの計 10 スタイルが入っている。
-
-変更する箇所は [public/js/speech-synthesizer.js](public/js/speech-synthesizer.js) の `_styleId`。
-
-### カメラの寄り先を変える
-
-`OrbitControls` はズームを注視点（`controls.target`）へ向かって行うため、
-「ズームインしたときに何が見えるか」は注視点で決まる。
-
-`<vrm-avatar>` は読み込み後に、VRM ヒューマノイドボーンのワールド座標を注視点に設定する。
-`head` などのボーンは VRM 仕様で必須なので、**モデルを差し替えても同じ部位を狙える**。
-
-```html
-<vrm-avatar src="./models/xxx.vrm"
-            focus="head"              <!-- 既定。ズームインすると頭部に寄る -->
-            camera-distance="1.5">    <!-- 省略するとモデル全体が収まる距離を自動計算 -->
-</vrm-avatar>
-```
-
-| 属性 | 既定 | 内容 |
-|---|---|---|
-| `focus` | `head` | 注視点にする VRM ヒューマノイドボーン名。`none` で無効 |
-| `camera-distance` | 自動 | カメラまでの距離。省略時はモデル全体が画面に収まる距離を計算する |
-
-既定ではモデル全体が入るため、頭部が画面中央に来るぶん上側に余白ができる。
-上半身に寄せたい場合は `camera-distance` を小さくする。
-
-実行中に変えることもできる。
-
-```js
-document.querySelector("vrm-avatar").focusCamera("chest");
-```
-
-### 表情モーフの限界突破を防ぐ
-
-three-vrm は複数の表情が同じモーフを指すと単純に加算する。例えば happy が目のモーフを
-0.8 使っている状態で blink が 1.0 を加えると合計 1.8 になり、頂点が意図しない位置まで
-動いてしまう。
-
-`<vrm-avatar>` は既定でこれを防ぐ（`update()` 後に合計値を 1.0 で丸める）。
-
-```html
-<vrm-avatar src="./models/xxx.vrm" clamp-morphs="1.0"></vrm-avatar>
-<vrm-avatar src="./models/xxx.vrm" clamp-morphs="off"></vrm-avatar>  <!-- 無効化 -->
-```
-
-| 値 | 動作 |
-|---|---|
-| 未指定 | 有効。上限 1.0 |
-| 数値 | 有効。その値を上限にする |
-| `off` / `none` | 無効 |
-
-対象は表情が実際に結びついているモーフだけで、それ以外は触らない。
-
-VRM 仕様には `overrideBlink` / `overrideLookAt` / `overrideMouth` という抑制の仕組みも
-あり、「笑顔のときは目を閉じない」といった意味論を表現できる。ただし VRM 0.0 では
-使えず、blink / lookAt / mouth の 3 系統しか救えないため、モデルに依存しない
-安全網としてクランプを併用している。
-
-### 影をつける
-
-`<vrm-avatar>` に `shadow` を指定すると、モデルが影を落とし、足元に置いた
-透明な平面がそれを受ける。平面の位置と大きさはモデルのバウンディングボックスから
-決めるので、体格の違うモデルに差し替えても足元に合う。
-
-```html
-<vrm-avatar src="./models/xxx.vrm" shadow="0.3"></vrm-avatar>
-```
-
-値は影の濃さ（0-1、既定 0.3）。`shadow` だけ書いても既定値で有効になる。
-
-実装は次のように分かれている。
-
-| 担当 | 内容 |
-|---|---|
-| `<three-world>` | `renderer.shadowMap` と光源の設定（`enableShadows()` / `fitShadowCamera()`） |
-| `<vrm-avatar>` | モデルへの `castShadow` 付与と、影を受ける平面の生成 |
-
-影は**陰影用とは別の専用光源**が落とす（`world.shadowLight`）。陰影用の光源 (1,1,1)
-をそのまま使うと仰角 35 度で影が横に長く伸び、接地感が出ないため、専用光源は
-ほぼ真上（仰角 約72 度）に置いてある。
-
-専用光源は `intensity: 0` なので明るさには寄与しない。`ShadowMaterial` の影は
-`getShadowMask()` で求まり光源の intensity を掛けないため、これで影だけを落とせる。
-向きを変えたい場合は `three-world-element.js` の `SHADOW_LIGHT_DIRECTION` を調整する。
-
-### 音声モデルを追加する
-
-```bash
-uv run python scripts/setup_voicevox.py --models-pattern "*"
-```
-
-## 素材を入れ替える
-
-アバターの動き・アイコン・音・背景・声は、それぞれ定義ファイル（JSON）で
-「何が使えるか」を決める。ブロックのドロップダウンに並ぶのもこの中身なので、
-**ファイルを置いて JSON に 1 行足せば、その場で選べるようになる**。
-
-| 種類 | 定義ファイル | 置き場所 |
+| 種類 | 定義ファイル | 素材の置き場所 |
 |---|---|---|
 | モーション | `public/animations/motions.json` | `animations/vrma/` `animations/fbx/` |
-| ポーズ・ジェスチャー | `public/animations/poses.json` `public/animations/gestures.json` | （ファイルは無い。下を参照） |
+| ポーズ・ジェスチャー | `public/animations/poses.json` `public/animations/gestures.json` | （素材のファイルはありません。下をご覧ください） |
 | エモート（頭の上のアイコン） | `public/emotes/emotes.json` | `public/emotes/` |
 | 効果音 | `public/sounds/sounds.json` | `public/sounds/` |
 | ボイスデータ | `public/voices/voices.json` | `public/voices/` |
 | 背景 | `public/backgrounds/backgrounds.json` | `public/backgrounds/` |
 
-どれも同じ形をしている。
+定義ファイルは、どれも同じ形で書きます。
 
 ```json
 [
@@ -287,231 +154,252 @@ uv run python scripts/setup_voicevox.py --models-pattern "*"
 
 | 項目 | 内容 |
 |---|---|
-| `id` | アクションが覚える名札。**後から変えないこと**（保存済みのアクションの選択が外れる） |
-| `name` | 画面に出す文字。こちらは後から変えてよい |
-| `file` | ファイルの場所。`public/` から見た相対パス |
+| `id` | 組んだアクション（ブロック）が覚えておく名札です。**あとから変えないでください**（保存済みのアクションで選んでいたものが外れてしまいます） |
+| `name` | 画面に出す名前です。こちらはあとから変えてもかまいません |
+| `file` | 素材のファイルの場所です。`public/` フォルダから見た場所を書きます |
 
-`id` は半角英数とハイフンで付けておくと扱いやすい（ファイル名に合わせるのが楽）。
+`id` は、半角の英数字とハイフン（`-`）で付けておくと扱いやすくなります
+（ファイル名に合わせると楽です）。
 
-種類ごとの違いは次のとおり。
+種類ごとの違いは次のとおりです。
 
-- **モーション**は、ここに書いたものを起動時にすべて読み込むので、使うものだけを
-  載せる。歩く・走るのような一歩分をくり返すモーションには `"loop": true` を
-  付ける。最後から最初へのつなぎ目が滑らかになり、ブロックで続けて再生すると
-  切れ目なく歩き続ける（違うモーションへも、待機の姿勢を挟まずにつながる）
+- **モーション**は、定義ファイルに書いたものを起動時にすべて読み込むので、
+  使うものだけを書いてください。歩く・走るのように、一歩分の動きをくり返す
+  モーションには `"loop": true` を付けます。動きの最後から最初へのつなぎ目が
+  滑らかになり、ブロックで続けて再生すると、切れ目なく歩き続けます
+  （違うモーションへも、待機の姿勢を挟まずにつながります）
 - **待機の姿勢**（何もしていないときの姿）は、ポーズの 1 つに `"default": true` を
-  付けて決める（同梱の定義では「まっすぐ立つ」）。呼吸と小さな揺れが付く。
-  ポーズの代わりにループするモーションを待機にしたいときは、`poses.json` の
-  `default` を外し、`motions.json` のモーションの 1 つに `"default": true` を付ける
-- **ボイスデータ**はアバターの発話として鳴る。口が動き、「話すのをやめる」で止まる
-- **効果音**は場面の音。口は動かず、重ねて鳴らせる
-- **背景**は切り替えるときに 0.6 秒かけて溶け込む。最初に出す絵は
-  `index.html` の `#screen` が決める
-- **ポーズ**（全身の姿勢）と**ジェスチャー**（腕と手の身ぶり）は、ファイルを
-  置く代わりに `file` の欄が `template` になっている。値は
-  [TalkingHead](https://github.com/met4citizen/TalkingHead) の動きの名前で、
+  付けて決めます（同梱の定義では「まっすぐ立つ」）。呼吸と小さな揺れが付きます。
+  ポーズの代わりに、くり返し再生するモーションを待機の姿勢にしたいときは、
+  `poses.json` の `default` を外し、`motions.json` のモーションの 1 つに
+  `"default": true` を付けてください
+- **ボイスデータ**は、アバターの声として鳴ります。口が動き、「話すのをやめる」の
+  ブロックで止まります
+- **効果音**は、場を盛り上げるための音です。口は動かず、いくつも重ねて鳴らせます
+- **背景**は、切り替えるときに 0.6 秒かけて、じわっと入れ替わります。
+  最初に出す絵は、`index.html` の `#screen` で決めています
+- **ポーズ**（全身の姿勢）と**ジェスチャー**（腕と手の身ぶり）は、素材のファイルを
+  置く代わりに、`file` の欄が `template` になっています。値には
+  [TalkingHead](https://github.com/met4citizen/TalkingHead) の動きの名前を書きます。
   ポーズは `straight` `side` `hip` `turn` `back` `wide` `bend` `oneknee` `kneel`
   `sitting`、ジェスチャーは `handup` `index` `ok` `thumbup` `thumbdown` `side`
-  `shrug` `namaste` から選ぶ。並べ替えや名前の変更、選択肢から外すのは自由
+  `shrug` `namaste` から選べます。並べ替え、名前の変更、選択肢から外すことは
+  自由に行えます
   ```json
   { "id": "sitting", "name": "床に座る", "template": "sitting" }
   ```
-  ポーズは待機モーションの代わりになり、ポーズの間に再生したモーションは
-  終わるとポーズへ戻る。立った姿勢と低い姿勢（ひざまずく・床に座る）の間は、
-  片ひざをつく姿勢を 1 秒経由して移る。ジェスチャーはモーションやポーズの上から重ねる
+  ポーズは、待機の姿勢の代わりになります。ポーズをとっている間に再生した
+  モーションは、終わるとポーズへ戻ります。立った姿勢と低い姿勢（ひざまずく・
+  床に座る）の間は、片ひざをつく姿勢を 1 秒はさんで移ります。ジェスチャーは、
+  モーションやポーズの上から重ねて動きます
 
-素材の出典は `public/acknowledgment.md` に書く。メニューの「リソースの出典」に
-そのまま出るので、差し替えたらここも直すこと。
+素材の出典は `public/acknowledgment.md` に記載しています。この内容はメニューの
+「リソースの出典」にそのまま表示されます。素材を差し替えた場合は、こちらの内容も
+修正してください。
 
-## API
+## LLM を切り替える
 
-| メソッド | パス | 内容 |
+最初の設定では、同梱の llama.cpp（llama-server）を自動で起動して、返事を考えます。
+OpenAI などのサーバー側の LLM を使うときは、環境変数（起動するときにアプリへ渡す
+設定）で切り替えます。
+
+| 環境変数 | 最初の値 | 内容 |
 |---|---|---|
-| `GET` | `/api/status` | 各機能が使える状態か |
-| `GET` | `/api/speakers` | 利用可能なキャラクターとスタイルの一覧 |
-| `POST` | `/api/tts` | `{"text": "...", "style_id": 2}` → `audio/wav` |
-| `POST` | `/api/chat` | `{"text": "...", "history": [...]}` → SSE で応答を逐次返す |
-| `GET` | `/api/actions` | 公開されているアクションの一覧（素性だけ） |
-| `GET` | `/api/actions/{id}` | アクションを 1 つ。`id` は `default` か UUID |
-| `POST` | `/api/actions` | アクションを公開する（合言葉が要る） |
+| `LLM_BACKEND` | `local` | `local`（同梱の llama-server）／ `remote`（サーバー側の LLM）／ `echo`（LLM を使わず、話しかけた言葉をそのまま返すだけ） |
+| `LLM_BASE_URL` | – | `remote` のときの接続先（エンドポイント） |
+| `LLM_MODEL` | `local-model` | モデルの名前 |
+| `LLM_API_KEY` | – | `remote` のときの API キー |
+| `LLM_SYSTEM_PROMPT` | （`src/llm/__init__.py` をご覧ください） | 最初のキャラクタの性格（設定ウインドウからも変えられます） |
 
-`/api/chat` は生成の完了を待たずに差分を流す。ブラウザ側（`chat-client.js`）は
-文が完成した時点で音声合成に回すため、最初の発話までの待ち時間が短くなる。
+`.env.example` を写して `.env` という名前のファイルを作り、中身を書き換えて
+`./start.sh` で起動すると、その設定が読み込まれます。`.env` は Git に入りません
+（API キーなどを書いても、公開されません）。
 
-## アクションの公開
-
-アクション（アバターの動き方）は編集画面で組み立てる。誰でも編集でき、
-作ったものは手元のファイルとして保存できる。**サーバへ公開できるのは、
-合言葉を知っている人だけ**。
-
-| 変数 | 既定 | 内容 |
-|---|---|---|
-| `ACTIONS_PUBLISH_PASSWORD` | （未設定） | 公開に必要な合言葉。未設定なら公開そのものを断る |
+`.env` を使わずに、起動するときに直接指定することもできます。
 
 ```bash
-ACTIONS_PUBLISH_PASSWORD='ここに合言葉' uv run uvicorn main:app --port 8000
+LLM_BACKEND=remote \
+LLM_BASE_URL=https://api.openai.com/v1 \
+LLM_MODEL=gpt-4o-mini \
+LLM_API_KEY=sk-... \
+uv run uvicorn main:app --port 8000
 ```
 
-`.env` に書いておく場合は `uv run --env-file .env uvicorn main:app --port 8000`。
+OpenAI と同じ形の API（OpenAI 互換の API）であれば、vLLM・Ollama・Azure OpenAI・
+Gemini なども使えます（`.env.example` に例があります）。
 
-置き場所は次のとおり。
+## FAQ
 
-```
-public/actions.json   同梱の見本。書き換えない（一覧では「はじめからあるもの」）
-data/<UUID>.json      公開されたもの。ファイル名はサーバが採番する
-```
+### 別のアバターを使いたい
 
-`data/` は `public/` の外にあるので静的配信されず、取得は必ず API を通る。
-中身は配布物に含めない（`data/.gitignore` で除外している）。**消すときは
-サーバで `rm` する**。画面からは消せない。
+VRM 形式のモデル（VRM 0.0 と VRM 1.0 のどちらも使えます）であれば、差し替えて使えます。
 
-一覧は、その都度 `data/` を走査して組み立てる。索引ファイルは持たない。
-実体とずれる余地を作らないためで、数十件なら走査は一瞬。
+1. モデルのファイル（`.vrm`）を `public/models/` に置きます
+2. `public/index.html` の `<vrm-avatar src="./models/ChibiVita.vrm"` の部分を、
+   置いたファイルの名前に書き換えます
 
-**合言葉だけの簡単な仕組み**なので、次の点を承知して使うこと。
+モデルを使う前に、そのモデルの利用条件（改変・再配布・商用利用など）を必ず
+確かめてください。起動したあとに、メニューの「3D モデルの情報」でも確かめられます。
+また、差し替えたら `public/acknowledgment.md` の出典も直してください。
 
-- 誰が公開したかは自己申告（作者名は詐称できる）。公開できる人を絞ることで担保している
-- 同じアクションを 2 人が直して上書きすると、後に押したほうの内容になる
-- 平文 HTTP では合言葉が覗ける。外部へ出すときは下記の HTTPS が必須
-- 総当たりへの手当ては「間違えたら 1 秒待たせる」だけ。本格的に守るならプロキシ側で
+体格の違うモデルでは、頭の上のアイコンの位置などの調整が必要になることがあります。
+詳細は [docs/development.md](docs/development.md#アバターvrm-モデルを差し替える) を
+ご覧ください。
 
-利用者を管理したい場合や、もっと厳密に扱いたい場合は、ソースを改修して使うこと。
+### オンライン会議・画面共有で使うには
 
-## 外部公開する場合
+VRMTalker のウィンドウは、**隠さずに見える状態にしておいてください**。ブラウザは、
+見えていないページ（後ろに隠れたタブ、最小化したウィンドウ、ほかのウィンドウに
+すっかり覆われたウィンドウ）の描画を止めてしまうためです。
 
-このアプリは HTTP で待ち受ける。`localhost` / `127.0.0.1` は仕様上
-「潜在的に信頼できるオリジン」として扱われるため、HTTP のままでも
-マイク入力と音声認識が動作する。
+- VRMTalker は、会議のアプリとは別のウィンドウで開いてください（同じウィンドウの
+  別のタブだと、会議を見ている間は後ろに隠れてしまいます）。開いたウィンドウは、
+  会議のウィンドウと横に並べるか、ディスプレイが 2 台以上あれば、別のディスプレイに
+  置いてください
+- 画面共有では、共有するものとして VRMTalker を開いている**タブ**を選び
+  （Chrome では「Chrome タブ」の中にあります）、「タブの音声も共有」を有効に
+  してください。アバターの声がマイクを通らずに、相手へ直接届きます
+  - 「ウィンドウ」を選ぶと、映像だけが共有され、アバターの声は届きません
+  - タブの音声を共有できるのは、Chrome や Edge などです。Firefox や Safari には、
+    この機能がありません
+  - 会議をブラウザで開いている場合、選べるのは会議と同じブラウザのタブです。
+    VRMTalker も同じブラウザで開いてください
+  - 会議のアプリ（Zoom や Teams のデスクトップ版など）を使う場合は、そのアプリの
+    「コンピューターの音声を共有」などの設定をお使いください
+- ヘッドホンの使用を推奨します（音声認識が相手の声を拾ったり、あるいは、会議のアプリが
+  アバターの声を拾ってしまう現象を防ぐためです）
+- それでもマイクの取り合いで会議の音声に不具合が発生する場合は、会議を別のブラウザで
+  開いてください。ただしこの場合は、会議のブラウザから VRMTalker のタブを選べない
+  ため、タブの音声の共有は使えません。アバターの声も相手に届けたいときは、会議の
+  アプリ（デスクトップ版）の「コンピューターの音声を共有」などをお使いください
 
-外部からアクセスさせる場合は、**リバースプロキシで HTTPS を終端すること**。
-平文 HTTP で LAN の IP 等にアクセスすると secure context にならず、
-`navigator.mediaDevices` が生えずマイクが使えない。
+VRMTalker のウィンドウが隠れても、会話は止まりませんが、モーションやジェスチャーの
+「終わるまで待つ」の実行に、最大で 1 秒ほどの遅れが生じます。5 分以上隠れたままになると、
+1 分ほどの遅れが生じることがあります（仕組みは
+[docs/development.md](docs/development.md#画面が隠れているときの動き) をご覧ください）。
 
-```nginx
-server {
-    listen 443 ssl;
-    server_name example.com;
+### 返事が遅い
 
-    ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-
-        # 応答をストリーミングする場合（SSE / WebSocket）に必要
-        proxy_http_version 1.1;
-        proxy_buffering off;
-        proxy_read_timeout 300s;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-}
-```
-
-uvicorn 側はプロキシ経由のスキームとクライアント IP を認識できるよう、
-次のオプションを付けて起動する。
+`llama/models/` にある LLM のモデルのファイル（GGUF という形式）を差し替えると、
+別のモデルを使えます。モデルのファイルは、1 つだけ置いてください。
+次のコマンドで、Hugging Face で公開されているモデルを取得できます。
 
 ```bash
-uv run uvicorn main:app --host 127.0.0.1 --port 8000 \
-    --proxy-headers --forwarded-allow-ips=127.0.0.1
+uv run python scripts/setup_llama.py --model-repo <HFリポジトリ> --model-file <ファイル名>
 ```
 
-`/api/tts` は認証なしで誰でも呼び出せる。公開する場合は nginx の Basic 認証や
-FastAPI 側でのトークン検証を検討すること。
+**推論（thinking）モデルにはご注意ください**。推論モデルは、返事の本文の前に、
+数秒ぶんの「考える過程」を出力するため、最初の一言までの待ち時間が長くなります。
+最初の設定では `--reasoning-budget 0` で、この考える過程を止めています
+（LFM2.5 での実測では、止めないと最初の一言まで 5〜14 秒、止めると 0.3〜0.5 秒でした）。
+考える過程を使いたい場合は、環境変数 `LLAMA_REASONING_BUDGET=-1` を指定してください。
+
+そのほか、調整に使える環境変数として `LLAMA_CTX_SIZE` / `LLAMA_THREADS` /
+`LLAMA_HOST` があります。
+
+### GPU で LLM を動かしたい
+
+同梱の llama.cpp は、どの環境でも **CPU 版**を取得します。GPU 版
+（CUDA / Vulkan / ROCm / SYCL）は、お使いのパソコンでどれが使えるかを自動で
+決められないため、取得していません。GPU 版を使いたい場合は、
+[llama.cpp のリリースページ](https://github.com/ggml-org/llama.cpp/releases)から
+お使いの環境に合うものを取得して、`llama/bin` の中身を置き換えてください。
+
+`setup_llama.py` が取得するものは次のとおりです。
+
+| 環境 | 取得するもの |
+|---|---|
+| macOS | `llama-<版>-bin-macos-arm64 / x64.tar.gz` |
+| Windows | `llama-<版>-bin-win-cpu-arm64 / x64.zip` |
+| Linux | `llama-<版>-bin-ubuntu-arm64 / x64.tar.gz` |
+
+Linux 向けは、Ubuntu でビルドされたものが配られています。ほかの Linux
+（ディストリビューション）でも動くことが多いですが、glibc（基本的なライブラリ）が
+古い環境では動かないことがあります。
+
+### ポート 8080 がほかのもので使われている
+
+同梱の llama-server は、最初の設定では `127.0.0.1:8080`（このパソコンの 8080 番の
+ポート。ポートは通信の窓口の番号です）を使います。**8080 番がほかのアプリで
+使われている場合は、環境変数 `LLAMA_PORT` で番号を変えてください**（アプリが
+つなぎに行く先も一緒に変わるので、指定はこれ 1 つで足ります）。
+
+```bash
+LLAMA_PORT=8099 ./start.sh
+```
+
+### 音声モデルを追加したい
+
+最初の設定では、音声モデル `0.vvm` だけを取得します。すべての音声モデルを
+取得するには、次のコマンドを実行してください。
+
+```bash
+uv run python scripts/setup_voicevox.py --models-pattern "*"
+```
+
+### 別の環境（別の OS）へ移したい
+
+`voicevox_core/` の中身は、次のように分かれています。
+
+| フォルダ | 内容 | OS ごとに違うか |
+|---|---|---|
+| `c_api/` | VOICEVOX CORE の本体 | 違う |
+| `onnxruntime/` | 音声を作る計算に使う部品（推論ランタイム） | 違う |
+| `dict/` | 読み方の辞書（Open JTalk 辞書） | 同じ |
+| `models/` | 音声モデル `.vvm` | 同じ |
+
+移す先の OS 向けのファイルは、今の環境から前もって取得できます。
+
+```bash
+uv run python scripts/setup_voicevox.py --os windows --cpu-arch x64
+```
+
+`.venv/`（uv が作る Python の環境）は OS ごとに違うため、そのままコピーしても
+使えません。移した先で `uv sync` を実行してください。
+
+### マイクが使えない（別のパソコンからつないだとき）
+
+`localhost` 以外のアドレス（LAN の IP アドレスなど）へ、暗号化しない通信
+（`http://` で始まるアドレス）でつなぐと、ブラウザがマイクを使わせてくれません。
+ほかのパソコンから使うときは、暗号化した通信（HTTPS）で公開する必要があります
+（[docs/deployment.md](docs/deployment.md) をご覧ください）。
+
+### 連続対話がオンにできない
+
+連続対話では、マイクの音を音声認識に直接渡す機能（Web Speech API の
+`start(audioTrack)`）を使っています。今のところ、この機能に対応しているのは、
+新しい版の Chrome と Edge だけです。連続対話をオンにすると、お使いのブラウザで
+使えるかを確かめ、使えなければ「このブラウザは対応していませんでした」と出して、
+オフに戻します。その場合は、マイクのボタンを押すたびに 1 回聞き取る使い方に
+なります。
 
 ## クレジット表記について
 
-VOICEVOX の利用規約により、生成した音声を利用する際は **VOICEVOX を利用したことが
-わかるクレジット表記が必要**。使用したキャラクターごとの表記も求められる。
+VOICEVOX の利用規約により、作った音声を使うときは、**VOICEVOX を使ったことが
+わかるクレジット表記が必要です**。使ったキャラクターごとの表記も求められます。
 
 > VOICEVOX:四国めたん
 
-画面右下に表示している（[public/index.html](public/index.html) の `#credit`）。
-話者を変更した場合は表示も追従する。
+VRMTalker では、この表記を画面左上に表示しています（[public/index.html](public/index.html)
+の `#credit`）。話者を変えると、表記も合わせて変わります。
 
-各音声ライブラリの規約は
-[VOICEVOX 公式サイト](https://voicevox.hiroshiba.jp/) および
-`voicevox_core/models/TERMS.txt` を参照すること。
+各音声ライブラリの規約は、[VOICEVOX 公式サイト](https://voicevox.hiroshiba.jp/)
+と `voicevox_core/models/TERMS.txt` をご覧ください。
 
 ## ライセンス
 
-- VOICEVOX CORE 0.16 以降のビルド済みコアライブラリ: MIT License
-  （0.16 未満は別ライセンスなので注意）
-- ポーズとジェスチャーの定義（`talkinghead-templates.js`）:
+このプロジェクトのソースコードは [MIT License](LICENSE) です。同梱しているもの、
+セットアップで取得するもののライセンスは次のとおりです。
+
+- VOICEVOX CORE 0.16 以降のビルド済みコアライブラリ：MIT License
+  （0.16 より前の版は、別のライセンスなのでご注意ください）
+- ポーズとジェスチャーの定義（`talkinghead-templates.js`）：
   [TalkingHead](https://github.com/met4citizen/TalkingHead) の MIT License
-  （Copyright (c) 2023-2024 Mika Suominen）。許諾表示はファイルの先頭にある
-- 音声モデル・音声ライブラリ: 上記「クレジット表記について」を参照
-- `public/vendor/` のライブラリ: three.js・three-vrm・three-vrm-animation・marked・
+  （Copyright (c) 2023-2024 Mika Suominen）。許諾の表示はファイルの先頭にあります
+- 音声モデル・音声ライブラリ：上の「クレジット表記について」をご覧ください
+- `public/vendor/` のライブラリ：three.js・three-vrm・three-vrm-animation・marked・
   ONNX Runtime Web・Silero VAD のモデルは MIT License、
-  Blockly（画像・効果音を含む）は Apache License 2.0。
-  ライセンスの写しを、それぞれのフォルダに置いてある
-
-## 構成
-
-アプリケーションのソースは `src/` にまとめ、ルートには利用者が直接実行するもの
-（エントリポイントの `main.py` とセットアップスクリプト）だけを置いている。
-
-`src/` はパッケージルートとして venv に入る（`pyproject.toml` の
-`[tool.hatch.build.targets.wheel]` を参照）ため、`main.py` からは
-`import tts` / `from llm import ...` のように書ける。
-
-```
-main.py                     FastAPI アプリ（エントリポイント）
-scripts/
-  setup_voicevox.py         VOICEVOX 一式の取得
-  setup_llama.py            llama.cpp と GGUF モデルの取得
-  setup_vendor.py           ブラウザで使うライブラリの取得（public/vendor/）
-src/
-  project_paths.py          プロジェクトルートの解決
-  tts.py                    VOICEVOX CORE のラッパー
-  llama_server.py           同梱 llama-server の起動・停止
-  llm/
-    base.py                 ChatModel（抽象基底）と Message
-    openai_compat.py        OpenAI 互換 API の実装
-    echo.py                 LLM 無しで動かすダミー実装
-    __init__.py             環境変数から実装を組み立てる
-data/                       公開されたアクション（配布物には含めない）
-public/
-  index.html
-  actions.json              同梱のアクション（読み取り専用の見本）
-  acknowledgment.md         素材とソフトウェアの出典
-  animations/  emotes/  sounds/  voices/  backgrounds/  models/   素材と、その定義ファイル
-  icons/                    画面に出す絵（考え中の吹き出し）と、使い回すアイコン（icon-list.svg）
-  vendor/                   ブラウザで使うライブラリ（版ごとのフォルダ。ライセンスの写し付き）
-  styles/
-    blockly.css             Blockly の見た目（他のプロジェクトでも使える分）
-  js/
-    app.js                  アプリ全体の組み立て
-    app-conversation.js     会話の進行（節目をイベントで出す）
-    app-avatar-actions.js   節目ごとの動き（手書き。JSON が無いときの控え）
-    app-avatar-api.js       アクションから呼べる関数（＝ブロック 1 個ぶん）
-    app-action-program.js   ブロックの JSON を読んで動かす
-    app-action-runner.js    アクションの実行と中断
-    app-blocks.js           ブロックの文言・形・パレット
-    app-block-editor.js     編集画面（Blockly の組み立てと読み書き）
-    app-block-warnings.js   つまずきやすい組み方に、編集画面で警告を付ける
-    app-motions.js          motions.json の読み込み
-    poses.js                poses.json / gestures.json の読み込み
-    sound-player.js         効果音
-    voices.js               ボイスデータの一覧
-    background.js           背景の切り替え
-    icons.js                icon-list.svg のアイコンを要素として作る
-    emotion.js              返事の感情（LLM が付ける絵文字）の読み取り
-    app-settings.js         設定ウインドウの中身
-    app-credits.js          謝辞（出典とモデル情報）
-    speech-synthesizer.js   /api/tts のクライアント
-    chat-client.js          /api/chat のクライアント（文単位で返す）
-    split-sentence.js       文の分割
-    three-ui/               3D まわりのカスタム要素
-      three-world-element.js  <three-world>  three.js の描画環境
-      vrm-avatar-element.js   <vrm-avatar>   VRM モデルの配置と制御
-      vrm-avatar-element/     VRM 固有の処理（ローダ、モーション、リップシンク、
-                              ポーズとジェスチャー）
-      vrm-head-sprite-element.js  頭の上に絵を出す要素の土台（次の 2 つが継承する）
-      vrm-emote-element.js    <vrm-emote>    頭の上のアイコン
-      vrm-thinking-element.js <vrm-thinking> 返事を考えている間の吹き出し
-    web-ui/                 画面部品のカスタム要素（吹き出し・設定・ダイアログ等）
-```
+  Blockly（画像・効果音を含む）は Apache License 2.0 です。
+  ライセンスの写しを、それぞれのフォルダに置いています
+- 素材（モデル・モーション・絵・音）：`public/acknowledgment.md`（画面のメニューの
+  「リソースの出典」）をご覧ください
